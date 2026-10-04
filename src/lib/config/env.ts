@@ -42,12 +42,20 @@ const EnvSchema = z.object({
   RAZORPAY_KEY_ID: optionalString,
   RAZORPAY_KEY_SECRET: optionalString,
   RAZORPAY_WEBHOOK_SECRET: optionalString,
-  PREMIUM_PRICE_AMOUNT: z.coerce.number().int().positive().default(499),
-  PREMIUM_PRICE_CURRENCY: z
-    .string()
-    .regex(/^[a-zA-Z]{3}$/)
-    .default("usd")
-    .transform((v) => v.toLowerCase()),
+  // The detailed-reading price lives in src/lib/monetization/price.ts.
+
+  // Internal economics (admin analytics only; estimates, never used for pricing or access)
+  ESTIMATED_BASIC_AI_COST_INR: z.coerce.number().min(0).max(1000).default(4),
+  // The detailed reading reuses the basic reading's AI output, so it has no extra AI cost today.
+  ESTIMATED_EXTENDED_AI_COST_INR: z.coerce.number().min(0).max(1000).default(0),
+  // Unknown until a provider/ad network is chosen: leave unset rather than guessing.
+  PAYMENT_FEE_PERCENT: z.coerce.number().min(0).max(100).optional(),
+  PAYMENT_FEE_FIXED_INR: z.coerce.number().min(0).max(1000).optional(),
+  AD_REVENUE_PER_1000_READINGS_INR: z.coerce.number().min(0).optional(),
+
+  // Ads: "placeholder" shows clearly-marked development boxes; no real network is integrated.
+  // Defaults to "placeholder" in development and "off" everywhere else.
+  ADS_MODE: z.enum(["off", "placeholder"]).optional(),
 
   // Storage
   STORAGE_PROVIDER: z.enum(["local", "s3", "memory"]).default("local"),

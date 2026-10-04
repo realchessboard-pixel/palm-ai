@@ -8,6 +8,7 @@ import { getEnv } from "@/lib/config/env";
 import { db } from "@/lib/db";
 import { AppError, isAppError } from "@/lib/http/errors";
 import { logger } from "@/lib/logger";
+import { trackFunnelEvent } from "@/lib/monetization/funnel";
 import { PipelineTimer, usageCounts } from "@/lib/perf/timing";
 import { availableFeatures } from "@/lib/palmistry/features";
 import { composeRuleBasedReading, matchRules } from "@/lib/palmistry/interpretation";
@@ -195,11 +196,20 @@ async function runInterpretation(
     );
 
     await timer.step("analytics", () =>
-      trackServerEvent("analysis_completed", {
-        userId: reading.userId,
-        readingId: reading.id,
-        properties: { provider: generated.provider, demo: reading.isDemo },
-      }),
+      Promise.all([
+        trackServerEvent("analysis_completed", {
+          userId: reading.userId,
+          readingId: reading.id,
+          properties: { provider: generated.provider, demo: reading.isDemo },
+        }),
+        trackFunnelEvent("basic_reading_completed", {
+          readingId: reading.id,
+          userId: reading.userId,
+          aiProvider: generated.provider,
+          model: generated.model,
+          isDemo: reading.isDemo,
+        }),
+      ]),
     );
     return { readingId, status: "COMPLETE" };
   } catch (error) {

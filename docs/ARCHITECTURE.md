@@ -79,7 +79,9 @@ UnlockButton → POST /api/payments/checkout → startCheckout()
    ├─ creates Payment(PENDING) → provider.createCheckout()
    ├─ Stripe: redirect to Checkout → success_url → confirmStripeReturn() (server-side check)
    ├─ Razorpay: order → Checkout.js → POST /api/payments/razorpay/verify (HMAC)
-   └─ Mock: fulfil immediately (dev/test only)
+   └─ Mock: sandbox page /checkout/sandbox/[paymentId] → POST /api/payments/mock/complete
+            (success | failure | cancel; owner-only; refused in production unless DEMO_MODE)
+Closed checkout → POST /api/payments/cancel or ?checkout=cancelled → PENDING → CANCELLED
 Webhooks → /api/payments/webhook/{stripe,razorpay} → handleWebhook()
    verify signature → idempotency check (ProcessedWebhookEvent) → fulfillPayment()
 fulfillPayment(): transaction · amount/currency match · PAID · grant Entitlement (unique per payment)

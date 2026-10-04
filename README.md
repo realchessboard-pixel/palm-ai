@@ -150,7 +150,9 @@ All variables are documented inline in [`.env.example`](.env.example) and valida
 | `PAYMENT_PROVIDER`                                                                       | `stripe`, `razorpay`, `mock` or `none`                              |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`                                             | Stripe                                                              |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`                      | Razorpay                                                            |
-| `PREMIUM_PRICE_AMOUNT`, `PREMIUM_PRICE_CURRENCY`                                         | Price in minor units, plus ISO currency                             |
+| `ESTIMATED_BASIC_AI_COST_INR`, `ESTIMATED_EXTENDED_AI_COST_INR`                          | Internal AI cost estimates for the admin economics (defaults 4 / 0) |
+| `PAYMENT_FEE_PERCENT`, `PAYMENT_FEE_FIXED_INR`, `AD_REVENUE_PER_1000_READINGS_INR`       | Optional; unset = "not configured" (never assumed)                  |
+| `ADS_MODE`                                                                               | `off` or `placeholder` (development ad boxes; no ad network)        |
 | `STORAGE_PROVIDER`                                                                       | `local`, `s3` or `memory`                                           |
 | `STORAGE_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | S3-compatible private bucket                                        |
 | `MAX_UPLOAD_BYTES`, `IMAGE_RETENTION_DAYS`                                               | Upload limit and guest data retention                               |
@@ -195,6 +197,40 @@ The Anthropic adapter opts into server-side refusal fallbacks (`fallbacks: "defa
 To add another vendor, implement the `AiProvider` interface in `src/lib/ai/types.ts` (one `complete()` method) and register it in `src/lib/ai/index.ts`. Nothing else in the app knows which vendor is in use.
 
 If the provider is missing or misconfigured, the API returns a friendly `AI_NOT_CONFIGURED` error (HTTP 503), and nothing is stored.
+
+## Monetization
+
+The basic reading is free. The **detailed reading costs ₹35**, set once in
+`src/lib/monetization/price.ts` (`EXTENDED_READING_PRICE_INR`); every label,
+checkout amount and analytics property derives from it.
+
+- **What's free:** the overview, personality and career summaries, the heart,
+  head and life line summaries, the palm map and the detected features.
+- **What ₹35 unlocks (for that one reading):** every section in depth, all
+  line, mount, finger and marking readings, and the PDF. It's projected from
+  the same stored interpretation, so unlocking makes no extra AI call.
+- **Access is decided on the server** by a `READING_PREMIUM` entitlement that
+  only a verified payment for that reading grants. Locked content is removed
+  before anything reaches the browser; query strings, client state and request
+  parameters can't unlock it, and a payment can only ever unlock the reading
+  it was created for.
+- **Payment states** shown to the customer: `UNPAID`, `PAYMENT_INITIATED`,
+  `PAYMENT_SUCCESS`, `PAYMENT_FAILED`, `PAYMENT_CANCELLED`. Only a verified
+  success unlocks.
+- **Guests** can buy without an account (the reading is tied to their browser);
+  signing up later moves their readings to the account.
+- **Funnel analytics:** `reading_started`, `basic_reading_completed`,
+  `extended_offer_viewed`, `extended_checkout_started`,
+  `extended_payment_success`, `extended_payment_failed` (with `reason`:
+  `failed`, `cancelled`, `amount_mismatch` or `checkout_error`) and
+  `extended_reading_unlocked`, each with `reading_id`, `price_inr`,
+  `currency`, `ai_provider`, `model`, `is_demo` and `guest` — no personal data.
+- **Economics:** the admin dashboard shows the funnel, conversion, and revenue,
+  estimated AI cost, payment fees, ad revenue and gross contribution in total
+  and per 1,000 users. Mock/demo payments are excluded from revenue.
+- **Ads:** `<AdSlot placement="free-reading-result" />` marks where ads may go
+  on free results (never during upload or analysis). No ad network is
+  integrated; in development it renders a labelled placeholder.
 
 ## Payment setup
 
@@ -261,6 +297,9 @@ Integration tests need `TEST_DATABASE_URL`. **That database is truncated by the 
 | `tests/integration/auth.test.ts`            | Signup, login, logout, sessions, rate limiting, account deletion                                                                |
 | `tests/integration/palm-pipeline.test.ts`   | Upload validation; reading creation and retrieval; access control; AI rejection, timeouts and invalid JSON; grounding; deletion |
 | `tests/integration/payments.test.ts`        | Entitlements; mock, Stripe and Razorpay checkout; webhook verification and idempotency; PDF gating                              |
+| `tests/integration/monetization.test.ts`    | Free → ₹35 flow; failed, cancelled and verified payments; cross-reading replay; manipulation; funnel events                     |
+| `tests/unit/monetization.test.tsx`          | Central price, economics maths, ad slot, the detailed-reading offer and payment-state notices                                   |
+| `tests/unit/pipeline-performance.test.ts`   | Image preprocessing, timing logs, thinking levels, prompt trimming, duplicate-request protection                                |
 | `tests/integration/admin-and-ops.test.ts`   | Admin access, stats, the analytics allow-list, the cleanup job                                                                  |
 | `tests/components/reading-journey.test.tsx` | Hand selection, file validation, quality blocking, consent, progress steps, free and premium results                            |
 

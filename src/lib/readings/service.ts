@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { hasPremiumAccess } from "@/lib/entitlements";
 import { AppError } from "@/lib/http/errors";
 import { logger } from "@/lib/logger";
+import { readingPaymentState } from "@/lib/payments/payment-state";
 import { PalmAnalysisSchema, type PalmAnalysis } from "@/lib/schemas/palm-analysis";
 import {
   PalmInterpretationSchema,
@@ -45,8 +46,12 @@ export function parseStoredInterpretation(data: unknown): PalmInterpretation | n
 
 export async function getReadingView(id: string, actor: Actor): Promise<ReadingView> {
   const reading = await getOwnedReading(id, actor);
-  const premium = await hasPremiumAccess({ readingId: reading.id, ownerUserId: reading.userId });
+  const [premium, paymentState] = await Promise.all([
+    hasPremiumAccess({ readingId: reading.id, ownerUserId: reading.userId }),
+    readingPaymentState(reading.id),
+  ]);
   return buildReadingView({
+    paymentState,
     reading,
     analysis: reading.analysis ? parseStoredAnalysis(reading.analysis.data) : null,
     interpretation: reading.interpretation

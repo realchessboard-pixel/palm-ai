@@ -10,7 +10,8 @@ import { AppError } from "@/lib/http/errors";
 import { logger } from "@/lib/logger";
 import { getOwnedReading } from "@/lib/readings/service";
 import { getPaymentProvider, getProviderByName, razorpayProvider, stripeProvider } from "./index";
-import { premiumPrice } from "./pricing";
+import { funnelContext, trackFunnelEvent } from "@/lib/monetization/funnel";
+import { extendedReadingPrice, paymentsEnabled } from "./pricing";
 import type { CheckoutSession, PaymentProviderName, WebhookEvent } from "./types";
 import { WebhookSignatureError } from "./types";
 
@@ -27,9 +28,31 @@ export type CheckoutResponse =
       description: string;
     };
 
-const DESCRIPTION = `${siteConfig.name} full palm reading report`;
+const DESCRIPTION = `${siteConfig.name} detailed palm reading`;
 
-/** Begin a purchase of the full report for one reading the actor owns. */
+/** Funnel analytics for a payment; mock (test) payments are always flagged as demo. */
+async function trackPaymentEvent(
+  name:
+    | "extended_checkout_started"
+    | "extended_payment_success"
+    | "extended_payment_failed"
+    | "extended_reading_unlocked",
+  payment: { readingId: string | null; provider: PaymentProviderName },
+  extra: Record<string, string | number | boolean> = {},
+): Promise<void> {
+  if (!payment.readingId) return;
+  const context = await funnelContext(payment.readingId, {
+    testPayment: payment.provider === "MOCK",
+  });
+  if (context)
+    await trackFunnelEvent(name, context, { payment_provider: payment.provider, ...extra });
+}
+
+/**
+ * Begin a purchase of the detailed reading for ONE reading the actor owns. The
+ * reading id and price are fixed server-side on the payment record, so a
+ * payment can only ever unlock the reading it was created for.
+ */
 export async function startCheckout(readingId: string, actor: Actor): Promise<CheckoutResponse> {
   const reading = await getOwnedReading(readingId, actor);
   if (reading.status !== "COMPLETE") {
@@ -40,7 +63,7 @@ export async function startCheckout(readingId: string, actor: Actor): Promise<Ch
   }
 
   const provider = getPaymentProvider();
-  const price = premiumPrice();
+  const price = extendedReadingPrice();
   const payment = await db.payment.create({
     data: {
       provider: provider.name,
@@ -66,12 +89,14 @@ export async function startCheckout(readingId: string, actor: Actor): Promise<Ch
     });
   } catch (error) {
     await db.payment.update({ where: { id: payment.id }, data: { status: "FAILED" } });
+    await trackPaymentEvent("extended_payment_failed", payment, { reason: "checkout_error" });
     throw error instanceof AppError ? error : new AppError("PAYMENT_ERROR", { internal: error });
   }
   await db.payment.update({
     where: { id: payment.id },
     data: { providerRef: session.providerRef },
   });
+  await trackPaymentEvent("extended_checkout_started", payment);
 
   switch (session.type) {
     case "completed":
@@ -134,24 +159,90 @@ export async function fulfillPayment(input: {
     return "fulfilled" as const;
   });
 
-  if (outcome === "fulfilled") {
+  if (outcome === "fulfilled" || outcome === "mismatch") {
     const payment = await db.payment.findUnique({ where: { providerRef: input.providerRef } });
-    await trackServerEvent("purchase_completed", {
-      userId: payment?.userId,
-      readingId: payment?.readingId,
-      properties: { provider: payment?.provider ?? "unknown", amount: payment?.amount ?? 0 },
-    });
-  } else if (outcome !== "already_fulfilled") {
+    if (payment && outcome === "fulfilled") {
+      await trackServerEvent("purchase_completed", {
+        userId: payment.userId,
+        readingId: payment.readingId,
+        properties: { provider: payment.provider, amount: payment.amount },
+      });
+      await trackPaymentEvent("extended_payment_success", payment);
+      await trackPaymentEvent("extended_reading_unlocked", payment);
+    } else if (payment) {
+      await trackPaymentEvent("extended_payment_failed", payment, { reason: "amount_mismatch" });
+    }
+  }
+  if (outcome !== "fulfilled" && outcome !== "already_fulfilled") {
     logger.error("payment_fulfillment_problem", { outcome, providerRef: input.providerRef });
   }
   return outcome;
 }
 
+/** A pending payment failed at the provider. The reading stays locked. */
 export async function failPayment(providerRef: string): Promise<void> {
-  await db.payment.updateMany({
+  const updated = await db.payment.updateMany({
     where: { providerRef, status: "PENDING" },
     data: { status: "FAILED" },
   });
+  if (updated.count > 0) {
+    const payment = await db.payment.findUnique({ where: { providerRef } });
+    if (payment) await trackPaymentEvent("extended_payment_failed", payment, { reason: "failed" });
+  }
+}
+
+/**
+ * The customer closed or abandoned checkout for a reading they own. Pending
+ * payments are marked CANCELLED; the reading stays locked. (If the provider
+ * later reports the payment as paid after all, fulfilment still applies.)
+ */
+export async function cancelPendingCheckout(readingId: string, actor: Actor): Promise<void> {
+  const reading = await getOwnedReading(readingId, actor);
+  const pending = await db.payment.findMany({
+    where: { readingId: reading.id, status: "PENDING" },
+    select: { id: true, readingId: true, provider: true },
+  });
+  if (pending.length === 0) return;
+  await db.payment.updateMany({
+    where: { id: { in: pending.map((p) => p.id) }, status: "PENDING" },
+    data: { status: "CANCELLED" },
+  });
+  await trackPaymentEvent("extended_payment_failed", pending[0]!, { reason: "cancelled" });
+}
+
+/**
+ * Settle a sandbox (mock) checkout. Only the reading's owner can do this, only
+ * while the mock provider is active and allowed (never in production unless
+ * DEMO_MODE), and only for a pending MOCK payment. No money is involved.
+ */
+export async function completeMockPayment(
+  paymentId: string,
+  outcome: "success" | "failure" | "cancel",
+  actor: Actor,
+): Promise<{ readingId: string }> {
+  if (getEnv().PAYMENT_PROVIDER !== "mock" || !paymentsEnabled()) {
+    throw new AppError("NOT_FOUND");
+  }
+  const payment = await db.payment.findUnique({ where: { id: paymentId } });
+  if (!payment || payment.provider !== "MOCK" || !payment.readingId || !payment.providerRef) {
+    throw new AppError("NOT_FOUND");
+  }
+  await getOwnedReading(payment.readingId, actor);
+  if (payment.status !== "PENDING") {
+    throw new AppError("CONFLICT", { message: "This checkout has already finished." });
+  }
+  if (outcome === "success") {
+    await fulfillPayment({
+      providerRef: payment.providerRef,
+      amount: payment.amount,
+      currency: payment.currency,
+    });
+  } else if (outcome === "failure") {
+    await failPayment(payment.providerRef);
+  } else {
+    await cancelPendingCheckout(payment.readingId, actor);
+  }
+  return { readingId: payment.readingId };
 }
 
 /** Verify and apply a provider webhook. Duplicate deliveries are ignored. */

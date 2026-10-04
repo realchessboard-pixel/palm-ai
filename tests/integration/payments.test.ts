@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST as analyze } from "@/app/api/palm/analyze/route";
 import { POST as interpret } from "@/app/api/palm/interpret/route";
 import { POST as checkout } from "@/app/api/payments/checkout/route";
+import { POST as mockComplete } from "@/app/api/payments/mock/complete/route";
 import { POST as razorpayVerify } from "@/app/api/payments/razorpay/verify/route";
 import { POST as razorpayWebhook } from "@/app/api/payments/webhook/razorpay/route";
 import { POST as stripeWebhook } from "@/app/api/payments/webhook/stripe/route";
@@ -71,7 +72,7 @@ describe.skipIf(!hasTestDatabase)("payments and entitlements", () => {
     setEnv({ PAYMENT_PROVIDER: "mock" });
   });
 
-  it("unlocks premium content only after a completed payment", async () => {
+  it("unlocks premium content only after a completed (sandbox) payment", async () => {
     const jar = new CookieJar();
     const readingId = await completedReading(jar);
     const before = await view(readingId, jar);
@@ -88,10 +89,26 @@ describe.skipIf(!hasTestDatabase)("payments and entitlements", () => {
       makeRequest("/api/payments/checkout", { json: { readingId }, jar }),
       ctx,
     );
-    expect(await json(res)).toEqual({ type: "completed" });
+    const started = await json<{ type: string; url: string }>(res);
+    expect(started.type).toBe("redirect");
+    const paymentId = started.url.split("/checkout/sandbox/")[1]!;
+    expect((await view(readingId, jar)).premium).toBe(false); // initiated ≠ paid
+
+    const settled = await mockComplete(
+      makeRequest("/api/payments/mock/complete", {
+        json: { paymentId, outcome: "success" },
+        jar,
+      }),
+      ctx,
+    );
+    expect(await json(settled)).toEqual({
+      readingId,
+      redirect: `/readings/${readingId}?checkout=success`,
+    });
 
     const after = await view(readingId, jar);
     expect(after.premium).toBe(true);
+    expect(after.paymentState).toBe("PAYMENT_SUCCESS");
     expect(after.locked).toBeNull();
     expect(after.interpretation!.mounts.length).toBeGreaterThan(0);
     expect(after.interpretation!.sections.every((s) => s.details)).toBe(true);
@@ -182,14 +199,14 @@ describe.skipIf(!hasTestDatabase)("payments and entitlements", () => {
       expect(url).toBe("https://api.stripe.com/v1/checkout/sessions");
       expect((init.headers as Record<string, string>).Authorization).toBe("Bearer sk_test_x");
       const form = new URLSearchParams(String(init.body));
-      expect(form.get("line_items[0][price_data][unit_amount]")).toBe("499");
+      expect(form.get("line_items[0][price_data][unit_amount]")).toBe("3500");
       expect(form.get("metadata[readingId]")).toBe(readingId);
 
       const session = {
         id: "cs_test_123",
         payment_status: "paid",
-        amount_total: 499,
-        currency: "usd",
+        amount_total: 3500,
+        currency: "inr",
       };
       const hook = await stripeWebhook(
         stripeEvent("evt_1", "checkout.session.completed", session),
@@ -215,7 +232,12 @@ describe.skipIf(!hasTestDatabase)("payments and entitlements", () => {
         id: "evt_forged",
         type: "checkout.session.completed",
         data: {
-          object: { id: "cs_test_123", payment_status: "paid", amount_total: 499, currency: "usd" },
+          object: {
+            id: "cs_test_123",
+            payment_status: "paid",
+            amount_total: 3500,
+            currency: "inr",
+          },
         },
       });
       const res = await stripeWebhook(
@@ -240,7 +262,7 @@ describe.skipIf(!hasTestDatabase)("payments and entitlements", () => {
         id: "cs_test_123",
         payment_status: "paid",
         amount_total: 1,
-        currency: "usd",
+        currency: "inr",
       };
       await stripeWebhook(stripeEvent("evt_2", "checkout.session.completed", session), ctx);
       expect((await view(readingId, jar)).premium).toBe(false);
@@ -279,7 +301,7 @@ describe.skipIf(!hasTestDatabase)("payments and entitlements", () => {
 
     async function startOrder(jar: CookieJar, readingId: string) {
       vi.spyOn(globalThis, "fetch").mockResolvedValue(
-        new Response(JSON.stringify({ id: "order_ABC", amount: 499, currency: "USD" })),
+        new Response(JSON.stringify({ id: "order_ABC", amount: 3500, currency: "INR" })),
       );
       const res = await checkout(
         makeRequest("/api/payments/checkout", { json: { readingId }, jar }),
@@ -329,7 +351,9 @@ describe.skipIf(!hasTestDatabase)("payments and entitlements", () => {
       const body = JSON.stringify({
         event: "payment.captured",
         payload: {
-          payment: { entity: { id: "pay_9", order_id: "order_ABC", amount: 499, currency: "USD" } },
+          payment: {
+            entity: { id: "pay_9", order_id: "order_ABC", amount: 3500, currency: "INR" },
+          },
         },
       });
       const unsigned = await razorpayWebhook(

@@ -90,7 +90,17 @@ export function UnlockButton({ readingId, priceLabel }: { readingId: string; pri
             setBusy(false);
           }
         },
-        modal: { ondismiss: () => setBusy(false) },
+        modal: {
+          ondismiss: () => {
+            // Closing the window cancels this attempt; the reading stays locked.
+            void postJson("/api/payments/cancel", { readingId })
+              .catch(() => undefined)
+              .finally(() => {
+                setBusy(false);
+                router.refresh();
+              });
+          },
+        },
       });
       rzp.open();
       return;
@@ -107,7 +117,7 @@ export function UnlockButton({ readingId, priceLabel }: { readingId: string; pri
   return (
     <div className="space-y-3">
       <Button size="lg" className="w-full sm:w-auto" onClick={unlock} disabled={busy}>
-        {busy ? "Opening checkout…" : `Unlock full report · ${priceLabel}`}
+        {busy ? "Opening checkout…" : `Unlock Detailed Reading — ${priceLabel}`}
       </Button>
       {error ? <Alert tone="error">{error}</Alert> : null}
     </div>

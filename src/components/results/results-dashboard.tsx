@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DeleteReadingButton } from "@/components/account/delete-reading-button";
+import { AdSlot, type AdMode } from "@/components/ads/ad-slot";
 import { ButtonLink } from "@/components/ui/button";
 import { Disclaimer } from "@/components/ui/disclaimer";
 import { Alert, Card } from "@/components/ui/misc";
@@ -21,6 +22,8 @@ export interface ResultsDashboardProps {
   sample?: boolean;
   /** Analysis is done but the interpretation is still being written (shown progressively). */
   interpretationPending?: boolean;
+  /** Ads for free readings: "off" (default) or a development placeholder. */
+  adMode?: AdMode;
 }
 
 export function ResultsDashboard({
@@ -30,6 +33,7 @@ export function ResultsDashboard({
   signedIn,
   sample = false,
   interpretationPending = false,
+  adMode = "off",
 }: ResultsDashboardProps) {
   const interpretation = reading.interpretation;
   const date = new Date(reading.createdAt).toLocaleDateString("en", { dateStyle: "long" });
@@ -47,7 +51,7 @@ export function ResultsDashboard({
           <h1 className="mt-2 text-4xl text-parchment sm:text-5xl">Your Palm Reading</h1>
           <p className="mt-2 text-mist">
             {reading.hand === "left" ? "Left" : "Right"} hand analyzed
-            {reading.premium ? " · Full report" : " · Free reading"}
+            {reading.premium ? " · Detailed reading" : " · Basic reading"}
           </p>
         </div>
         {sample ? (
@@ -207,12 +211,17 @@ export function ResultsDashboard({
       ) : null}
 
       {reading.locked && !interpretationPending ? (
-        <PremiumPanel
-          readingId={reading.id}
-          locked={reading.locked}
-          priceLabel={priceLabel}
-          paymentsEnabled={paymentsEnabled}
-        />
+        <>
+          {/* Free results only, after the reading itself — never during analysis or loading. */}
+          {sample ? null : <AdSlot placement="free-reading-result" mode={adMode} />}
+          <PremiumPanel
+            readingId={reading.id}
+            locked={reading.locked}
+            priceLabel={priceLabel}
+            paymentsEnabled={paymentsEnabled}
+            paymentState={reading.paymentState}
+          />
+        </>
       ) : null}
 
       {sample ? (

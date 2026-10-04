@@ -17,6 +17,14 @@ export const ANALYTICS_EVENTS = [
   "checkout_started",
   "purchase_completed",
   "report_downloaded",
+  // Monetization funnel: free basic reading → paid detailed reading.
+  "reading_started",
+  "basic_reading_completed",
+  "extended_offer_viewed",
+  "extended_checkout_started",
+  "extended_payment_success",
+  "extended_payment_failed",
+  "extended_reading_unlocked",
 ] as const;
 
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];

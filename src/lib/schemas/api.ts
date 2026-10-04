@@ -33,6 +33,11 @@ export const IdSchema = z
 
 export const ReadingIdBody = z.object({ readingId: IdSchema });
 
+export const MockPaymentOutcomeSchema = z.object({
+  paymentId: IdSchema,
+  outcome: z.enum(["success", "failure", "cancel"]),
+});
+
 export const HandSchema = z.enum(["left", "right"]);
 
 /** Multipart fields accompanying the uploaded image. */

@@ -9,6 +9,7 @@ import { AppError, isAppError } from "@/lib/http/errors";
 import { processPalmImage } from "@/lib/image/process";
 import { QUALITY_MESSAGES } from "@/lib/image/quality";
 import { logger } from "@/lib/logger";
+import { trackFunnelEvent } from "@/lib/monetization/funnel";
 import { PipelineTimer, usageCounts } from "@/lib/perf/timing";
 import { availableFeatures } from "@/lib/palmistry/features";
 import { deleteReadingImages } from "@/lib/readings/service";
@@ -170,11 +171,20 @@ async function runAnalysis(input: AnalyzeInput, timer: PipelineTimer): Promise<A
 
   // Analytics never fails (trackServerEvent swallows errors), so it runs alongside the
   // vision call instead of in front of it; it is awaited before returning.
-  const analyticsStarted = trackServerEvent("analysis_started", {
-    userId: input.userId,
-    readingId: reading.id,
-    properties: { provider: provider.name, hand: input.hand },
-  });
+  const analyticsStarted = Promise.all([
+    trackServerEvent("analysis_started", {
+      userId: input.userId,
+      readingId: reading.id,
+      properties: { provider: provider.name, hand: input.hand },
+    }),
+    trackFunnelEvent("reading_started", {
+      readingId: reading.id,
+      userId: input.userId,
+      aiProvider: provider.name,
+      model: analysisModel(provider),
+      isDemo: provider.isMock,
+    }),
+  ]);
 
   let result;
   try {

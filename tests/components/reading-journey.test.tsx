@@ -154,7 +154,7 @@ describe("results dashboard", () => {
     render(
       <ResultsDashboard
         reading={readingView(false)}
-        priceLabel="$4.99"
+        priceLabel="₹35"
         paymentsEnabled
         signedIn={false}
       />,
@@ -171,7 +171,7 @@ describe("results dashboard", () => {
     render(
       <ResultsDashboard
         reading={readingView(false)}
-        priceLabel="$4.99"
+        priceLabel="₹35"
         paymentsEnabled
         signedIn={false}
       />,
@@ -181,14 +181,19 @@ describe("results dashboard", () => {
     expect(screen.getByRole("heading", { name: "Your Heart line" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Palm mounts" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Money & Success" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Unlock full report · $4.99" })).toBeInTheDocument();
+    expect(screen.getByText("Your Basic Reading Is Ready")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Want the complete picture?" })).toBeInTheDocument();
+    expect(screen.getByText("₹35")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Unlock Detailed Reading — ₹35" }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Download PDF report" })).not.toBeInTheDocument();
     expect(screen.getByText(/Create a free account/)).toBeInTheDocument();
   });
 
   it("premium readings show every section and the PDF download", () => {
     render(
-      <ResultsDashboard reading={readingView(true)} priceLabel="$4.99" paymentsEnabled signedIn />,
+      <ResultsDashboard reading={readingView(true)} priceLabel="₹35" paymentsEnabled signedIn />,
     );
     for (const name of [
       "Love & Relationships",
@@ -204,7 +209,9 @@ describe("results dashboard", () => {
       "href",
       "/api/readings/r1/report",
     );
-    expect(screen.queryByRole("button", { name: /Unlock full report/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Unlock Detailed Reading/ }),
+    ).not.toBeInTheDocument();
     expect(screen.getAllByText("Based on:").length).toBeGreaterThan(3);
   });
 
@@ -217,7 +224,7 @@ describe("results dashboard", () => {
       mismatch: true,
       strongMismatch: true,
     };
-    render(<ResultsDashboard reading={view} priceLabel="$4.99" paymentsEnabled signedIn={false} />);
+    render(<ResultsDashboard reading={view} priceLabel="₹35" paymentsEnabled signedIn={false} />);
     expect(screen.getByText("Please confirm your photo")).toBeInTheDocument();
     expect(
       screen.getByText(/You selected your right hand, but the photo may show a left hand/),
@@ -238,7 +245,7 @@ describe("results dashboard", () => {
       mismatch: true,
       strongMismatch: false,
     };
-    render(<ResultsDashboard reading={view} priceLabel="$4.99" paymentsEnabled signedIn={false} />);
+    render(<ResultsDashboard reading={view} priceLabel="₹35" paymentsEnabled signedIn={false} />);
     expect(screen.queryByText("Please confirm your photo")).not.toBeInTheDocument();
   });
 
@@ -246,7 +253,7 @@ describe("results dashboard", () => {
     render(
       <ResultsDashboard
         reading={readingView(false)}
-        priceLabel="$4.99"
+        priceLabel="₹35"
         paymentsEnabled
         signedIn={false}
       />,
@@ -263,7 +270,7 @@ describe("progressive results", () => {
     render(
       <ResultsDashboard
         reading={view}
-        priceLabel="$4.99"
+        priceLabel="₹35"
         paymentsEnabled
         signedIn={false}
         interpretationPending

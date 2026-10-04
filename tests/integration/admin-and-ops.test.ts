@@ -67,7 +67,9 @@ describe.skipIf(!hasTestDatabase)("admin, analytics and maintenance", () => {
       freeReadings: 1,
       conversionRate: 0.5,
       aiErrors30d: 1,
-      revenue: [{ currency: "usd", amount: 499 }],
+      // Mock (sandbox) payments are never revenue; they're reported separately.
+      revenue: [],
+      testPayments: 1,
     });
     expect(stats.readingsLast7Days).toHaveLength(7);
     expect(stats.readingsLast7Days.at(-1)!.count).toBe(3);

@@ -10,9 +10,21 @@ export function track(
   name: AnalyticsEventName,
   properties?: Record<string, string | number | boolean>,
 ): void {
+  send({ name, properties });
+}
+
+/**
+ * A funnel event about one of the visitor's readings. The server checks
+ * ownership and fills in the standard properties itself.
+ */
+export function trackReadingEvent(name: "extended_offer_viewed", readingId: string): void {
+  send({ name, readingId });
+}
+
+function send(event: Record<string, unknown>): void {
   if (typeof window === "undefined") return;
   try {
-    const body = JSON.stringify({ name, properties });
+    const body = JSON.stringify(event);
     // keepalive lets the request finish even when the page is navigating away.
     void fetch("/api/events", {
       method: "POST",

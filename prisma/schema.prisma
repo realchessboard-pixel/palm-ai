@@ -41,6 +41,8 @@ enum PaymentStatus {
   PENDING
   PAID
   FAILED
+  /// The customer closed or abandoned checkout. The reading stays locked.
+  CANCELLED
   REFUNDED
 }
 

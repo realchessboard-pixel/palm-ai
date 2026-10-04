@@ -16,6 +16,10 @@ function money(amount: number, currency: string) {
   return formatter.format(amount / 10 ** digits);
 }
 
+function inr(amount: number) {
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(amount);
+}
+
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="card rounded-2xl p-5">
@@ -37,6 +41,7 @@ export default async function AdminPage() {
 
   const stats = await getAdminStats();
   const pct = (v: number) => `${Math.round(v * 1000) / 10}%`;
+  const e = stats.economics;
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-4 pt-10 pb-20 sm:px-6">
@@ -68,8 +73,87 @@ export default async function AdminPage() {
               ? stats.revenue.map((r) => money(r.amount, r.currency)).join(" · ")
               : "—"
           }
-          hint="Paid payments, all time"
+          hint={`Verified real payments, all time${stats.testPayments ? ` · ${stats.testPayments} test payment(s) excluded` : ""}`}
         />
+      </section>
+
+      <section aria-labelledby="economics-title" className="space-y-4">
+        <div>
+          <h2 id="economics-title" className="text-2xl">
+            Detailed-reading funnel &amp; unit economics
+          </h2>
+          <p className="mt-1 text-sm text-mist">
+            Real (non-demo) readings only. AI costs are configured estimates (
+            {inr(e.assumptions.basicAiCostInr)} per basic reading,{" "}
+            {inr(e.assumptions.extendedAiCostInr)} extra per detailed reading), not measured spend.
+            Internal — never shown to customers.
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Stat label="Readings started" value={stats.funnel.reading_started.toLocaleString()} />
+          <Stat
+            label="Basic readings completed"
+            value={stats.funnel.basic_reading_completed.toLocaleString()}
+          />
+          <Stat label="Offer viewed" value={stats.funnel.extended_offer_viewed.toLocaleString()} />
+          <Stat
+            label="Checkout started"
+            value={stats.funnel.extended_checkout_started.toLocaleString()}
+          />
+          <Stat
+            label="Detailed readings unlocked"
+            value={stats.funnel.extended_reading_unlocked.toLocaleString()}
+          />
+          <Stat
+            label="Failed or cancelled payments"
+            value={stats.funnel.extended_payment_failed.toLocaleString()}
+          />
+          <Stat
+            label="Purchase conversion"
+            value={pct(e.conversionRate)}
+            hint={`Paid at ${inr(e.assumptions.priceInr)} ÷ basic readings`}
+          />
+          <Stat label="Gross contribution" value={inr(e.totals.grossContributionInr)} />
+        </div>
+        <Card as="div" className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="text-mist">
+              <tr>
+                <th className="py-2 pr-4 font-normal">Metric</th>
+                <th className="py-2 pr-4 font-normal">Total</th>
+                <th className="py-2 font-normal">Per 1,000 users</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5 text-parchment/90">
+              {(
+                [
+                  ["Revenue", e.totals.revenueInr, e.per1000Users.revenueInr],
+                  ["AI cost (estimated)", e.totals.aiCostInr, e.per1000Users.aiCostInr],
+                  ["Payment fees", e.totals.paymentFeesInr, e.per1000Users.paymentFeesInr],
+                  ["Ad revenue", e.totals.adRevenueInr, e.per1000Users.adRevenueInr],
+                  [
+                    "Gross contribution",
+                    e.totals.grossContributionInr,
+                    e.per1000Users.grossContributionInr,
+                  ],
+                ] as const
+              ).map(([label, total, per1000]) => (
+                <tr key={label}>
+                  <td className="py-2 pr-4">{label}</td>
+                  <td className="py-2 pr-4">{total === null ? "not configured" : inr(total)}</td>
+                  <td className="py-2">{per1000 === null ? "not configured" : inr(per1000)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {e.missing.length ? (
+            <p className="mt-3 text-xs text-mist-dim">
+              Not yet configured, so excluded from the contribution:{" "}
+              {e.missing.map((m) => m.replace("_", " ")).join(", ")}. Set PAYMENT_FEE_PERCENT /
+              PAYMENT_FEE_FIXED_INR and AD_REVENUE_PER_1000_READINGS_INR once known.
+            </p>
+          ) : null}
+        </Card>
       </section>
 
       <div className="grid gap-6 lg:grid-cols-2">

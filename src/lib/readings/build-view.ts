@@ -1,5 +1,6 @@
 import { availableFeatures, featureLabel } from "@/lib/palmistry/features";
 import { INSUFFICIENT, LINE_NAMES, type PalmAnalysis } from "@/lib/schemas/palm-analysis";
+import type { PaymentState } from "@/lib/payments/states";
 import type { PalmInterpretation } from "@/lib/schemas/palm-interpretation";
 import { assessHandSide } from "./hand-side";
 import { projectInterpretation } from "./projection";
@@ -59,6 +60,7 @@ export function buildReadingView(input: {
   analysis: PalmAnalysis | null;
   interpretation: PalmInterpretation | null;
   premium: boolean;
+  paymentState?: PaymentState;
 }): ReadingView {
   const { reading, analysis, interpretation, premium } = input;
   const projected = interpretation ? projectInterpretation(interpretation, premium) : null;
@@ -82,9 +84,17 @@ export function buildReadingView(input: {
     analysisConfidence: reading.analysisConfidence,
     rejectionReason: reading.rejectionReason,
     premium,
+    // An entitlement (from a verified payment) is what unlocks; show it as paid even if the
+    // latest checkout attempt was abandoned.
+    paymentState: premium ? "PAYMENT_SUCCESS" : unlockedStateGuard(input.paymentState),
     lines: analysis ? lineObservations(analysis) : [],
     features,
     interpretation: projected?.interpretation ?? null,
     locked: projected?.locked ?? null,
   };
+}
+
+/** Without an entitlement a reading is never shown as paid, whatever the payment rows say. */
+function unlockedStateGuard(state: PaymentState | undefined): PaymentState {
+  return !state || state === "PAYMENT_SUCCESS" ? "UNPAID" : state;
 }

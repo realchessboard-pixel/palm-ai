@@ -6,9 +6,11 @@ import { ReadingStatusPanel } from "@/components/results/reading-status-panel";
 import { Alert } from "@/components/ui/misc";
 import { getActor } from "@/lib/auth/actor";
 import { isAppError } from "@/lib/http/errors";
-import { paymentsEnabled, premiumPrice } from "@/lib/payments/pricing";
-import { confirmStripeReturn } from "@/lib/payments/service";
+import { extendedReadingPrice, paymentsEnabled } from "@/lib/payments/pricing";
+import { adMode } from "@/lib/monetization/ads";
+import { cancelPendingCheckout, confirmStripeReturn } from "@/lib/payments/service";
 import { getReadingView } from "@/lib/readings/service";
+import type { ReadingView } from "@/lib/readings/view";
 import { IdSchema } from "@/lib/schemas/api";
 
 export const metadata: Metadata = {
@@ -30,7 +32,14 @@ export default async function ReadingPage({
   const actor = await getActor();
 
   // Returning from Stripe Checkout: confirm server-side (ownership is checked below).
+  // The query string only chooses a message — access always comes from the server's
+  // record of a verified payment.
   if (checkout === "success" && sessionId) await confirmStripeReturn(sessionId, id);
+  if (checkout === "cancelled") {
+    await cancelPendingCheckout(id, actor).catch((error) => {
+      if (!(isAppError(error) && error.code === "NOT_FOUND")) throw error;
+    });
+  }
 
   let reading;
   try {
@@ -56,27 +65,33 @@ export default async function ReadingPage({
       {interpretationPending ? null : (
         <TrackOnMount event="reading_viewed" properties={{ premium: reading.premium }} />
       )}
-      {checkout ? (
-        <div className="mx-auto max-w-5xl px-4 pt-6 sm:px-6">
-          {checkout === "success" && reading.premium ? (
-            <Alert tone="success">Thank you — your full report is unlocked.</Alert>
-          ) : checkout === "success" ? (
-            <Alert tone="info">
-              Your payment is being confirmed. This usually takes a few seconds — refresh the page
-              shortly.
-            </Alert>
-          ) : (
-            <Alert tone="info">Checkout was cancelled. You have not been charged.</Alert>
-          )}
-        </div>
-      ) : null}
+      {checkout ? <CheckoutNotice reading={reading} /> : null}
       <ResultsDashboard
         reading={reading}
-        priceLabel={premiumPrice().label}
+        priceLabel={extendedReadingPrice().label}
         paymentsEnabled={paymentsEnabled()}
         signedIn={Boolean(actor.user)}
         interpretationPending={interpretationPending}
+        adMode={adMode()}
       />
     </>
   );
+}
+
+/** After returning from checkout. Driven by the server's payment record, not the URL. */
+function CheckoutNotice({ reading }: { reading: ReadingView }) {
+  const notice = reading.premium ? (
+    <Alert tone="success">Thank you — your detailed reading is unlocked.</Alert>
+  ) : reading.paymentState === "PAYMENT_FAILED" ? (
+    <Alert tone="error">
+      Your payment didn&apos;t go through, so nothing was unlocked. You can try again below.
+    </Alert>
+  ) : reading.paymentState === "PAYMENT_CANCELLED" ? (
+    <Alert tone="info">Checkout was cancelled. You have not been charged.</Alert>
+  ) : reading.paymentState === "PAYMENT_INITIATED" ? (
+    <Alert tone="info">
+      Your payment is being confirmed. This usually takes a few seconds — refresh the page shortly.
+    </Alert>
+  ) : null;
+  return notice ? <div className="mx-auto max-w-5xl px-4 pt-6 sm:px-6">{notice}</div> : null;
 }

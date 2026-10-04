@@ -1,25 +1,26 @@
 import "server-only";
 import { getEnv } from "@/lib/config/env";
+import {
+  EXTENDED_READING_CURRENCY,
+  EXTENDED_READING_PRICE_INR,
+  EXTENDED_READING_PRICE_MINOR,
+  formatInr,
+} from "@/lib/monetization/price";
 
 export interface Price {
-  /** Minor units (e.g. cents / paise). */
+  /** Minor units (paise). */
   amount: number;
+  /** Lower-case ISO currency, as stored on payments. */
   currency: string;
   label: string;
 }
 
-export function premiumPrice(): Price {
-  const env = getEnv();
-  const currency = env.PREMIUM_PRICE_CURRENCY;
-  const formatter = new Intl.NumberFormat("en", {
-    style: "currency",
-    currency: currency.toUpperCase(),
-  });
-  const digits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
+/** The detailed-reading price, derived from the central config. */
+export function extendedReadingPrice(): Price {
   return {
-    amount: env.PREMIUM_PRICE_AMOUNT,
-    currency,
-    label: formatter.format(env.PREMIUM_PRICE_AMOUNT / 10 ** digits),
+    amount: EXTENDED_READING_PRICE_MINOR,
+    currency: EXTENDED_READING_CURRENCY.toLowerCase(),
+    label: formatInr(EXTENDED_READING_PRICE_INR),
   };
 }
 
