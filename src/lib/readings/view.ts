@@ -1,4 +1,5 @@
 import type { LineName } from "@/lib/schemas/palm-analysis";
+import type { HandSideCheck } from "@/lib/readings/hand-side";
 import type { LockedContent, ProjectedInterpretation } from "@/lib/readings/projection";
 
 /** Client-safe shape of a reading as returned by GET /api/readings/[id]. */
@@ -27,7 +28,10 @@ export interface FeatureView {
 
 export interface ReadingView {
   id: string;
+  /** Canonical hand side: always the user's selection. */
   hand: "left" | "right";
+  /** Comparison with the vision model's hand-side guess (check signal only). */
+  handCheck: HandSideCheck | null;
   status: ReadingStatusView;
   createdAt: string;
   isDemo: boolean;

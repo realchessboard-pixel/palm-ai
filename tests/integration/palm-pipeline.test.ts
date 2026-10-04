@@ -338,6 +338,51 @@ describe.skipIf(!hasTestDatabase)("palm analysis pipeline", () => {
       expect(stored.removedCount).toBeGreaterThan(0);
     });
 
+    it("keeps the user's selected hand when the vision model disagrees (selected RIGHT, model LEFT)", async () => {
+      const analysis = { ...sampleAnalysis("right"), hand: "left" as const, handConfidence: 0.95 };
+      const provider = new ScriptedProvider([
+        JSON.stringify(analysis),
+        JSON.stringify(composeRuleBasedReading(sampleAnalysis("right"))),
+      ]);
+      setAiProvider(provider);
+
+      const jar = new CookieJar();
+      const res = await postAnalyze(jar, await palmLikeImage(), { hand: "right" });
+      expect(res.status).toBe(201);
+      const { readingId } = await json<{ readingId: string }>(res);
+      expect(
+        (await interpret(makeRequest("/api/palm/interpret", { json: { readingId }, jar }), ctx))
+          .status,
+      ).toBe(200);
+
+      // Canonical hand is the selection; the model's guess is kept only as a raw observation.
+      const reading = await db.reading.findUniqueOrThrow({
+        where: { id: readingId },
+        include: { analysis: true, interpretation: true },
+      });
+      expect(reading.hand).toBe("RIGHT");
+      expect((reading.analysis!.data as { hand: string }).hand).toBe("left");
+      // Generated once — the mismatch doesn't trigger regeneration.
+      expect(reading.interpretation!.attempts).toBe(1);
+      expect(provider.requests).toHaveLength(2);
+
+      // Stage 2 was told the user's hand, not the model's guess.
+      expect(provider.requests[1].prompt).toContain("HAND: the user's RIGHT hand");
+      expect(provider.requests[1].prompt).not.toContain('"hand":"left"');
+
+      const view = await getReading(
+        makeRequest(`/api/readings/${readingId}`, { jar }),
+        params({ id: readingId }),
+      );
+      const { reading: body } = await json<{ reading: ReadingView }>(view);
+      expect(body.hand).toBe("right");
+      expect(body.handCheck).toMatchObject({
+        canonical: "right",
+        detected: "left",
+        strongMismatch: true,
+      });
+    });
+
     it("keeps the analysis when interpretation fails so it can be retried", async () => {
       setAiProvider(
         new ScriptedProvider([JSON.stringify(sampleAnalysis()), "garbage", "more garbage"]),

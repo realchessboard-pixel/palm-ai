@@ -183,6 +183,40 @@ describe("results dashboard", () => {
     expect(screen.getAllByText("Based on:").length).toBeGreaterThan(3);
   });
 
+  it("warns (without changing the hand) when the model strongly disagrees with the selection", () => {
+    const view = readingView(false);
+    view.handCheck = {
+      canonical: "right",
+      detected: "left",
+      detectedConfidence: 0.95,
+      mismatch: true,
+      strongMismatch: true,
+    };
+    render(<ResultsDashboard reading={view} priceLabel="$4.99" paymentsEnabled signedIn={false} />);
+    expect(screen.getByText("Please confirm your photo")).toBeInTheDocument();
+    expect(
+      screen.getByText(/You selected your right hand, but the photo may show a left hand/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Right hand analyzed/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "start a new reading" })).toHaveAttribute(
+      "href",
+      "/read",
+    );
+  });
+
+  it("shows no hand warning when the model agrees or is unsure", () => {
+    const view = readingView(false);
+    view.handCheck = {
+      canonical: "right",
+      detected: "left",
+      detectedConfidence: 0.3,
+      mismatch: true,
+      strongMismatch: false,
+    };
+    render(<ResultsDashboard reading={view} priceLabel="$4.99" paymentsEnabled signedIn={false} />);
+    expect(screen.queryByText("Please confirm your photo")).not.toBeInTheDocument();
+  });
+
   it("explains that the diagram is illustrative", () => {
     render(
       <ResultsDashboard

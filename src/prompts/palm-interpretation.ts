@@ -13,7 +13,7 @@ import {
  * model never sees the photo here, so it cannot introduce visual details that
  * stage 1 didn't report.
  */
-export const INTERPRETATION_PROMPT_VERSION = "palm-interpretation/2026-10-01";
+export const INTERPRETATION_PROMPT_VERSION = "palm-interpretation/2026-10-04";
 
 export const INTERPRETATION_SYSTEM_PROMPT = `You write thoughtful, warm palm readings for an entertainment and personal-reflection app.
 
@@ -34,6 +34,8 @@ const SCHEMA_JSON = JSON.stringify(
 
 export function buildInterpretationPrompt(input: {
   analysis: PalmAnalysis;
+  /** The user's selected hand: the canonical hand side. */
+  hand: "left" | "right";
   available: Map<FeatureKey, number>;
   rules: MatchedRule[];
   sections: SectionId[];
@@ -54,8 +56,14 @@ export function buildInterpretationPrompt(input: {
 
   const sectionList = input.sections.map((id) => `- ${id}: "${SECTION_TITLES[id]}"`).join("\n");
 
-  return `OBSERVED PALM FEATURES (stage 1 output, JSON):
-${JSON.stringify(input.analysis)}
+  // Stage 1's hand-side guess is a check signal only; the reading must use the
+  // hand the user selected, so the guess is replaced before it reaches the model.
+  const analysisForPrompt = { ...input.analysis, hand: input.hand, handConfidence: undefined };
+
+  return `HAND: the user's ${input.hand.toUpperCase()} hand (selected by the user). If you mention which hand, it is the ${input.hand} hand.
+
+OBSERVED PALM FEATURES (stage 1 output, JSON):
+${JSON.stringify(analysisForPrompt)}
 
 AVAILABLE FEATURES (the ONLY keys you may cite in basedOn, and the only features you may discuss):
 ${features}

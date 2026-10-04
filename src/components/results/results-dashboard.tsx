@@ -58,6 +58,18 @@ export function ResultsDashboard({
             no AI provider is configured on this server.
           </Alert>
         ) : null}
+        {reading.handCheck?.strongMismatch && !sample ? (
+          <Alert tone="warning" title="Please confirm your photo">
+            You selected your {reading.hand} hand, but the photo may show a{" "}
+            {reading.handCheck.detected} hand (photos from front cameras are often mirrored). This
+            reading uses your selection — your {reading.hand} hand. If you uploaded the other hand
+            by mistake,{" "}
+            <Link href="/read" className="underline underline-offset-2">
+              start a new reading
+            </Link>
+            .
+          </Alert>
+        ) : null}
         <div className="grid gap-6 lg:grid-cols-[auto_1fr] lg:items-center">
           <ConfidenceMeter value={reading.analysisConfidence} />
           {interpretation ? (

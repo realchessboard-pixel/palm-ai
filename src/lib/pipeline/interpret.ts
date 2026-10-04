@@ -42,7 +42,7 @@ export function finalizeInterpretation(
   return { interpretation: parsed.data, removed: grounded.removed + safe.removed };
 }
 
-async function generateWithModel(analysis: PalmAnalysis) {
+async function generateWithModel(analysis: PalmAnalysis, hand: "left" | "right") {
   const env = getEnv();
   const provider = getAiProvider();
   const rules = matchRules(analysis);
@@ -54,7 +54,7 @@ async function generateWithModel(analysis: PalmAnalysis) {
     task: "palm_interpretation",
     model: interpretationModel(provider),
     system: INTERPRETATION_SYSTEM_PROMPT,
-    prompt: buildInterpretationPrompt({ analysis, available, rules, sections }),
+    prompt: buildInterpretationPrompt({ analysis, hand, available, rules, sections }),
     schema: PalmInterpretationSchema,
     maxTokens: 12000,
     timeoutMs: env.AI_TIMEOUT_MS,
@@ -120,7 +120,7 @@ export async function interpretReading(
     // even if a real AI provider has been configured since.
     const generated = reading.isDemo
       ? { raw: composeRuleBasedReading(analysis), ...RULES_ENGINE, attempts: 1 }
-      : await generateWithModel(analysis);
+      : await generateWithModel(analysis, reading.hand === "LEFT" ? "left" : "right");
 
     const { interpretation, removed } = finalizeInterpretation(generated.raw, analysis);
     if (removed > 0) logger.info("interpretation_filtered", { readingId, removed });

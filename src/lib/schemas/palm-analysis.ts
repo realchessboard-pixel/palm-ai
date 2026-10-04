@@ -153,7 +153,13 @@ export const MarkingSchema = z.object({
 export type Marking = z.infer<typeof MarkingSchema>;
 
 export const PalmAnalysisSchema = z.object({
+  /**
+   * The model's own guess at which hand is shown. A CHECK SIGNAL ONLY: the
+   * user's selection (Reading.hand) is always the canonical hand side.
+   */
   hand: z.enum(["left", "right", "unknown"]),
+  /** Confidence in `hand`. Optional so analyses stored before it existed stay valid. */
+  handConfidence: Confidence.optional(),
   imageQuality: z.object({
     score: Confidence,
     usable: z.boolean(),

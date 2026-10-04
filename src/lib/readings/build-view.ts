@@ -1,6 +1,7 @@
 import { availableFeatures, featureLabel } from "@/lib/palmistry/features";
 import { INSUFFICIENT, LINE_NAMES, type PalmAnalysis } from "@/lib/schemas/palm-analysis";
 import type { PalmInterpretation } from "@/lib/schemas/palm-interpretation";
+import { assessHandSide } from "./hand-side";
 import { projectInterpretation } from "./projection";
 import type { LineObservationView, ReadingStatusView, ReadingView } from "./view";
 
@@ -67,9 +68,13 @@ export function buildReadingView(input: {
         .sort((a, b) => b.confidence - a.confidence)
     : [];
 
+  // The stored selection is canonical; the model's guess is only compared against it.
+  const hand = reading.hand === "LEFT" ? "left" : "right";
+
   return {
     id: reading.id,
-    hand: reading.hand === "LEFT" ? "left" : "right",
+    hand,
+    handCheck: analysis ? assessHandSide(hand, analysis) : null,
     status: reading.status,
     createdAt: reading.createdAt.toISOString(),
     isDemo: reading.isDemo,
