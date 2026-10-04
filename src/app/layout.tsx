@@ -1,0 +1,78 @@
+import type { Metadata, Viewport } from "next";
+import { Fraunces, Inter } from "next/font/google";
+import { headers } from "next/headers";
+import { SiteFooter } from "@/components/layout/site-footer";
+import { SiteHeader } from "@/components/layout/site-header";
+import { siteConfig } from "@/lib/config/site";
+import "./globals.css";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  display: "swap",
+  axes: ["opsz"],
+});
+
+export const metadata: Metadata = {
+  metadataBase: new URL(siteConfig.url),
+  title: { default: siteConfig.title, template: `%s · ${siteConfig.name}` },
+  description: siteConfig.description,
+  keywords: [...siteConfig.keywords],
+  applicationName: siteConfig.name,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: siteConfig.name,
+    title: siteConfig.title,
+    description: siteConfig.description,
+    url: "/",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteConfig.title,
+    description: siteConfig.description,
+  },
+  appleWebApp: { capable: true, title: siteConfig.name, statusBarStyle: "black-translucent" },
+  formatDetection: { telephone: false },
+  icons: {
+    icon: [
+      { url: "/icons/icon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#07060c",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  colorScheme: "dark",
+};
+
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // Reading request headers opts every page into dynamic rendering, which the
+  // per-request CSP nonce set in src/proxy.ts requires.
+  await headers();
+
+  return (
+    <html lang="en" className={`${inter.variable} ${fraunces.variable}`}>
+      <body className="sky-backdrop min-h-dvh antialiased">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-gold-300 focus:px-4 focus:py-2 focus:text-night-950"
+        >
+          Skip to content
+        </a>
+        <SiteHeader user={null} />
+        <main id="main" className="relative">
+          {children}
+        </main>
+        <SiteFooter />
+      </body>
+    </html>
+  );
+}
