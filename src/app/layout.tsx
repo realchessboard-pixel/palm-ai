@@ -3,7 +3,9 @@ import { Fraunces, Inter } from "next/font/google";
 import { headers } from "next/headers";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { getCurrentUser } from "@/lib/auth/actor";
 import { siteConfig } from "@/lib/config/site";
+import { logger } from "@/lib/logger";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
@@ -57,6 +59,11 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   // Reading request headers opts every page into dynamic rendering, which the
   // per-request CSP nonce set in src/proxy.ts requires.
   await headers();
+  // The header should still render if the database is briefly unavailable.
+  const user = await getCurrentUser().catch((error) => {
+    logger.error("layout_user_lookup_failed", { error });
+    return null;
+  });
 
   return (
     <html lang="en" className={`${inter.variable} ${fraunces.variable}`}>
@@ -67,7 +74,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         >
           Skip to content
         </a>
-        <SiteHeader user={null} />
+        <SiteHeader user={user ? { email: user.email, isAdmin: user.isAdmin } : null} />
         <main id="main" className="relative">
           {children}
         </main>

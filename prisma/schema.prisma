@@ -1,0 +1,212 @@
+// PalmAI database schema (PostgreSQL).
+// Structured AI output is stored as JSONB and is always validated with Zod
+// before it is written (see src/lib/schemas).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Hand {
+  LEFT
+  RIGHT
+}
+
+enum ReadingStatus {
+  PENDING
+  ANALYZING
+  ANALYZED
+  INTERPRETING
+  COMPLETE
+  REJECTED
+  FAILED
+}
+
+enum PaymentProvider {
+  STRIPE
+  RAZORPAY
+  MOCK
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum EntitlementType {
+  READING_PREMIUM
+  PREMIUM_SUBSCRIPTION
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  name          String?
+  role          Role     @default(USER)
+  /// Explicit opt-in to allow palm photos to be used for model improvement.
+  trainingOptIn Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions     Session[]
+  readings     Reading[]
+  payments     Payment[]
+  entitlements Entitlement[]
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  /// SHA-256 of the session token; the raw token only lives in the user's cookie.
+  tokenHash  String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Reading {
+  id                 String        @id @default(cuid())
+  userId             String?
+  user               User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// SHA-256 of the anonymous guest cookie that created the reading.
+  guestKeyHash       String?
+  hand               Hand
+  status             ReadingStatus @default(PENDING)
+  /// Private object-storage keys. Never public URLs.
+  imageKey           String?
+  thumbnailKey       String?
+  imageDeletedAt     DateTime?
+  imageWidth         Int?
+  imageHeight        Int?
+  /// 0–1 confidence in the image analysis (not in any palmistry claim).
+  analysisConfidence Float?
+  qualityScore       Float?
+  rejectionReason    String?
+  errorCode          String?
+  trainingOptIn      Boolean       @default(false)
+  /// True when produced by the mock AI provider (sample data, not the user's photo).
+  isDemo             Boolean       @default(false)
+  aiProvider         String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  completedAt        DateTime?
+
+  analysis       PalmAnalysis?
+  interpretation PalmInterpretation?
+  payments       Payment[]
+  entitlements   Entitlement[]
+
+  @@index([userId, createdAt])
+  @@index([guestKeyHash])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model PalmAnalysis {
+  id                String   @id @default(cuid())
+  readingId         String   @unique
+  reading           Reading  @relation(fields: [readingId], references: [id], onDelete: Cascade)
+  /// Validated PalmAnalysisSchema JSON.
+  data              Json
+  schemaVersion     Int
+  promptVersion     String
+  provider          String
+  model             String
+  overallConfidence Float
+  attempts          Int      @default(1)
+  createdAt         DateTime @default(now())
+}
+
+model PalmInterpretation {
+  id            String   @id @default(cuid())
+  readingId     String   @unique
+  reading       Reading  @relation(fields: [readingId], references: [id], onDelete: Cascade)
+  /// Validated, grounding-checked PalmInterpretationSchema JSON (full premium content).
+  data          Json
+  schemaVersion Int
+  promptVersion String
+  provider      String
+  model         String
+  /// Number of statements removed by grounding/safety filters.
+  removedCount  Int      @default(0)
+  attempts      Int      @default(1)
+  createdAt     DateTime @default(now())
+}
+
+model Payment {
+  id                String          @id @default(cuid())
+  userId            String?
+  user              User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  readingId         String?
+  reading           Reading?        @relation(fields: [readingId], references: [id], onDelete: SetNull)
+  provider          PaymentProvider
+  /// Checkout session id (Stripe) or order id (Razorpay).
+  providerRef       String?         @unique
+  providerPaymentId String?
+  amount            Int
+  currency          String
+  status            PaymentStatus   @default(PENDING)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  paidAt            DateTime?
+
+  entitlement Entitlement?
+
+  @@index([userId])
+  @@index([readingId])
+  @@index([status, createdAt])
+}
+
+model Entitlement {
+  id        String          @id @default(cuid())
+  type      EntitlementType
+  userId    String?
+  user      User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readingId String?
+  reading   Reading?        @relation(fields: [readingId], references: [id], onDelete: Cascade)
+  paymentId String?         @unique
+  payment   Payment?        @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  expiresAt DateTime?
+  revokedAt DateTime?
+  createdAt DateTime        @default(now())
+
+  @@index([userId])
+  @@index([readingId])
+}
+
+/// Minimal, non-identifying product analytics.
+model UsageEvent {
+  id         String   @id @default(cuid())
+  name       String
+  userId     String?
+  readingId  String?
+  properties Json?
+  createdAt  DateTime @default(now())
+
+  @@index([name, createdAt])
+  @@index([createdAt])
+  @@index([userId])
+}
+
+/// Idempotency log for payment webhooks.
+model ProcessedWebhookEvent {
+  id        String   @id
+  provider  String
+  createdAt DateTime @default(now())
+}

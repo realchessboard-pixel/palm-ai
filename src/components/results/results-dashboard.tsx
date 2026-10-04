@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DeleteReadingButton } from "@/components/account/delete-reading-button";
 import { ButtonLink } from "@/components/ui/button";
 import { Disclaimer } from "@/components/ui/disclaimer";
 import { Alert, Card } from "@/components/ui/misc";
@@ -221,6 +222,7 @@ export function ResultsDashboard({
               All your readings
             </ButtonLink>
           ) : null}
+          <DeleteReadingButton readingId={reading.id} redirectTo={signedIn ? "/readings" : "/"} />
         </div>
       )}
 
