@@ -40,6 +40,7 @@ function match<T>(
       traditional: rule.traditional,
       explanation: rule.explanation,
       confidenceConsiderations: rule.confidenceConsiderations,
+      shadow: rule.shadow,
       features,
       confidence,
     }));
@@ -113,7 +114,7 @@ function buildSection(
   const [first, ...rest] = top;
   const paragraphs = [
     first.explanation,
-    ...rest.map((r) => `${r.traditional} ${r.explanation}`),
+    ...rest.map((r) => `${r.traditional} ${r.explanation}`.trim()),
     lowConfidenceNote(top),
   ].filter(Boolean) as string[];
   const avg = top.reduce((sum, r) => sum + r.confidence, 0) / top.length;
@@ -318,6 +319,25 @@ function buildOverview(
 }
 
 /**
+ * Rules feeding a section. Challenges also draw on the traditional "flip side"
+ * (shadow) of strongly observed traits, framed as areas for reflection.
+ */
+function rulesForCategory(matched: MatchedRule[], category: Category): MatchedRule[] {
+  const direct = matched.filter((r) => r.category === category);
+  if (category !== "challenges") return direct;
+  const shadows = matched
+    .filter((r) => r.shadow)
+    .map((r) => ({
+      ...r,
+      category: "challenges" as const,
+      trait: `flip side of being ${r.trait}`,
+      traditional: r.shadow!,
+      explanation: "",
+    }));
+  return [...direct, ...shadows].sort((a, b) => b.confidence - a.confidence);
+}
+
+/**
  * Deterministic reading built purely from the rule files. Used directly in
  * demo mode, and given to the language model as grounded source material.
  */
@@ -327,7 +347,7 @@ export function composeRuleBasedReading(analysis: PalmAnalysis): PalmInterpretat
   for (const category of CATEGORIES) {
     const section = buildSection(
       category as Category,
-      matched.filter((r) => r.category === category),
+      rulesForCategory(matched, category),
       analysis,
     );
     if (section) sections.push(section);

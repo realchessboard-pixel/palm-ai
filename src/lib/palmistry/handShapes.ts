@@ -20,11 +20,34 @@ export function deriveElement(
   return longFingers ? "water" : "fire";
 }
 
-export const ELEMENT_DESCRIPTIONS: Record<Element, { title: string; traits: string }> = {
-  earth: { title: "Earth hand", traits: "practical, grounded and dependable" },
-  air: { title: "Air hand", traits: "curious, communicative and intellectually lively" },
-  fire: { title: "Fire hand", traits: "energetic, enthusiastic and spontaneous" },
-  water: { title: "Water hand", traits: "intuitive, sensitive and creative" },
+export const ELEMENT_DESCRIPTIONS: Record<
+  Element,
+  { title: string; traits: string; shadow: string }
+> = {
+  earth: {
+    title: "Earth hand",
+    traits: "practical, grounded and dependable",
+    shadow:
+      "Earth hands are traditionally said to value stability so much that change can feel unsettling.",
+  },
+  air: {
+    title: "Air hand",
+    traits: "curious, communicative and intellectually lively",
+    shadow:
+      "Air hands are traditionally said to live in their thoughts, so naming feelings can take practice.",
+  },
+  fire: {
+    title: "Fire hand",
+    traits: "energetic, enthusiastic and spontaneous",
+    shadow:
+      "Fire hands are traditionally said to start with great energy, so pacing and follow-through matter.",
+  },
+  water: {
+    title: "Water hand",
+    traits: "intuitive, sensitive and creative",
+    shadow:
+      "Water hands are traditionally said to absorb the moods around them, so quiet time to recharge helps.",
+  },
 };
 
 export const ELEMENT_RULES: PalmistryRule<Element>[] = (

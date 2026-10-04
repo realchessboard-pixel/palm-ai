@@ -154,16 +154,14 @@ describe.skipIf(!hasTestDatabase)("payments and entitlements", () => {
     beforeEach(() => setEnv({ PAYMENT_PROVIDER: "stripe", STRIPE_SECRET_KEY: "sk_test_x" }));
 
     async function startStripeCheckout(jar: CookieJar, readingId: string) {
-      const fetchMock = vi
-        .spyOn(globalThis, "fetch")
-        .mockResolvedValue(
-          new Response(
-            JSON.stringify({
-              id: "cs_test_123",
-              url: "https://checkout.stripe.com/c/pay/cs_test_123",
-            }),
-          ),
-        );
+      const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            id: "cs_test_123",
+            url: "https://checkout.stripe.com/c/pay/cs_test_123",
+          }),
+        ),
+      );
       const res = await checkout(
         makeRequest("/api/payments/checkout", { json: { readingId }, jar }),
         ctx,

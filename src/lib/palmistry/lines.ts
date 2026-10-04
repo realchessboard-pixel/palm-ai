@@ -20,6 +20,8 @@ export const HEART_LINE_RULES: LineRule[] = [
     explanation:
       "The heart line is read as a map of how you give and receive affection; palmists see greater length as more room for emotional expression.",
     confidenceConsiderations: PHOTO_CAVEAT,
+    shadow:
+      "Palmists sometimes note that such an open heart can give a great deal, so protecting your own needs is worth remembering.",
   },
   {
     id: "heart.short",
@@ -43,6 +45,8 @@ export const HEART_LINE_RULES: LineRule[] = [
       "In palmistry the upward curve toward the fingers is associated with emotions that move outward toward other people.",
     confidenceConsiderations:
       "Curvature is one of the easier features to see, but hand posture can exaggerate it.",
+    shadow:
+      "The same expressiveness is traditionally said to make disappointments felt keenly — a reminder to be gentle with yourself.",
   },
   {
     id: "heart.straight",
@@ -55,6 +59,8 @@ export const HEART_LINE_RULES: LineRule[] = [
       "Palmists read a level heart line as emotions that are processed inwardly before being expressed.",
     confidenceConsiderations:
       "A flattened hand in a photo can make a line look straighter than it is.",
+    shadow:
+      "Palmists suggest that a reasoned heart may occasionally hold back feelings others would love to hear.",
   },
   {
     id: "heart.deep",
@@ -111,6 +117,8 @@ export const HEAD_LINE_RULES: LineRule[] = [
     explanation:
       "The head line is read as your style of thinking; length is linked with considering many angles before deciding.",
     confidenceConsiderations: PHOTO_CAVEAT,
+    shadow:
+      "Traditionally, a mind that weighs every angle can sometimes find it hard to settle on a decision.",
   },
   {
     id: "head.short",
@@ -121,6 +129,8 @@ export const HEAD_LINE_RULES: LineRule[] = [
       "A shorter head line is traditionally linked with quick, decisive thinking and a preference for practical action.",
     explanation: "Palmists read a compact head line as a mind that goes straight to the point.",
     confidenceConsiderations: PHOTO_CAVEAT,
+    shadow:
+      "The flip side palmists mention is a tendency to decide quickly before every detail is in.",
   },
   {
     id: "head.straight",
@@ -132,6 +142,8 @@ export const HEAD_LINE_RULES: LineRule[] = [
     explanation:
       "In palmistry a level head line suggests thought that stays grounded in facts and structure.",
     confidenceConsiderations: "Posture can flatten or deepen the apparent slope of the head line.",
+    shadow:
+      "Palmists sometimes suggest leaving a little room for intuition alongside careful logic.",
   },
   {
     id: "head.curved",
@@ -143,6 +155,8 @@ export const HEAD_LINE_RULES: LineRule[] = [
     explanation:
       "Palmists read the slope toward the Mount of Moon as thinking drawn toward imagination.",
     confidenceConsiderations: "The degree of slope is approximate in a photo.",
+    shadow:
+      "A rich imagination is traditionally balanced by grounding routines that turn ideas into action.",
   },
   {
     id: "head.deep",
@@ -211,6 +225,8 @@ export const LIFE_LINE_RULES: LineRule[] = [
     explanation:
       "Despite its name, the life line is read as vitality, lifestyle and major life changes — not length of life.",
     confidenceConsiderations: PHOTO_CAVEAT,
+    shadow:
+      "Plentiful energy is traditionally said to benefit from rest and pacing, so enthusiasm doesn't scatter.",
   },
   {
     id: "life.short",
@@ -233,6 +249,8 @@ export const LIFE_LINE_RULES: LineRule[] = [
     explanation:
       "Palmists read the space the line gives the Mount of Venus as room for energy and affection.",
     confidenceConsiderations: "The arc's width depends on how far the thumb is extended.",
+    shadow:
+      "Palmists note that a sociable nature can sometimes say yes to more than it has time for.",
   },
   {
     id: "life.close",
@@ -243,6 +261,8 @@ export const LIFE_LINE_RULES: LineRule[] = [
       "A life line that hugs the thumb more closely is traditionally associated with a reserved nature and a preference for familiar surroundings.",
     explanation: "Palmists read a tighter arc as energy that is conserved and directed inward.",
     confidenceConsiderations: "A thumb held close to the hand can make the arc look tighter.",
+    shadow:
+      "The reflective side of this trait is that stepping outside familiar routines can feel like a stretch.",
   },
   {
     id: "life.deep",
@@ -286,6 +306,8 @@ export const FATE_LINE_RULES: LineRule[] = [
       "A clear fate line is traditionally associated with a strong sense of direction and commitment to a chosen path.",
     explanation: "The fate line is read as how you relate to work, duty and life direction.",
     confidenceConsiderations: "Fate lines vary greatly and are often partially hidden by creases.",
+    shadow:
+      "A strong sense of direction is traditionally balanced by staying open to unexpected detours.",
   },
   {
     id: "fate.faint",

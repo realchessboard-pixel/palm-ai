@@ -64,7 +64,7 @@ describe("palmistry rules engine", () => {
     const texts = [
       ...Object.values(LINE_RULES).flat(),
       ...Object.values(MOUNT_RULES).flat(),
-    ].flatMap((r) => [r.traditional, r.explanation, r.confidenceConsiderations]);
+    ].flatMap((r) => [r.traditional, r.explanation, r.confidenceConsiderations, r.shadow ?? ""]);
     const unsafe = texts.filter((t) => sanitizeText(t).removed > 0);
     expect(unsafe).toEqual([]);
     expect(sanitizeInterpretation(composeRuleBasedReading(sampleAnalysis())).removed).toBe(0);

@@ -10,7 +10,7 @@ const MOUNT_CAVEAT =
 function mountRules(
   mount: MountName,
   config: {
-    prominent: { category: Category; trait: string; traditional: string };
+    prominent: { category: Category; trait: string; traditional: string; shadow?: string };
     flat: { category: Category; trait: string; traditional: string };
     meaning: string;
   },
@@ -24,6 +24,7 @@ function mountRules(
       traditional: config.prominent.traditional,
       explanation: config.meaning,
       confidenceConsiderations: MOUNT_CAVEAT,
+      shadow: config.prominent.shadow,
     },
     {
       id: `${mount}.moderate`,
@@ -68,6 +69,7 @@ export const MOUNT_RULES: Record<MountName, MountRule[]> = {
       trait: "affectionate",
       traditional:
         "A full Mount of Venus is traditionally associated with warmth, affection and a strong appreciation of beauty and comfort.",
+      shadow: "Palmists sometimes add that a love of comfort is best balanced with moderation.",
     },
     flat: {
       category: "personality",
@@ -84,6 +86,7 @@ export const MOUNT_RULES: Record<MountName, MountRule[]> = {
       trait: "ambitious",
       traditional:
         "A well-developed Mount of Jupiter is traditionally associated with ambition, confidence and a natural inclination to lead.",
+      shadow: "Traditionally, strong ambition is balanced by listening as well as leading.",
     },
     flat: {
       category: "challenges",
@@ -100,6 +103,8 @@ export const MOUNT_RULES: Record<MountName, MountRule[]> = {
       trait: "responsible",
       traditional:
         "A pronounced Mount of Saturn is traditionally associated with responsibility, patience and a love of study or solitude.",
+      shadow:
+        "A serious, responsible streak is traditionally balanced by making time for lightness and play.",
     },
     flat: {
       category: "personality",
@@ -116,6 +121,7 @@ export const MOUNT_RULES: Record<MountName, MountRule[]> = {
       trait: "creative",
       traditional:
         "A full Mount of Apollo is traditionally associated with creativity, charm and appreciation of the arts.",
+      shadow: "Palmists note that a creative spirit can be hard on its own work — patience helps.",
     },
     flat: {
       category: "personality",
@@ -132,6 +138,7 @@ export const MOUNT_RULES: Record<MountName, MountRule[]> = {
       trait: "persuasive",
       traditional:
         "A developed Mount of Mercury is traditionally associated with communication skills, quick wit and a head for business.",
+      shadow: "A quick wit is traditionally balanced by pausing to listen before persuading.",
     },
     flat: {
       category: "challenges",
@@ -148,6 +155,7 @@ export const MOUNT_RULES: Record<MountName, MountRule[]> = {
       trait: "courageous",
       traditional:
         "A firm Mount of Mars is traditionally associated with courage, persistence and standing up for what matters.",
+      shadow: "Courage is traditionally balanced by choosing which battles truly matter.",
     },
     flat: {
       category: "personality",
@@ -164,6 +172,8 @@ export const MOUNT_RULES: Record<MountName, MountRule[]> = {
       trait: "intuitive",
       traditional:
         "A full Mount of Moon is traditionally associated with a rich imagination, intuition and an inner world.",
+      shadow:
+        "A vivid inner world is traditionally balanced by grounding daydreams in small, practical steps.",
     },
     flat: {
       category: "personality",

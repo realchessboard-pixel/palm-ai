@@ -32,6 +32,11 @@ export interface PalmistryRule<Observation> {
   explanation: string;
   /** What should temper confidence in this reading of the feature. */
   confidenceConsiderations: string;
+  /**
+   * Optional "flip side" of the trait, offered gently as an area for
+   * reflection. Feeds the Challenges section.
+   */
+  shadow?: string;
 }
 
 export interface MatchedRule {
@@ -41,6 +46,7 @@ export interface MatchedRule {
   traditional: string;
   explanation: string;
   confidenceConsiderations: string;
+  shadow?: string;
   features: FeatureKey[];
   /** Detection confidence of the weakest feature the rule relies on. */
   confidence: number;

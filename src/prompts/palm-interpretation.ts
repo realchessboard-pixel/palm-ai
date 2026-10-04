@@ -48,7 +48,7 @@ export function buildInterpretationPrompt(input: {
   const notes = input.rules
     .map(
       (r) =>
-        `- [${r.category}] based on ${r.features.join(", ")} (confidence ${r.confidence.toFixed(2)}): ${r.traditional} ${r.explanation} Caveat: ${r.confidenceConsiderations}`,
+        `- [${r.category}] based on ${r.features.join(", ")} (confidence ${r.confidence.toFixed(2)}): ${r.traditional} ${r.explanation} Caveat: ${r.confidenceConsiderations}${r.shadow ? ` Reflection (for Challenges): ${r.shadow}` : ""}`,
     )
     .join("\n");
 

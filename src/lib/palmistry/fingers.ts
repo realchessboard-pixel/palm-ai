@@ -19,6 +19,8 @@ export const FINGER_RULES: PalmistryRule<FingersObservation>[] = [
     explanation:
       "Palmists read finger length relative to the palm as how much you dwell on details versus the big picture.",
     confidenceConsiderations: FINGER_CAVEAT,
+    shadow:
+      "Attention to detail is traditionally balanced by knowing when something is good enough.",
   },
   {
     id: "fingers.short",
@@ -30,6 +32,8 @@ export const FINGER_RULES: PalmistryRule<FingersObservation>[] = [
     explanation:
       "Palmists read shorter fingers as a preference for action and overview over fine detail.",
     confidenceConsiderations: FINGER_CAVEAT,
+    shadow:
+      "Palmists suggest that a big-picture thinker benefits from a second look at the details.",
   },
   {
     id: "fingers.wide_spacing",
@@ -40,6 +44,7 @@ export const FINGER_RULES: PalmistryRule<FingersObservation>[] = [
       "Naturally wide-spread fingers are traditionally read as independence and openness to new ideas.",
     explanation: "How the hand falls open is interpreted as how freely you engage with the world.",
     confidenceConsiderations: "Spacing depends on how the hand was posed for the photo.",
+    shadow: "An independent spirit is traditionally balanced by accepting help when it's offered.",
   },
   {
     id: "fingers.close_spacing",
@@ -84,6 +89,7 @@ export const THUMB_RULES: PalmistryRule<ThumbObservation>[] = [
     explanation:
       "In palmistry the thumb represents will and logic; its size reflects their strength.",
     confidenceConsiderations: THUMB_CAVEAT,
+    shadow: "Strong willpower is traditionally balanced by flexibility when plans need to change.",
   },
   {
     id: "thumb.wide_angle",
