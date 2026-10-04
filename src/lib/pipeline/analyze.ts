@@ -9,6 +9,7 @@ import { AppError, isAppError } from "@/lib/http/errors";
 import { processPalmImage } from "@/lib/image/process";
 import { QUALITY_MESSAGES } from "@/lib/image/quality";
 import { logger } from "@/lib/logger";
+import { PipelineTimer, usageCounts } from "@/lib/perf/timing";
 import { availableFeatures } from "@/lib/palmistry/features";
 import { deleteReadingImages } from "@/lib/readings/service";
 import {
@@ -31,6 +32,8 @@ export interface AnalyzeInput {
   trainingOptIn: boolean;
   userId: string | null;
   guestKeyHash: string | null;
+  /** Optional development timing collector. */
+  timer?: PipelineTimer;
 }
 
 export interface AnalyzeOutput {
@@ -97,11 +100,27 @@ async function markFailed(reading: Reading, code: string) {
 }
 
 export async function analyzePalm(input: AnalyzeInput): Promise<AnalyzeOutput> {
+  const timer = input.timer ?? new PipelineTimer("analyze");
+  try {
+    const output = await runAnalysis(input, timer);
+    timer.finish("ok");
+    return output;
+  } catch (error) {
+    timer.finish(isAppError(error) ? error.code : "error");
+    throw error;
+  }
+}
+
+async function runAnalysis(input: AnalyzeInput, timer: PipelineTimer): Promise<AnalyzeOutput> {
   const env = getEnv();
+  timer.note({ uploadBytes: input.image.length });
 
   let processed;
   try {
-    processed = await processPalmImage(input.image);
+    processed = await processPalmImage(input.image, timer);
+    timer.note({
+      sentToAi: { bytes: processed.image.length, width: processed.width, height: processed.height },
+    });
   } catch (error) {
     if (isAppError(error)) {
       await trackServerEvent("image_rejected", {
@@ -116,34 +135,42 @@ export async function analyzePalm(input: AnalyzeInput): Promise<AnalyzeOutput> {
   const provider = getAiProvider();
   const storage = getStorage();
   const keys = generateImageKeys();
-  await storage.put(keys.imageKey, processed.image, "image/jpeg");
-  await storage.put(keys.thumbnailKey, processed.thumbnail, "image/jpeg");
+  await timer.step("storage_write", async () => {
+    await Promise.all([
+      storage.put(keys.imageKey, processed.image, "image/jpeg"),
+      storage.put(keys.thumbnailKey, processed.thumbnail, "image/jpeg"),
+    ]);
+  });
 
   let reading: Reading;
   try {
-    reading = await db.reading.create({
-      data: {
-        userId: input.userId,
-        guestKeyHash: input.userId ? null : input.guestKeyHash,
-        hand: input.hand === "left" ? "LEFT" : "RIGHT",
-        status: "ANALYZING",
-        imageKey: keys.imageKey,
-        thumbnailKey: keys.thumbnailKey,
-        imageWidth: processed.width,
-        imageHeight: processed.height,
-        qualityScore: processed.qualityScore,
-        trainingOptIn: input.trainingOptIn,
-        isDemo: provider.isMock,
-        aiProvider: provider.name,
-      },
-    });
+    reading = await timer.step("db_create_reading", () =>
+      db.reading.create({
+        data: {
+          userId: input.userId,
+          guestKeyHash: input.userId ? null : input.guestKeyHash,
+          hand: input.hand === "left" ? "LEFT" : "RIGHT",
+          status: "ANALYZING",
+          imageKey: keys.imageKey,
+          thumbnailKey: keys.thumbnailKey,
+          imageWidth: processed.width,
+          imageHeight: processed.height,
+          qualityScore: processed.qualityScore,
+          trainingOptIn: input.trainingOptIn,
+          isDemo: provider.isMock,
+          aiProvider: provider.name,
+        },
+      }),
+    );
   } catch (error) {
     await storage.delete(keys.imageKey).catch(() => undefined);
     await storage.delete(keys.thumbnailKey).catch(() => undefined);
     throw error;
   }
 
-  await trackServerEvent("analysis_started", {
+  // Analytics never fails (trackServerEvent swallows errors), so it runs alongside the
+  // vision call instead of in front of it; it is awaited before returning.
+  const analyticsStarted = trackServerEvent("analysis_started", {
     userId: input.userId,
     readingId: reading.id,
     properties: { provider: provider.name, hand: input.hand },
@@ -163,9 +190,16 @@ export async function analyzePalm(input: AnalyzeInput): Promise<AnalyzeOutput> {
       timeoutMs: env.AI_TIMEOUT_MS,
       maxAttempts: env.AI_MAX_ATTEMPTS,
       hints: { hand: input.hand },
+      thinking: env.AI_ANALYSIS_THINKING,
+    });
+    timer.add("gemini_request", result.providerMs);
+    timer.add("ai_validate", result.validateMs);
+    timer.note({
+      ai: { model: result.model, attempts: result.attempts, usage: usageCounts(result.usage) },
     });
   } catch (error) {
     const code = isAppError(error) ? error.code : "INTERNAL_ERROR";
+    await analyticsStarted;
     await markFailed(reading, code);
     await trackServerEvent("analysis_failed", {
       userId: input.userId,
@@ -174,6 +208,8 @@ export async function analyzePalm(input: AnalyzeInput): Promise<AnalyzeOutput> {
     });
     throw error;
   }
+
+  await analyticsStarted;
 
   const analysis = result.data;
   const analysisRecord: Prisma.PalmAnalysisUncheckedCreateInput = {
@@ -216,13 +252,16 @@ export async function analyzePalm(input: AnalyzeInput): Promise<AnalyzeOutput> {
     throw new AppError("IMAGE_QUALITY", { message: reason, details: { readingId: reading.id } });
   }
 
-  await db.$transaction([
-    db.palmAnalysis.create({ data: analysisRecord }),
-    db.reading.update({
-      where: { id: reading.id },
-      data: { status: "ANALYZED", analysisConfidence: analysis.overallConfidence },
-    }),
-  ]);
+  await timer.step("db_save_analysis", () =>
+    db.$transaction([
+      db.palmAnalysis.create({ data: analysisRecord }),
+      db.reading.update({
+        where: { id: reading.id },
+        data: { status: "ANALYZED", analysisConfidence: analysis.overallConfidence },
+      }),
+    ]),
+  );
+  timer.note({ readingId: reading.id });
 
   return {
     readingId: reading.id,

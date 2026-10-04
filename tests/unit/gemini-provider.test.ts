@@ -54,6 +54,41 @@ describe("GeminiProvider", () => {
     expect(body.generationConfig.maxOutputTokens).toBe(6000 + GEMINI_THINKING_HEADROOM);
   });
 
+  it("sends a thinking level only when one is requested", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async () => new Response(JSON.stringify(ok([{ text: "{}" }]))));
+    await provider.complete(request({ thinking: "low" }));
+    await provider.complete(request());
+    const [withLevel, without] = fetchMock.mock.calls.map(
+      (call) => JSON.parse(String(call[1]!.body)).generationConfig,
+    );
+    expect(withLevel.thinkingConfig).toEqual({ thinkingLevel: "low" });
+    expect(without.thinkingConfig).toBeUndefined();
+  });
+
+  it("reports token usage, including image and thinking tokens", async () => {
+    mockGemini({
+      ...ok([{ text: "{}" }]),
+      usageMetadata: {
+        promptTokenCount: 4614,
+        candidatesTokenCount: 1300,
+        thoughtsTokenCount: 1000,
+        promptTokensDetails: [
+          { modality: "TEXT", tokenCount: 3550 },
+          { modality: "IMAGE", tokenCount: 1064 },
+        ],
+      },
+    });
+    const result = await provider.complete(request());
+    expect(result.usage).toEqual({
+      inputTokens: 4614,
+      imageTokens: 1064,
+      outputTokens: 1300,
+      thinkingTokens: 1000,
+    });
+  });
+
   it("omits the image part for text-only (interpretation) requests", async () => {
     const fetchMock = mockGemini(ok([{ text: "{}" }]));
     await provider.complete(request({ image: undefined, task: "palm_interpretation" }));

@@ -13,7 +13,7 @@ import {
  * model never sees the photo here, so it cannot introduce visual details that
  * stage 1 didn't report.
  */
-export const INTERPRETATION_PROMPT_VERSION = "palm-interpretation/2026-10-04";
+export const INTERPRETATION_PROMPT_VERSION = "palm-interpretation/2026-10-04b";
 
 export const INTERPRETATION_SYSTEM_PROMPT = `You write thoughtful, warm palm readings for an entertainment and personal-reflection app.
 
@@ -31,6 +31,17 @@ Rules:
 const SCHEMA_JSON = JSON.stringify(
   z.toJSONSchema(PalmInterpretationSchema, { unrepresentable: "any" }),
 );
+
+function withoutPathPoints(lines: PalmAnalysis["lines"]) {
+  return Object.fromEntries(
+    Object.entries(lines).map(([name, line]) => [
+      name,
+      typeof line === "string" || !line.path
+        ? line
+        : { ...line, path: { description: line.path.description } },
+    ]),
+  );
+}
 
 export function buildInterpretationPrompt(input: {
   analysis: PalmAnalysis;
@@ -58,7 +69,13 @@ export function buildInterpretationPrompt(input: {
 
   // Stage 1's hand-side guess is a check signal only; the reading must use the
   // hand the user selected, so the guess is replaced before it reaches the model.
-  const analysisForPrompt = { ...input.analysis, hand: input.hand, handConfidence: undefined };
+  // Overlay coordinates only drive the diagram, so they are left out to keep the prompt lean.
+  const analysisForPrompt = {
+    ...input.analysis,
+    lines: withoutPathPoints(input.analysis.lines),
+    hand: input.hand,
+    handConfidence: undefined,
+  };
 
   return `HAND: the user's ${input.hand.toUpperCase()} hand (selected by the user). If you mention which hand, it is the ${input.hand} hand.
 

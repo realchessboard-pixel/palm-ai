@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, Spinner } from "@/components/ui/misc";
 import { track } from "@/lib/analytics/client";
-import { ApiClientError, apiFetch, postJson } from "@/lib/api-client";
+import { ApiClientError, apiFetch } from "@/lib/api-client";
 import {
   ImageInputError,
   prepareImage,
@@ -26,7 +26,14 @@ type Step =
   | { kind: "checking" }
   | { kind: "review"; image: PreparedImage }
   | { kind: "processing"; phase: PipelinePhase }
-  | { kind: "failed"; message: string; readingId?: string; canRetryInterpretation: boolean };
+  | { kind: "failed"; message: string; canRetry: boolean };
+
+interface Submission {
+  image: PreparedImage;
+  choices: ReviewChoices;
+  /** Sent with the upload so a retry of the same submission can't create a second reading. */
+  requestId: string | undefined;
+}
 
 interface AnalyzeResponse {
   readingId: string;
@@ -48,6 +55,8 @@ export function ReadingFlow() {
   const [hand, setHand] = useState<Hand | null>(null);
   const [step, setStep] = useState<Step>({ kind: "hand" });
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const submission = useRef<Submission | null>(null);
+  const inFlight = useRef(false);
   const previewUrl = step.kind === "review" ? step.image.previewUrl : null;
 
   // Move focus to the step heading for screen-reader and keyboard users.
@@ -84,27 +93,17 @@ export function ReadingFlow() {
     }
   }
 
-  async function interpret(readingId: string) {
-    setStep({ kind: "processing", phase: "interpreting" });
-    try {
-      await postJson("/api/palm/interpret", { readingId });
-      setStep({ kind: "processing", phase: "done" });
-      router.push(`/readings/${readingId}`);
-    } catch (error) {
-      setStep({
-        kind: "failed",
-        message:
-          error instanceof ApiClientError
-            ? error.message
-            : "We couldn't finish your reading. Please try again.",
-        readingId,
-        canRetryInterpretation: true,
-      });
-    }
-  }
-
-  async function analyze(image: PreparedImage, choices: ReviewChoices) {
-    if (!hand) return;
+  async function analyze(image: PreparedImage, choices: ReviewChoices, retry = false) {
+    if (!hand || inFlight.current) return;
+    inFlight.current = true;
+    const previous = submission.current;
+    const current: Submission = {
+      image,
+      choices,
+      requestId:
+        retry && previous ? previous.requestId : (globalThis.crypto?.randomUUID?.() ?? undefined),
+    };
+    submission.current = current;
     setStep({ kind: "processing", phase: "preparing" });
     track("image_uploaded", { hand });
 
@@ -113,6 +112,7 @@ export function ReadingFlow() {
     form.set("hand", hand);
     form.set("consent", "true");
     form.set("trainingOptIn", String(choices.trainingOptIn));
+    if (current.requestId) form.set("requestId", current.requestId);
 
     try {
       setStep({ kind: "processing", phase: "analyzing" });
@@ -120,8 +120,11 @@ export function ReadingFlow() {
         method: "POST",
         body: form,
       });
-      await interpret(result.readingId);
+      // The results page shows the palm map right away and writes the interpretation there.
+      setStep({ kind: "processing", phase: "analyzed" });
+      router.push(`/readings/${result.readingId}`);
     } catch (error) {
+      inFlight.current = false;
       if (
         error instanceof ApiClientError &&
         (error.code === "IMAGE_QUALITY" || error.code === "IMAGE_INVALID")
@@ -135,7 +138,7 @@ export function ReadingFlow() {
           error instanceof ApiClientError
             ? error.message
             : "We couldn't analyze this palm right now. Please try again.",
-        canRetryInterpretation: false,
+        canRetry: true,
       });
     }
   }
@@ -234,8 +237,15 @@ export function ReadingFlow() {
         <div className="space-y-4">
           <Alert tone="error">{step.message}</Alert>
           <div className="grid gap-3 sm:grid-cols-2">
-            {step.canRetryInterpretation && step.readingId ? (
-              <Button onClick={() => interpret(step.readingId!)}>Try again</Button>
+            {step.canRetry ? (
+              <Button
+                onClick={() =>
+                  submission.current &&
+                  analyze(submission.current.image, submission.current.choices, true)
+                }
+              >
+                Try again
+              </Button>
             ) : null}
             <Button variant="secondary" onClick={() => setStep({ kind: "source" })}>
               Use a different photo

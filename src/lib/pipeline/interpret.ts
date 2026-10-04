@@ -8,6 +8,7 @@ import { getEnv } from "@/lib/config/env";
 import { db } from "@/lib/db";
 import { AppError, isAppError } from "@/lib/http/errors";
 import { logger } from "@/lib/logger";
+import { PipelineTimer, usageCounts } from "@/lib/perf/timing";
 import { availableFeatures } from "@/lib/palmistry/features";
 import { composeRuleBasedReading, matchRules } from "@/lib/palmistry/interpretation";
 import { getOwnedReading, parseStoredAnalysis } from "@/lib/readings/service";
@@ -59,6 +60,7 @@ async function generateWithModel(analysis: PalmAnalysis, hand: "left" | "right")
     maxTokens: 12000,
     timeoutMs: env.AI_TIMEOUT_MS,
     maxAttempts: env.AI_MAX_ATTEMPTS,
+    thinking: env.AI_INTERPRETATION_THINKING,
     check: (value) => {
       const grounded = groundInterpretation(value, analysis);
       const problems: string[] = [];
@@ -78,6 +80,9 @@ async function generateWithModel(analysis: PalmAnalysis, hand: "left" | "right")
     provider: provider.name,
     model: result.model,
     attempts: result.attempts,
+    usage: result.usage,
+    providerMs: result.providerMs,
+    validateMs: result.validateMs,
   };
 }
 
@@ -85,7 +90,24 @@ export async function interpretReading(
   readingId: string,
   actor: Actor,
 ): Promise<{ readingId: string; status: "COMPLETE" }> {
-  const reading = await getOwnedReading(readingId, actor);
+  const timer = new PipelineTimer("interpret");
+  timer.note({ readingId });
+  try {
+    const result = await runInterpretation(readingId, actor, timer);
+    timer.finish("ok");
+    return result;
+  } catch (error) {
+    timer.finish(isAppError(error) ? error.code : "error");
+    throw error;
+  }
+}
+
+async function runInterpretation(
+  readingId: string,
+  actor: Actor,
+  timer: PipelineTimer,
+): Promise<{ readingId: string; status: "COMPLETE" }> {
+  const reading = await timer.step("db_load_reading", () => getOwnedReading(readingId, actor));
   if (reading.status === "COMPLETE" && reading.interpretation)
     return { readingId, status: "COMPLETE" };
   if (!reading.analysis || reading.status === "REJECTED") {
@@ -95,16 +117,21 @@ export async function interpretReading(
   }
 
   // Claim the reading so concurrent requests don't generate twice.
-  const claimed = await db.reading.updateMany({
-    where: {
-      id: reading.id,
-      OR: [
-        { status: { in: ["ANALYZED", "FAILED"] } },
-        { status: "INTERPRETING", updatedAt: { lt: new Date(Date.now() - STALE_INTERPRETING_MS) } },
-      ],
-    },
-    data: { status: "INTERPRETING", errorCode: null },
-  });
+  const claimed = await timer.step("db_claim", () =>
+    db.reading.updateMany({
+      where: {
+        id: reading.id,
+        OR: [
+          { status: { in: ["ANALYZED", "FAILED"] } },
+          {
+            status: "INTERPRETING",
+            updatedAt: { lt: new Date(Date.now() - STALE_INTERPRETING_MS) },
+          },
+        ],
+      },
+      data: { status: "INTERPRETING", errorCode: null },
+    }),
+  );
   if (claimed.count === 0) {
     throw new AppError("CONFLICT", {
       message: "Your reading is already being prepared. Please wait a moment.",
@@ -121,42 +148,59 @@ export async function interpretReading(
     const generated = reading.isDemo
       ? { raw: composeRuleBasedReading(analysis), ...RULES_ENGINE, attempts: 1 }
       : await generateWithModel(analysis, reading.hand === "LEFT" ? "left" : "right");
+    if ("providerMs" in generated) {
+      timer.add("gemini_request", generated.providerMs);
+      timer.add("ai_validate", generated.validateMs);
+      timer.note({
+        ai: {
+          model: generated.model,
+          attempts: generated.attempts,
+          usage: usageCounts(generated.usage),
+        },
+      });
+    }
 
+    const finalizeStarted = performance.now();
     const { interpretation, removed } = finalizeInterpretation(generated.raw, analysis);
+    timer.add("grounding_safety", performance.now() - finalizeStarted);
     if (removed > 0) logger.info("interpretation_filtered", { readingId, removed });
 
-    await db.$transaction([
-      db.palmInterpretation.upsert({
-        where: { readingId: reading.id },
-        create: {
-          readingId: reading.id,
-          data: interpretation as unknown as Prisma.InputJsonValue,
-          schemaVersion: INTERPRETATION_SCHEMA_VERSION,
-          promptVersion: reading.isDemo ? "rules" : INTERPRETATION_PROMPT_VERSION,
-          provider: generated.provider,
-          model: generated.model,
-          removedCount: removed,
-          attempts: generated.attempts,
-        },
-        update: {
-          data: interpretation as unknown as Prisma.InputJsonValue,
-          provider: generated.provider,
-          model: generated.model,
-          removedCount: removed,
-          attempts: generated.attempts,
-        },
-      }),
-      db.reading.update({
-        where: { id: reading.id },
-        data: { status: "COMPLETE", completedAt: new Date() },
-      }),
-    ]);
+    await timer.step("db_save_interpretation", () =>
+      db.$transaction([
+        db.palmInterpretation.upsert({
+          where: { readingId: reading.id },
+          create: {
+            readingId: reading.id,
+            data: interpretation as unknown as Prisma.InputJsonValue,
+            schemaVersion: INTERPRETATION_SCHEMA_VERSION,
+            promptVersion: reading.isDemo ? "rules" : INTERPRETATION_PROMPT_VERSION,
+            provider: generated.provider,
+            model: generated.model,
+            removedCount: removed,
+            attempts: generated.attempts,
+          },
+          update: {
+            data: interpretation as unknown as Prisma.InputJsonValue,
+            provider: generated.provider,
+            model: generated.model,
+            removedCount: removed,
+            attempts: generated.attempts,
+          },
+        }),
+        db.reading.update({
+          where: { id: reading.id },
+          data: { status: "COMPLETE", completedAt: new Date() },
+        }),
+      ]),
+    );
 
-    await trackServerEvent("analysis_completed", {
-      userId: reading.userId,
-      readingId: reading.id,
-      properties: { provider: generated.provider, demo: reading.isDemo },
-    });
+    await timer.step("analytics", () =>
+      trackServerEvent("analysis_completed", {
+        userId: reading.userId,
+        readingId: reading.id,
+        properties: { provider: generated.provider, demo: reading.isDemo },
+      }),
+    );
     return { readingId, status: "COMPLETE" };
   } catch (error) {
     const code = isAppError(error) ? error.code : "INTERNAL_ERROR";

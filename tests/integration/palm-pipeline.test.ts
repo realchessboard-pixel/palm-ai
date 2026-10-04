@@ -11,6 +11,7 @@ import { GUEST_COOKIE } from "@/lib/auth/cookies";
 import { db } from "@/lib/db";
 import { composeRuleBasedReading } from "@/lib/palmistry/interpretation";
 import { sampleAnalysis } from "@/lib/palmistry/sample-analysis";
+import { resetIdempotencyCache } from "@/lib/pipeline/idempotency";
 import type { ReadingView } from "@/lib/readings/view";
 import type { MemoryStorage } from "@/lib/storage/memory";
 import { ScriptedProvider } from "../helpers/ai";
@@ -26,6 +27,7 @@ async function uploadForm(image: Buffer, fields: Record<string, string> = {}) {
   form.set("hand", fields.hand ?? "right");
   if (fields.consent !== "omit") form.set("consent", fields.consent ?? "true");
   form.set("trainingOptIn", fields.trainingOptIn ?? "false");
+  if (fields.requestId) form.set("requestId", fields.requestId);
   return form;
 }
 
@@ -48,6 +50,7 @@ describe.skipIf(!hasTestDatabase)("palm analysis pipeline", () => {
   beforeEach(async () => {
     storage = await resetDatabase();
     setAiProvider(undefined);
+    resetIdempotencyCache();
   });
   afterEach(() => setAiProvider(undefined));
 
@@ -408,6 +411,63 @@ describe.skipIf(!hasTestDatabase)("palm analysis pipeline", () => {
         ctx,
       );
       expect(retried.status).toBe(200);
+    });
+
+    it("uses the default thinking level for vision and low thinking for the interpretation", async () => {
+      const provider = new ScriptedProvider([
+        JSON.stringify(sampleAnalysis()),
+        JSON.stringify(composeRuleBasedReading(sampleAnalysis())),
+      ]);
+      setAiProvider(provider);
+      const jar = new CookieJar();
+      const { readingId } = await json<{ readingId: string }>(
+        await postAnalyze(jar, await palmLikeImage()),
+      );
+      await interpret(makeRequest("/api/palm/interpret", { json: { readingId }, jar }), ctx);
+      expect(provider.requests.map((r) => r.thinking)).toEqual([undefined, "low"]);
+    });
+
+    it("collapses a repeated upload (same request id) onto one reading and one AI call", async () => {
+      const provider = new ScriptedProvider([JSON.stringify(sampleAnalysis())]);
+      setAiProvider(provider);
+      const jar = new CookieJar();
+      // First visit establishes the guest identity that scopes the request id.
+      await getReading(makeRequest("/api/readings/none", { jar }), params({ id: "none" }));
+      const first = await postAnalyze(jar, await palmLikeImage());
+      expect(first.status).toBe(201);
+      provider.requests.length = 0;
+
+      const requestId = "44444444-4444-4444-8444-444444444444";
+      setAiProvider(new ScriptedProvider([JSON.stringify(sampleAnalysis())]));
+      const image = await palmLikeImage();
+      const [a, b] = await Promise.all([
+        postAnalyze(jar, image, { requestId }),
+        postAnalyze(jar, image, { requestId }),
+      ]);
+      expect([a.status, b.status]).toEqual([201, 201]);
+      const [ra, rb] = await Promise.all([
+        json<{ readingId: string }>(a),
+        json<{ readingId: string }>(b),
+      ]);
+      expect(ra.readingId).toBe(rb.readingId);
+      expect(await db.reading.count()).toBe(2); // the first upload + one for the repeated pair
+
+      // Another visitor reusing the same id gets their own reading, never this one.
+      setAiProvider(new ScriptedProvider([JSON.stringify(sampleAnalysis())]));
+      const other = new CookieJar();
+      await postAnalyze(other, await palmLikeImage());
+      setAiProvider(new ScriptedProvider([JSON.stringify(sampleAnalysis())]));
+      const theirs = await json<{ readingId: string }>(
+        await postAnalyze(other, image, { requestId }),
+      );
+      expect(theirs.readingId).not.toBe(ra.readingId);
+    });
+
+    it("rejects a malformed request id", async () => {
+      const res = await postAnalyze(new CookieJar(), await palmLikeImage(), {
+        requestId: "not-a-uuid",
+      });
+      expect(res.status).toBe(400);
     });
 
     it("reports a missing AI configuration without storing anything", async () => {

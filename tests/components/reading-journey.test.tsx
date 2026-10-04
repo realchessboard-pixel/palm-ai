@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AnalysisProgress } from "@/components/reading-flow/analysis-progress";
 import { PhotoReview } from "@/components/reading-flow/photo-review";
 import { ReadingFlow } from "@/components/reading-flow/reading-flow";
+import { InterpretationPending } from "@/components/results/interpretation-pending";
 import { ResultsDashboard } from "@/components/results/results-dashboard";
 import { issue } from "@/lib/image/quality";
 import { composeRuleBasedReading } from "@/lib/palmistry/interpretation";
@@ -13,8 +14,10 @@ import { buildReadingView } from "@/lib/readings/build-view";
 
 const push = vi.fn();
 const refresh = vi.fn();
+// Like Next's, the router object is stable across renders.
+const router = { push, refresh, replace: vi.fn(), prefetch: vi.fn() };
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push, refresh, replace: vi.fn(), prefetch: vi.fn() }),
+  useRouter: () => router,
   usePathname: () => "/read",
 }));
 
@@ -108,19 +111,41 @@ describe("reading flow", () => {
     expect(onUse).toHaveBeenCalledWith({ trainingOptIn: false });
   });
 
-  it("shows the five analysis steps and an honest timing note", () => {
-    render(<AnalysisProgress phase="analyzing" />);
-    const steps = within(screen.getByRole("list", { name: "Analysis progress" })).getAllByRole(
-      "listitem",
-    );
-    expect(steps.map((s) => s.textContent)).toEqual([
-      expect.stringContaining("Preparing image"),
-      expect.stringContaining("Examining palm structure"),
-      expect.stringContaining("Mapping major lines"),
-      expect.stringContaining("Studying traditional palmistry features"),
-      expect.stringContaining("Preparing your reading"),
+  it("shows real progress stages: the single vision pass runs its three steps together", () => {
+    const { rerender } = render(<AnalysisProgress phase="analyzing" />);
+    const items = () =>
+      within(screen.getByRole("list", { name: "Analysis progress" })).getAllByRole("listitem");
+    expect(items().map((s) => s.textContent)).toEqual([
+      "Examining your palm (in progress)",
+      "Identifying major lines (in progress)",
+      "Reading palm features (in progress)",
+      "4Preparing your interpretation",
     ]);
-    expect(screen.getByText(/approximate guide/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Examining your palm…" })).toBeInTheDocument();
+
+    rerender(<AnalysisProgress phase="analyzed" />);
+    expect(items().map((s) => s.textContent)).toEqual([
+      "✓Examining your palm (complete)",
+      "✓Identifying major lines (complete)",
+      "✓Reading palm features (complete)",
+      "Preparing your interpretation (in progress)",
+    ]);
+    expect(
+      screen.getByRole("heading", { name: "Preparing your interpretation…" }),
+    ).toBeInTheDocument();
+  });
+
+  it("does not advance progress on a timer", () => {
+    vi.useFakeTimers();
+    try {
+      render(<AnalysisProgress phase="analyzing" />);
+      act(() => vi.advanceTimersByTime(60_000));
+      expect(screen.getByText(/Preparing your interpretation/).closest("li")).not.toHaveTextContent(
+        "in progress",
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
@@ -227,5 +252,73 @@ describe("results dashboard", () => {
       />,
     );
     expect(screen.getByText(/line positions are illustrative/)).toBeInTheDocument();
+  });
+});
+
+describe("progressive results", () => {
+  it("shows the palm map and findings while the interpretation is written", () => {
+    const view = readingView(false);
+    view.status = "ANALYZED";
+    view.interpretation = null;
+    render(
+      <ResultsDashboard
+        reading={view}
+        priceLabel="$4.99"
+        paymentsEnabled
+        signedIn={false}
+        interpretationPending
+      />,
+    );
+    expect(
+      screen.getByRole("heading", { name: "Preparing your interpretation…" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Palm visualization" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Major findings" })).toBeInTheDocument();
+    // Nothing to buy or download until the reading exists.
+    expect(screen.queryByRole("button", { name: /Unlock/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Download PDF report" })).not.toBeInTheDocument();
+  });
+
+  it("requests the interpretation, waits while another request is writing it, then refreshes", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: { code: "CONFLICT", message: "busy" } }), {
+          status: 409,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ readingId: "r1", status: "COMPLETE" }), { status: 200 }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      render(<InterpretationPending readingId="r1" />);
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+      await act(() => vi.advanceTimersByTimeAsync(3_000));
+      await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ readingId: "r1" });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("offers a retry when the interpretation fails", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ error: { code: "AI_UNAVAILABLE", message: "Please try again." } }),
+          { status: 503 },
+        ),
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: "COMPLETE" }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<InterpretationPending readingId="r1" />);
+    await user.click(await screen.findByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

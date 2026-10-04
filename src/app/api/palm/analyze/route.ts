@@ -2,7 +2,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { ensureGuestKey, getActorFromRequest } from "@/lib/auth/actor";
 import { getEnv } from "@/lib/config/env";
 import { AppError, withErrorHandling } from "@/lib/http/errors";
+import { PipelineTimer } from "@/lib/perf/timing";
 import { analyzePalm } from "@/lib/pipeline/analyze";
+import { runOnce } from "@/lib/pipeline/idempotency";
 import { AnalyzeFieldsSchema } from "@/lib/schemas/api";
 import { clientIp, enforceRateLimit } from "@/lib/security/rate-limit";
 
@@ -29,6 +31,8 @@ export const POST = withErrorHandling("palm.analyze", async (request: NextReques
     throw new AppError("VALIDATION_ERROR", { message: "Please upload a photo of your palm." });
   }
 
+  const timer = new PipelineTimer("analyze");
+  const parseStarted = performance.now();
   let form: FormData;
   try {
     form = await request.formData();
@@ -48,16 +52,29 @@ export const POST = withErrorHandling("palm.analyze", async (request: NextReques
     hand: form.get("hand"),
     consent: form.get("consent"),
     trainingOptIn: form.get("trainingOptIn") ?? undefined,
+    requestId: form.get("requestId") ?? undefined,
   });
 
   const guest = actor.user ? null : ensureGuestKey(request, actor);
-  const result = await analyzePalm({
-    image: Buffer.from(await file.arrayBuffer()),
-    hand: fields.hand,
-    trainingOptIn: fields.trainingOptIn === "true" || Boolean(actor.user?.trainingOptIn),
-    userId: actor.user?.id ?? null,
-    guestKeyHash: guest?.guestKeyHash ?? null,
-  });
+  const image = Buffer.from(await file.arrayBuffer());
+  timer.add("upload_parse", performance.now() - parseStarted);
+  // A repeat of a request this actor already sent returns the first run's result.
+  // (A brand-new guest has no stable identity yet; the client guards that case.)
+  const scope = actor.user
+    ? `user:${actor.user.id}`
+    : actor.guestKeyHash
+      ? `guest:${actor.guestKeyHash}`
+      : null;
+  const result = await runOnce(scope, fields.requestId, () =>
+    analyzePalm({
+      timer,
+      image,
+      hand: fields.hand,
+      trainingOptIn: fields.trainingOptIn === "true" || Boolean(actor.user?.trainingOptIn),
+      userId: actor.user?.id ?? null,
+      guestKeyHash: guest?.guestKeyHash ?? null,
+    }),
+  );
 
   const response = NextResponse.json(result, { status: 201 });
   return guest ? guest.apply(response) : response;

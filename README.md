@@ -145,6 +145,8 @@ All variables are documented inline in [`.env.example`](.env.example) and valida
 | `AI_PROVIDER`                                                                            | `anthropic`, `openai`, `gemini` or `mock`                           |
 | `AI_API_KEY`, `AI_MODEL`, `AI_INTERPRETATION_MODEL`                                      | Credentials and models                                              |
 | `AI_TIMEOUT_MS`, `AI_MAX_ATTEMPTS`, `AI_EFFORT`                                          | Call limits and the Anthropic effort level                          |
+| `AI_ANALYSIS_THINKING`, `AI_INTERPRETATION_THINKING`                                     | Gemini thinking level per stage (defaults: model default / `low`)   |
+| `PIPELINE_TIMING`                                                                        | `1` logs per-step pipeline timings outside development              |
 | `PAYMENT_PROVIDER`                                                                       | `stripe`, `razorpay`, `mock` or `none`                              |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`                                             | Stripe                                                              |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`                      | Razorpay                                                            |

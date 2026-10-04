@@ -1,6 +1,7 @@
 import "server-only";
 import sharp, { type OutputInfo } from "sharp";
 import { AppError } from "@/lib/http/errors";
+import type { PipelineTimer } from "@/lib/perf/timing";
 import {
   UPLOAD_LIMITS,
   assessQuality,
@@ -39,7 +40,11 @@ export interface ProcessedImage {
 
 const MAX_INPUT_PIXELS = 40_000_000;
 
-export async function processPalmImage(input: Buffer): Promise<ProcessedImage> {
+export async function processPalmImage(
+  input: Buffer,
+  timer?: PipelineTimer,
+): Promise<ProcessedImage> {
+  const t0 = performance.now();
   if (!sniffImageType(input)) {
     throw new AppError("IMAGE_INVALID", {
       message: "Please upload a JPG, JPEG, PNG or WebP image.",
@@ -67,37 +72,42 @@ export async function processPalmImage(input: Buffer): Promise<ProcessedImage> {
     });
   }
 
-  const original = await sharp(input, { limitInputPixels: MAX_INPUT_PIXELS }).metadata();
+  timer?.add("image_decode_resize_encode", performance.now() - t0);
+  const t1 = performance.now();
+  // Metadata, quality metrics and the thumbnail are independent: run them together.
+  const [original, gray, thumbnail] = await Promise.all([
+    sharp(input, { limitInputPixels: MAX_INPUT_PIXELS }).metadata(),
+    sharp(normalized.data)
+      .resize({
+        width: UPLOAD_LIMITS.analysisLongEdge,
+        height: UPLOAD_LIMITS.analysisLongEdge,
+        fit: "inside",
+      })
+      .toColourspace("b-w")
+      .raw()
+      .toBuffer({ resolveWithObject: true }),
+    sharp(normalized.data)
+      .resize({ width: 480, height: 360, fit: "cover", position: "centre" })
+      .jpeg({ quality: 72, mozjpeg: true })
+      .toBuffer(),
+  ]);
   const rotated = (original.orientation ?? 1) >= 5;
   const width = (rotated ? original.height : original.width) ?? normalized.info.width;
   const height = (rotated ? original.width : original.height) ?? normalized.info.height;
 
-  const gray = await sharp(normalized.data)
-    .resize({
-      width: UPLOAD_LIMITS.analysisLongEdge,
-      height: UPLOAD_LIMITS.analysisLongEdge,
-      fit: "inside",
-    })
-    .toColourspace("b-w")
-    .raw()
-    .toBuffer({ resolveWithObject: true });
   const channels = gray.info.channels;
   const luma =
     channels === 1 ? gray.data : Buffer.from(gray.data.filter((_, i) => i % channels === 0));
   const metrics = computeGrayscaleMetrics(luma, gray.info.width, gray.info.height);
   const issues = assessQuality({ metrics, width, height });
 
+  timer?.add("image_quality_and_thumbnail", performance.now() - t1);
   if (hasBlockingIssue(issues)) {
     throw new AppError("IMAGE_QUALITY", {
       message: issues.find((i) => i.severity === "block")!.message,
       details: { issues: issues.map((i) => i.code) },
     });
   }
-
-  const thumbnail = await sharp(normalized.data)
-    .resize({ width: 480, height: 360, fit: "cover", position: "centre" })
-    .jpeg({ quality: 72, mozjpeg: true })
-    .toBuffer();
 
   return {
     image: normalized.data,

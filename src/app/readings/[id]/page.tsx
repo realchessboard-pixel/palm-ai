@@ -40,13 +40,22 @@ export default async function ReadingPage({
     throw error;
   }
 
-  if (reading.status !== "COMPLETE" || !reading.interpretation) {
+  // Analyzed but not yet interpreted: show the palm map now and write the reading in place.
+  const interpretationPending =
+    !reading.interpretation &&
+    reading.features.length > 0 &&
+    (reading.status === "ANALYZED" ||
+      reading.status === "INTERPRETING" ||
+      reading.status === "FAILED");
+  if (!interpretationPending && (reading.status !== "COMPLETE" || !reading.interpretation)) {
     return <ReadingStatusPanel reading={reading} />;
   }
 
   return (
     <>
-      <TrackOnMount event="reading_viewed" properties={{ premium: reading.premium }} />
+      {interpretationPending ? null : (
+        <TrackOnMount event="reading_viewed" properties={{ premium: reading.premium }} />
+      )}
       {checkout ? (
         <div className="mx-auto max-w-5xl px-4 pt-6 sm:px-6">
           {checkout === "success" && reading.premium ? (
@@ -66,6 +75,7 @@ export default async function ReadingPage({
         priceLabel={premiumPrice().label}
         paymentsEnabled={paymentsEnabled()}
         signedIn={Boolean(actor.user)}
+        interpretationPending={interpretationPending}
       />
     </>
   );

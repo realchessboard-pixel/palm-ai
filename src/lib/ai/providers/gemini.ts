@@ -4,6 +4,12 @@ import { postJson } from "./http";
 
 interface GenerateContentResponse {
   modelVersion?: string;
+  usageMetadata?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    thoughtsTokenCount?: number;
+    promptTokensDetails?: { modality?: string; tokenCount?: number }[];
+  };
   promptFeedback?: { blockReason?: string };
   candidates?: {
     content?: { parts?: { text?: string; thought?: boolean }[] };
@@ -64,6 +70,7 @@ export class GeminiProvider implements AiProvider {
               GEMINI_MAX_OUTPUT_TOKENS,
               request.maxTokens + GEMINI_THINKING_HEADROOM,
             ),
+            ...(request.thinking ? { thinkingConfig: { thinkingLevel: request.thinking } } : {}),
           },
         },
         // The key travels in a header (never the URL) so it can't leak into logs.
@@ -93,6 +100,16 @@ export class GeminiProvider implements AiProvider {
       .join("")
       .trim();
     if (!text) throw new AiError("empty", "Gemini returned no content");
-    return { text, model: json.modelVersion ?? request.model };
+    const meta = json.usageMetadata;
+    return {
+      text,
+      model: json.modelVersion ?? request.model,
+      usage: meta && {
+        inputTokens: meta.promptTokenCount,
+        imageTokens: meta.promptTokensDetails?.find((d) => d.modality === "IMAGE")?.tokenCount,
+        outputTokens: meta.candidatesTokenCount,
+        thinkingTokens: meta.thoughtsTokenCount,
+      },
+    };
   }
 }

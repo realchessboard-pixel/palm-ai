@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { THINKING_LEVELS } from "@/lib/ai/types";
 
 /**
  * Server-side environment configuration.
@@ -27,6 +28,12 @@ const EnvSchema = z.object({
   AI_TIMEOUT_MS: z.coerce.number().int().min(5_000).max(300_000).default(90_000),
   AI_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(4).default(2),
   AI_EFFORT: z.enum(["low", "medium", "high"]).default("medium"),
+  // Per-stage reasoning ("thinking") level for providers that support it (Gemini).
+  // Unset analysis thinking keeps the model default, which measured best for
+  // the vision step; "low" for the text-only interpretation step roughly
+  // halves its latency with no measured loss in grounding or completeness.
+  AI_ANALYSIS_THINKING: z.enum(THINKING_LEVELS).optional(),
+  AI_INTERPRETATION_THINKING: z.enum(THINKING_LEVELS).default("low"),
 
   // Payments
   PAYMENT_PROVIDER: z.enum(["stripe", "razorpay", "mock", "none"]).default("none"),

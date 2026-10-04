@@ -7,6 +7,7 @@ import { lineLabel, mountLabel } from "@/lib/palmistry/features";
 import type { ReadingView } from "@/lib/readings/view";
 import { SECTION_IDS } from "@/lib/schemas/palm-interpretation";
 import { ConfidenceMeter } from "./confidence-meter";
+import { InterpretationPending } from "./interpretation-pending";
 import { PremiumPanel } from "./premium-panel";
 import { BasedOn, Paragraphs, SectionCard } from "./section-card";
 import { Visualization } from "./visualization";
@@ -18,6 +19,8 @@ export interface ResultsDashboardProps {
   signedIn: boolean;
   /** Public sample page: show a sample banner and hide account/purchase actions. */
   sample?: boolean;
+  /** Analysis is done but the interpretation is still being written (shown progressively). */
+  interpretationPending?: boolean;
 }
 
 export function ResultsDashboard({
@@ -26,6 +29,7 @@ export function ResultsDashboard({
   paymentsEnabled,
   signedIn,
   sample = false,
+  interpretationPending = false,
 }: ResultsDashboardProps) {
   const interpretation = reading.interpretation;
   const date = new Date(reading.createdAt).toLocaleDateString("en", { dateStyle: "long" });
@@ -72,7 +76,9 @@ export function ResultsDashboard({
         ) : null}
         <div className="grid gap-6 lg:grid-cols-[auto_1fr] lg:items-center">
           <ConfidenceMeter value={reading.analysisConfidence} />
-          {interpretation ? (
+          {interpretationPending ? (
+            <InterpretationPending readingId={reading.id} />
+          ) : interpretation ? (
             <div className="glass rounded-3xl p-6">
               <h2 className="text-2xl text-gold-200">{interpretation.overview.headline}</h2>
               <p className="mt-2 leading-relaxed text-parchment/85">
@@ -200,7 +206,7 @@ export function ResultsDashboard({
         </section>
       ) : null}
 
-      {reading.locked ? (
+      {reading.locked && !interpretationPending ? (
         <PremiumPanel
           readingId={reading.id}
           locked={reading.locked}
@@ -217,7 +223,7 @@ export function ResultsDashboard({
         </div>
       ) : (
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          {reading.premium ? (
+          {reading.premium && !interpretationPending ? (
             <ButtonLink
               href={`/api/readings/${reading.id}/report`}
               prefetch={false}

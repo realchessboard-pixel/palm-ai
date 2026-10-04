@@ -1,41 +1,37 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import { PalmIllustration } from "@/components/palm/palm-illustration";
 import { cn } from "@/lib/cn";
 
-export type PipelinePhase = "preparing" | "analyzing" | "interpreting" | "done";
+/** Real pipeline boundaries: upload → vision analysis → (on the results page) interpretation. */
+export type PipelinePhase = "preparing" | "analyzing" | "analyzed";
 
-const STEPS = [
-  "Preparing image",
-  "Examining palm structure",
-  "Mapping major lines",
-  "Studying traditional palmistry features",
-  "Preparing your reading",
-];
+export const PROGRESS_STEPS = [
+  "Examining your palm",
+  "Identifying major lines",
+  "Reading palm features",
+  "Preparing your interpretation",
+] as const;
+
+type StepState = "pending" | "active" | "done";
 
 /**
- * Progress display. Only the phase boundaries are real (upload → vision
- * analysis → interpretation); the sub-steps inside the single vision call are
- * paced on a timer and never marked complete before that call returns.
+ * Progress display driven only by real events. The first three steps happen in
+ * one AI pass over the photo, so they are shown in progress together and
+ * complete together when that pass returns — nothing is advanced on a timer.
  */
+function stepStates(phase: PipelinePhase): StepState[] {
+  switch (phase) {
+    case "preparing":
+      return ["active", "pending", "pending", "pending"];
+    case "analyzing":
+      return ["active", "active", "active", "pending"];
+    case "analyzed":
+      return ["done", "done", "done", "active"];
+  }
+}
+
 export function AnalysisProgress({ phase }: { phase: PipelinePhase }) {
-  const [visionStep, setVisionStep] = useState(1);
-
-  useEffect(() => {
-    if (phase !== "analyzing") return;
-    const id = window.setInterval(() => setVisionStep((s) => Math.min(3, s + 1)), 5000);
-    return () => window.clearInterval(id);
-  }, [phase]);
-
-  const active =
-    phase === "preparing"
-      ? 0
-      : phase === "analyzing"
-        ? visionStep
-        : phase === "interpreting"
-          ? 4
-          : 5;
+  const states = stepStates(phase);
+  const heading = phase === "analyzed" ? PROGRESS_STEPS[3] : PROGRESS_STEPS[0];
 
   return (
     <div className="mx-auto max-w-md text-center">
@@ -49,11 +45,11 @@ export function AnalysisProgress({ phase }: { phase: PipelinePhase }) {
         </div>
       </div>
       <h2 className="mt-6 text-2xl text-parchment" aria-live="polite">
-        {STEPS[Math.min(active, STEPS.length - 1)]}…
+        {heading}…
       </h2>
       <ol className="mt-6 space-y-2 text-left" aria-label="Analysis progress">
-        {STEPS.map((label, index) => {
-          const state = index < active ? "done" : index === active ? "active" : "pending";
+        {PROGRESS_STEPS.map((label, index) => {
+          const state = states[index]!;
           return (
             <li
               key={label}
@@ -92,8 +88,8 @@ export function AnalysisProgress({ phase }: { phase: PipelinePhase }) {
         })}
       </ol>
       <p className="mt-6 text-xs leading-relaxed text-mist-dim">
-        The AI examines your photo in a single pass, then a separate step writes the reading. These
-        steps are an approximate guide — this usually takes under a minute.
+        The AI examines your photo in a single pass, so the first three steps finish together. Your
+        palm map appears as soon as they do, while your interpretation is written.
       </p>
     </div>
   );

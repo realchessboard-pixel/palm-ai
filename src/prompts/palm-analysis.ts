@@ -6,7 +6,7 @@ import { PalmAnalysisSchema } from "@/lib/schemas/palm-analysis";
  * no predictions. Bump the version whenever the wording changes so stored
  * analyses can be traced to the prompt that produced them.
  */
-export const ANALYSIS_PROMPT_VERSION = "palm-analysis/2026-10-04";
+export const ANALYSIS_PROMPT_VERSION = "palm-analysis/2026-10-04b";
 
 export const ANALYSIS_SYSTEM_PROMPT = `You are analyzing a photograph for traditional palmistry feature extraction.
 
@@ -38,7 +38,7 @@ Field guidance:
   - life: arcing around the base of the thumb.
   - fate: running vertically up the center of the palm toward the middle finger (often faint or absent).
   For each visible line give length, curvature, depth (how clearly etched), breaks, forks, intersections and minor markings on it.
-- path.points: OPTIONAL approximate positions as fractions of image width (x) and height (y), origin at the top-left of the image. Only include points when you can locate the line confidently; otherwise set points to null. Set pointsConfidence honestly.
+- path.points: OPTIONAL approximate positions as fractions of image width (x) and height (y), origin at the top-left of the image. Every x and y is a decimal from 0 to 1 (e.g. 0.42), never a pixel value. Only include points when you can locate the line confidently; otherwise set points to null. Set pointsConfidence honestly.
 - mounts.*: the fleshy pads (Venus at thumb base, Jupiter under index, Saturn under middle, Apollo under ring, Mercury under little finger, Mars on the palm edges between Jupiter/Venus and Mercury/Moon, Moon on the outer palm above the wrist). Mounts are hard to judge in a flat photo — use "insufficient_visibility" or low confidence when unsure.
 - markings: only distinct stars, crosses, islands, triangles, squares, grilles, chains or tridents you can actually see, with a short location description.
 - overallConfidence: your overall confidence in these observations.

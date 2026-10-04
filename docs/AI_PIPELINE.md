@@ -169,6 +169,39 @@ The result is re-validated against `PalmInterpretationSchema` and stored togethe
 - Per-feature confidences drive rule availability (≥ 0.35), softer wording (< 0.6), the opacity of lines in the palm diagram, and whether approximate line positions are drawn on the user's photo (points confidence ≥ 0.5, always labelled **Approximate positions**).
 - **Feature emphasis** on sections is the confidence-weighted strength of the cited evidence for that theme.
 
+## Performance
+
+Both stages are one model call each; everything else (upload parsing, image
+re-encoding, storage, database writes) measured under 0.3 s in total, so model
+latency is the whole budget. What the pipeline does about it:
+
+- **Progressive results.** As soon as stage 1 finishes, the browser opens the
+  results page, which shows the palm map, confidence and findings while
+  `InterpretationPending` requests stage 2 and refreshes when it's done. The
+  progress screen only marks steps complete on real events.
+- **Thinking levels.** `AI_INTERPRETATION_THINKING` defaults to `low`: the
+  text-only interpretation step is about twice as fast with no measured loss in
+  grounding (0 removed citations) or completeness. The vision step keeps the
+  model's default because lower levels agreed less with repeat baseline runs
+  and inflated hand-side confidence.
+- **Leaner stage-2 prompt.** Overlay coordinates are dropped from the analysis
+  JSON passed to stage 2 (they only drive the diagram).
+- **Fewer retries.** The stage-1 prompt states that coordinates are 0–1
+  fractions; pixel values were the most common cause of schema retries.
+- **Idempotent uploads.** The browser sends a `requestId` with each submission;
+  a repeat from the same visitor (double tap, retry after a dropped
+  connection) returns the first result instead of a second reading and AI call
+  (`src/lib/pipeline/idempotency.ts`, actor-scoped, never shared across users).
+  Stage 2 is guarded by the database claim, so concurrent requests wait (409)
+  rather than generate twice.
+- **Timings.** In development (or with `PIPELINE_TIMING=1`) each request logs a
+  `pipeline_timing` line with per-step durations and token counts — never image
+  data, prompt text or credentials.
+
+Image size is not a lever with Gemini: an image costs a fixed 1,064 input
+tokens whether it is 768 or 1,600 px on the long edge, and smaller images
+measured no faster, so photos stay at 1,600 px for line detail.
+
 ## Versioning and auditing
 
 Each stored `PalmAnalysis` and `PalmInterpretation` records:

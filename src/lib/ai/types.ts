@@ -19,11 +19,28 @@ export interface AiRequest {
   signal: AbortSignal;
   /** Non-prompt context (used by the mock provider). */
   hints?: { hand?: "left" | "right" };
+  /**
+   * Reasoning effort for models that "think" before answering. Unset uses the
+   * provider's default. Providers without a matching control ignore it.
+   */
+  thinking?: ThinkingLevel;
+}
+
+export const THINKING_LEVELS = ["low", "medium", "high"] as const;
+export type ThinkingLevel = (typeof THINKING_LEVELS)[number];
+
+/** Token usage reported by the provider (fields are optional: not every provider reports all). */
+export interface AiUsage {
+  inputTokens?: number;
+  imageTokens?: number;
+  outputTokens?: number;
+  thinkingTokens?: number;
 }
 
 export interface AiResponse {
   text: string;
   model: string;
+  usage?: AiUsage;
 }
 
 export type AiProviderName = "anthropic" | "openai" | "gemini" | "mock";

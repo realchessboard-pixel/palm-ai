@@ -38,6 +38,8 @@ export const HandSchema = z.enum(["left", "right"]);
 /** Multipart fields accompanying the uploaded image. */
 export const AnalyzeFieldsSchema = z.object({
   hand: HandSchema,
+  /** Client-generated id that makes repeated submissions of one photo idempotent. */
+  requestId: z.uuid().optional(),
   consent: z.literal("true", { message: "Please confirm consent to continue." }),
   trainingOptIn: z.enum(["true", "false"]).default("false"),
 });
