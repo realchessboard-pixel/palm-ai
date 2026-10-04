@@ -27,10 +27,6 @@ const EnvSchema = z.object({
   AI_TIMEOUT_MS: z.coerce.number().int().min(5_000).max(300_000).default(90_000),
   AI_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(4).default(2),
   AI_EFFORT: z.enum(["low", "medium", "high"]).default("medium"),
-  AI_ALLOW_MOCK_IN_PRODUCTION: z
-    .enum(["true", "false"])
-    .default("false")
-    .transform((v) => v === "true"),
 
   // Payments
   PAYMENT_PROVIDER: z.enum(["stripe", "razorpay", "mock", "none"]).default("none"),
@@ -64,6 +60,15 @@ const EnvSchema = z.object({
     .default(4 * 1024 * 1024),
   IMAGE_RETENTION_DAYS: z.coerce.number().int().min(0).max(3650).default(30),
 
+  /**
+   * Allows the mock AI and mock payment providers when NODE_ENV=production
+   * (e.g. a private demo deployment). Never enable on a real deployment.
+   */
+  DEMO_MODE: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
+
   // Operations
   CRON_SECRET: optionalString,
   ADMIN_EMAILS: optionalString,
@@ -76,7 +81,11 @@ let cached: Env | undefined;
 
 export function getEnv(): Env {
   if (cached) return cached;
-  const parsed = EnvSchema.safeParse(process.env);
+  // Treat empty values (e.g. `AI_PROVIDER=` copied from .env.example) as unset.
+  const raw = Object.fromEntries(
+    Object.entries(process.env).filter(([, value]) => value !== undefined && value.trim() !== ""),
+  );
+  const parsed = EnvSchema.safeParse(raw);
   if (!parsed.success) {
     // Only report key names, never values: values may be secrets.
     const keys = parsed.error.issues.map((issue) => issue.path.join(".")).join(", ");

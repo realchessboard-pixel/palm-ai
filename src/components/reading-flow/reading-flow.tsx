@@ -88,11 +88,9 @@ export function ReadingFlow() {
     setStep({ kind: "processing", phase: "interpreting" });
     try {
       await postJson("/api/palm/interpret", { readingId });
-      track("analysis_completed");
       setStep({ kind: "processing", phase: "done" });
       router.push(`/readings/${readingId}`);
     } catch (error) {
-      track("analysis_failed", { stage: "interpret" });
       setStep({
         kind: "failed",
         message:
@@ -117,7 +115,6 @@ export function ReadingFlow() {
     form.set("trainingOptIn", String(choices.trainingOptIn));
 
     try {
-      track("analysis_started", { hand });
       setStep({ kind: "processing", phase: "analyzing" });
       const result = await apiFetch<AnalyzeResponse>("/api/palm/analyze", {
         method: "POST",
@@ -129,11 +126,9 @@ export function ReadingFlow() {
         error instanceof ApiClientError &&
         (error.code === "IMAGE_QUALITY" || error.code === "IMAGE_INVALID")
       ) {
-        track("image_rejected", { stage: "server", reason: error.code });
         setStep({ kind: "source", error: error.message });
         return;
       }
-      track("analysis_failed", { stage: "analyze" });
       setStep({
         kind: "failed",
         message:

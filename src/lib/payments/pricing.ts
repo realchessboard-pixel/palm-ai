@@ -23,10 +23,11 @@ export function premiumPrice(): Price {
   };
 }
 
-/** Whether a purchase can be started. The mock provider is never available in production. */
+/** Whether a purchase can be started. The mock provider is unavailable in production unless DEMO_MODE. */
 export function paymentsEnabled(): boolean {
   const env = getEnv();
   if (env.PAYMENT_PROVIDER === "none") return false;
-  if (env.PAYMENT_PROVIDER === "mock" && env.NODE_ENV === "production") return false;
+  if (env.PAYMENT_PROVIDER === "mock" && env.NODE_ENV === "production" && !env.DEMO_MODE)
+    return false;
   return true;
 }
