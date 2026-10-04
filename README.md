@@ -185,7 +185,7 @@ AI_MODEL=<a vision-capable model>
 # Google Gemini
 AI_PROVIDER=gemini
 AI_API_KEY=...
-AI_MODEL=<a vision-capable Gemini model>
+AI_MODEL=gemini-3.8-flash   # verified: stable, vision + JSON mode
 ```
 
 The Anthropic adapter opts into server-side refusal fallbacks (`fallbacks: "default"`), so a request a safety classifier declines is retried on Anthropic's recommended fallback model.

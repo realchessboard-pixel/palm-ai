@@ -19,6 +19,9 @@ Object.assign(process.env, {
   NEXT_PUBLIC_APP_URL: "http://localhost:3000",
   STORAGE_PROVIDER: "memory",
   AI_PROVIDER: process.env.TEST_AI_PROVIDER ?? "mock",
+  // Never let tests reach a real AI API, even if a local .env holds a key.
+  AI_API_KEY: "",
+  AI_MODEL: "",
   PAYMENT_PROVIDER: "mock",
   ANALYTICS_PROVIDER: "database",
   STRIPE_WEBHOOK_SECRET: "whsec_test_secret",
