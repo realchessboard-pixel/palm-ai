@@ -7,6 +7,7 @@ import { Alert, Card } from "@/components/ui/misc";
 import { lineTitle, mountTitle, readingMessages } from "@/lib/i18n/reading-messages";
 import { narrativeFor } from "@/lib/readings/narrative-view";
 import type { ReadingView } from "@/lib/readings/view";
+import { PRODUCTS, formatInr } from "@/lib/monetization/price";
 import { SECTION_IDS } from "@/lib/schemas/palm-interpretation";
 import { AnalysisDetails } from "./analysis-details";
 import { DetailedPending } from "./detailed-pending";
@@ -15,6 +16,7 @@ import { LanguageSelector } from "./language-selector";
 import { PremiumPanel } from "./premium-panel";
 import { ReadingNarrativeView } from "./reading-narrative";
 import { Prose, SectionCard } from "./section-card";
+import { ShareAndCouple } from "./share-and-couple";
 import { TranslationLoader } from "./translation-loader";
 import { Visualization } from "./visualization";
 
@@ -29,6 +31,12 @@ export interface ResultsDashboardProps {
   interpretationPending?: boolean;
   /** Ads for free readings: "off" (default) or a development placeholder. */
   adMode?: AdMode;
+  /** Signed-in visitors' reading credits and wallet balance. */
+  balances?: { readingCredits: number; walletPaise: number } | null;
+  /** Link for sharing PalmAI (with the visitor's referral code when signed in). */
+  shareUrl?: string;
+  /** Shown next to the share button for signed-in visitors. */
+  referralNote?: string | null;
 }
 
 export function ResultsDashboard({
@@ -39,6 +47,9 @@ export function ResultsDashboard({
   sample = false,
   interpretationPending = false,
   adMode = "off",
+  balances = null,
+  shareUrl,
+  referralNote = null,
 }: ResultsDashboardProps) {
   const lang = reading.language;
   const t = readingMessages(lang);
@@ -93,6 +104,16 @@ export function ResultsDashboard({
         <InterpretationPending readingId={reading.id} />
       ) : main ? (
         <ReadingNarrativeView narrative={main.narrative} messages={t} lang={lang} />
+      ) : null}
+
+      {!sample && !interpretationPending && !reading.isPartner && main && shareUrl ? (
+        <ShareAndCouple
+          readingId={reading.id}
+          headline={main.narrative.headline}
+          shareUrl={shareUrl}
+          couplePriceLabel={formatInr(PRODUCTS.COUPLE_COMPATIBILITY.priceInr)}
+          referralNote={referralNote}
+        />
       ) : null}
 
       <Card as="section" className="space-y-6" aria-labelledby="palm-map-title">
@@ -196,6 +217,7 @@ export function ResultsDashboard({
             priceLabel={priceLabel}
             paymentsEnabled={paymentsEnabled}
             paymentState={reading.paymentState}
+            balances={balances}
           />
         </>
       ) : null}

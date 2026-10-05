@@ -12,6 +12,15 @@ function safeNext(next: string | null | undefined): string {
   return next && next.startsWith("/") && !next.startsWith("//") ? next : "/readings";
 }
 
+/** Referral code remembered from a shared link (see ReferralCapture). */
+function readReferral(): string | undefined {
+  try {
+    return localStorage.getItem("palmai.ref") ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function AuthForm({ mode, next }: { mode: "login" | "signup"; next?: string }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -31,6 +40,7 @@ export function AuthForm({ mode, next }: { mode: "login" | "signup"; next?: stri
       await postJson(mode === "login" ? "/api/auth/login" : "/api/auth/signup", {
         email,
         password,
+        ...(mode === "signup" ? { ref: readReferral() } : {}),
       });
       router.push(safeNext(next));
       router.refresh();

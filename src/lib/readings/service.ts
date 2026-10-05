@@ -78,7 +78,7 @@ export async function getReadingView(
 
 export async function listReadingsForUser(userId: string): Promise<ReadingListItem[]> {
   const readings = await db.reading.findMany({
-    where: { userId },
+    where: { userId, role: "SELF" },
     orderBy: { createdAt: "desc" },
     take: 100,
     include: {
@@ -133,6 +133,11 @@ export async function claimGuestReadings(
   const result = await db.reading.updateMany({
     where: { guestKeyHash, userId: null },
     data: { userId },
+  });
+  // Couple readings started as a guest move to the account too.
+  await db.compatibility.updateMany({
+    where: { guestKeyHash, userId: null },
+    data: { userId, guestKeyHash: null },
   });
   return result.count;
 }

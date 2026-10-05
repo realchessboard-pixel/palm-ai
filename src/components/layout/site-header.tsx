@@ -11,7 +11,8 @@ export interface HeaderUser {
 export function SiteHeader({ user }: { user: HeaderUser | null }) {
   const links = [
     { href: "/#how-it-works", label: "How it works" },
-    { href: "/#faq", label: "FAQ" },
+    { href: "/compatibility", label: "Couples" },
+    { href: "/pricing", label: "Pricing" },
     ...(user ? [{ href: "/readings", label: "Your readings" }] : []),
     ...(user?.isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
   ];

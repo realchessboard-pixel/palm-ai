@@ -64,7 +64,7 @@ export class PipelineTimer {
  * Durations, counts and model names only.
  */
 export function stageMetrics(input: {
-  stage: "analysis" | "interpretation" | "detailed";
+  stage: "analysis" | "interpretation" | "detailed" | "compatibility";
   totalMs: number;
   providerMs: number;
   attempts: number;

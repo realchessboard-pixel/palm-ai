@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, Spinner } from "@/components/ui/misc";
 import { track } from "@/lib/analytics/client";
-import { ApiClientError, apiFetch, isTransientError } from "@/lib/api-client";
+import { ApiClientError, apiFetch, isTransientError, postJson } from "@/lib/api-client";
 import {
   ImageInputError,
   prepareImage,
@@ -44,6 +44,15 @@ interface AnalyzeResponse {
 /** PalmAI reads the right hand only, following the traditional reading of the right palm. */
 const HAND = "right" as const;
 
+const PARTNER_TITLES: Record<Step["kind"], string> = {
+  source: "Now your partner's right palm",
+  camera: "Place your partner's right palm in the frame",
+  checking: "Checking the photo",
+  review: "Review the photo",
+  processing: "Reading your partner's palm",
+  failed: "Let's give it another go",
+};
+
 const STEP_TITLES: Record<Step["kind"], string> = {
   source: "Show us your right palm",
   camera: "Place your right palm in the frame",
@@ -53,7 +62,13 @@ const STEP_TITLES: Record<Step["kind"], string> = {
   failed: "Let's give it another go",
 };
 
-export function ReadingFlow() {
+/**
+ * The reading flow. With `partnerFor` (the visitor's own reading id) it reads
+ * the partner's palm for a couple reading instead: analysis only, with the
+ * partner's agreement confirmed, then on to the couple reading page.
+ */
+export function ReadingFlow({ partnerFor }: { partnerFor?: string } = {}) {
+  const titles = partnerFor ? PARTNER_TITLES : STEP_TITLES;
   const router = useRouter();
   const [step, setStep] = useState<Step>({ kind: "source" });
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -67,8 +82,8 @@ export function ReadingFlow() {
   }, [step.kind]);
 
   useEffect(() => {
-    track("start_reading");
-  }, []);
+    if (!partnerFor) track("start_reading");
+  }, [partnerFor]);
 
   useEffect(() => {
     return () => {
@@ -113,7 +128,11 @@ export function ReadingFlow() {
     form.set("image", image.blob, "palm.jpg");
     form.set("hand", HAND);
     form.set("consent", "true");
-    form.set("trainingOptIn", String(choices.trainingOptIn));
+    form.set("trainingOptIn", String(!partnerFor && choices.trainingOptIn));
+    if (partnerFor) {
+      form.set("role", "partner");
+      form.set("partnerConsent", "true");
+    }
     if (current.requestId) form.set("requestId", current.requestId);
 
     try {
@@ -132,8 +151,16 @@ export function ReadingFlow() {
           await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]));
         }
       }
-      // The results page shows the palm map right away and writes the interpretation there.
       setStep({ kind: "processing", phase: "analyzed" });
+      if (partnerFor) {
+        const { compatibilityId } = await postJson<{ compatibilityId: string }>(
+          "/api/compatibility",
+          { readingId: partnerFor, partnerReadingId: result!.readingId },
+        );
+        router.push(`/compatibility/${compatibilityId}`);
+        return;
+      }
+      // The results page shows the palm map right away and writes the interpretation there.
       router.push(`/readings/${result!.readingId}`);
     } catch (error) {
       inFlight.current = false;
@@ -192,14 +219,15 @@ export function ReadingFlow() {
             : "mb-6 text-3xl text-parchment outline-none sm:text-4xl"
         }
       >
-        {STEP_TITLES[step.kind]}
+        {titles[step.kind]}
       </h1>
 
       {step.kind === "source" ? (
         <div className="space-y-4">
           <p className="-mt-2 text-mist">
-            Place your right hand clearly inside the frame — palm facing the camera, fingers relaxed
-            and slightly apart.
+            {partnerFor
+              ? "Ask your partner to hold their right hand inside the frame — palm facing the camera, fingers relaxed and slightly apart. Only read their palm with their agreement."
+              : "Place your right hand clearly inside the frame — palm facing the camera, fingers relaxed and slightly apart."}
           </p>
           {step.error ? <Alert tone="error">{step.error}</Alert> : null}
           <PhotoSource onFile={handleSource} onOpenCamera={() => setStep({ kind: "camera" })} />
@@ -227,6 +255,7 @@ export function ReadingFlow() {
           issues={step.image.issues}
           onRetake={() => setStep({ kind: "source" })}
           onUse={(choices) => analyze(step.image, choices)}
+          partner={Boolean(partnerFor)}
         />
       ) : null}
 

@@ -20,6 +20,8 @@ export interface ReadingRecordLike {
   imageKey: string | null;
   analysisConfidence: number | null;
   rejectionReason: string | null;
+  /** PARTNER: a partner's palm for a couple reading. */
+  role?: "SELF" | "PARTNER";
 }
 
 export function lineObservations(analysis: PalmAnalysis): LineObservationView[] {
@@ -98,6 +100,7 @@ export function buildReadingView(input: {
     language: input.language ?? DEFAULT_LANGUAGE,
     translationPending: input.translationPending ?? false,
     detailedPending: premium && detailedPending,
+    isPartner: reading.role === "PARTNER",
     // An entitlement (from a verified payment) is what unlocks; show it as paid even if the
     // latest checkout attempt was abandoned.
     paymentState: premium ? "PAYMENT_SUCCESS" : unlockedStateGuard(input.paymentState),

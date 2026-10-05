@@ -33,6 +33,8 @@ export interface AnalyzeInput {
   trainingOptIn: boolean;
   userId: string | null;
   guestKeyHash: string | null;
+  /** A partner's palm for a couple reading (analysis only; not listed as the user's own). */
+  role?: "self" | "partner";
   /** Optional development timing collector. */
   timer?: PipelineTimer;
 }
@@ -157,6 +159,7 @@ async function runAnalysis(input: AnalyzeInput, timer: PipelineTimer): Promise<A
           imageHeight: processed.height,
           qualityScore: processed.qualityScore,
           trainingOptIn: input.trainingOptIn,
+          role: input.role === "partner" ? "PARTNER" : "SELF",
           isDemo: provider.isMock,
           aiProvider: provider.name,
         },

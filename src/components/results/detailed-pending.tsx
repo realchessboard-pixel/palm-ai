@@ -16,6 +16,28 @@ const AUTO_RETRIES = 2;
  * once: the server lets one request write and answers the others with 409.
  */
 export function DetailedPending({ readingId }: { readingId: string }) {
+  return (
+    <PendingWriter
+      endpoint={`/api/readings/${readingId}/detailed`}
+      title="Writing your detailed reading…"
+      body="Thank you — it's unlocked. Your reader is now going line by line and parvat by parvat through your palm. This usually takes about 20 seconds, and it stays saved to this reading."
+      retryMessage="Your detailed reading is unlocked and saved — it just needs another moment to be written. Tap “Try again”."
+    />
+  );
+}
+
+/** Asks the server to write something that was just unlocked, waits, then refreshes. */
+export function PendingWriter({
+  endpoint,
+  title,
+  body,
+  retryMessage,
+}: {
+  endpoint: string;
+  title: string;
+  body: string;
+  retryMessage: string;
+}) {
   const router = useRouter();
   const [attempt, setAttempt] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +49,7 @@ export function DetailedPending({ readingId }: { readingId: string }) {
     async function run() {
       while (!cancelled) {
         try {
-          await postJson(`/api/readings/${readingId}/detailed`, {});
+          await postJson(endpoint, {});
           if (!cancelled) router.refresh();
           return;
         } catch (err) {
@@ -42,9 +64,7 @@ export function DetailedPending({ readingId }: { readingId: string }) {
           }
           if (!cancelled) {
             setError(
-              err instanceof ApiClientError && !isTransientError(err)
-                ? err.message
-                : "Your detailed reading is unlocked and saved — it just needs another moment to be written. Tap “Try again”.",
+              err instanceof ApiClientError && !isTransientError(err) ? err.message : retryMessage,
             );
           }
           return;
@@ -55,7 +75,7 @@ export function DetailedPending({ readingId }: { readingId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [readingId, attempt, router]);
+  }, [endpoint, attempt, router, retryMessage]);
 
   if (error) {
     return (
@@ -75,14 +95,10 @@ export function DetailedPending({ readingId }: { readingId: string }) {
 
   return (
     <div className="glass flex items-start gap-4 rounded-3xl p-6" aria-live="polite">
-      <Spinner label="Writing your detailed reading" className="mt-1" />
+      <Spinner label={title} className="mt-1" />
       <div>
-        <h2 className="text-2xl text-gold-200">Writing your detailed reading…</h2>
-        <p className="mt-2 leading-relaxed text-parchment/85">
-          Thank you — it&apos;s unlocked. Your reader is now going line by line and parvat by parvat
-          through your palm. This usually takes about 20 seconds, and it stays saved to this
-          reading.
-        </p>
+        <h2 className="text-2xl text-gold-200">{title}</h2>
+        <p className="mt-2 leading-relaxed text-parchment/85">{body}</p>
       </div>
     </div>
   );

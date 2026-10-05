@@ -109,6 +109,40 @@ export default async function AdminPage() {
         </section>
       ) : null}
 
+      <section aria-labelledby="growth-title" className="space-y-4">
+        <h2 id="growth-title" className="text-2xl">
+          Growth: wallet, credits, gifts, referrals, couples
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Stat
+            label="Wallet balance outstanding"
+            value={inr(stats.growth.walletLiabilityPaise / 100)}
+            hint="Prepaid, not yet spent (closed-loop)"
+          />
+          <Stat
+            label="Unused reading credits"
+            value={stats.growth.unusedReadingCredits.toLocaleString()}
+          />
+          <Stat
+            label="Active memberships"
+            value={stats.growth.activeMemberships.toLocaleString()}
+          />
+          <Stat
+            label="Gifts sold / redeemed"
+            value={`${stats.growth.giftsSold} / ${stats.growth.giftsRedeemed}`}
+          />
+          <Stat
+            label="Referrals joined / qualified"
+            value={`${stats.growth.referralsJoined} / ${stats.growth.referralsQualified}`}
+          />
+          <Stat
+            label="Couple readings started / unlocked"
+            value={`${stats.growth.coupleReadings} / ${stats.growth.coupleReadingsUnlocked}`}
+          />
+          <Stat label="Shares (30 days)" value={stats.growth.shares30d.toLocaleString()} />
+        </div>
+      </section>
+
       <section aria-labelledby="economics-title" className="space-y-4">
         <div>
           <h2 id="economics-title" className="text-2xl">

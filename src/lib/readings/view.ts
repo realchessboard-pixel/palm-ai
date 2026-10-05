@@ -48,6 +48,8 @@ export interface ReadingView {
   translationPending: boolean;
   /** Unlocked, but the detailed reading is still to be written (it is written after purchase). */
   detailedPending: boolean;
+  /** A partner's palm, read for a couple reading. */
+  isPartner: boolean;
   /** Display only — access is decided server-side by the entitlement. */
   paymentState: PaymentState;
   lines: LineObservationView[];

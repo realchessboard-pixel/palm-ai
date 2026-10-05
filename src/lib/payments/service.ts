@@ -35,6 +35,8 @@ export type CheckoutResponse =
   | { type: "completed" }
   | {
       type: "razorpay";
+      /** Our payment id, so the browser can cancel this attempt if the window is closed. */
+      paymentId: string;
       keyId: string;
       orderId: string;
       amount: number;
@@ -132,6 +134,7 @@ export async function startOrderCheckout(order: Order, actor: Actor): Promise<Ch
     case "razorpay":
       return {
         type: "razorpay",
+        paymentId: payment.id,
         keyId: session.keyId,
         orderId: session.orderId,
         amount: session.amount,
@@ -192,10 +195,11 @@ export async function payWithWallet(
       });
       await grantOrder(tx, payment);
     });
-    await trackServerEvent("purchase_completed", {
+    // Not "purchase_completed": the real money was counted when the wallet was topped up.
+    await trackServerEvent("wallet_payment", {
       userId,
       readingId: prepared.readingId,
-      properties: { provider: "WALLET", amount: prepared.amountPaise, product: prepared.product },
+      properties: { amount: prepared.amountPaise, product: prepared.product },
     });
   }
   const user = await db.user.findUniqueOrThrow({
@@ -232,6 +236,7 @@ export async function unlockWithCredit(readingId: string, actor: Actor): Promise
       data: { type: "READING_PREMIUM", readingId: reading.id, userId },
     });
   });
+  await trackServerEvent("credit_used", { userId, readingId: reading.id });
   const context = await funnelContext(reading.id);
   if (context) await trackFunnelEvent("extended_reading_unlocked", context, { via: "credit" });
 }
@@ -266,6 +271,7 @@ export async function redeemGift(code: string, actor: Actor): Promise<void> {
       refId: gift.id,
     });
   });
+  await trackServerEvent("gift_redeemed", { userId });
 }
 
 /**

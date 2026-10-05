@@ -118,6 +118,7 @@ describe.skipIf(!hasTestDatabase)("₹49 detailed reading", () => {
   });
   afterEach(() => {
     vi.restoreAllMocks();
+    delete process.env.AI_MAX_ATTEMPTS;
     setAiProvider(undefined);
     setEnv({ PAYMENT_PROVIDER: "mock", NODE_ENV: "test", DEMO_MODE: "false" });
   });

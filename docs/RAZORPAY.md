@@ -1,4 +1,4 @@
-# Razorpay setup (₹35 detailed reading)
+# Razorpay setup (PalmAI products)
 
 PalmAI uses Razorpay **Orders + Standard Checkout** with server-side verification.
 No Razorpay credential is in the source code: everything comes from environment

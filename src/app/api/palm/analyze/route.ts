@@ -53,7 +53,10 @@ export const POST = withErrorHandling("palm.analyze", async (request: NextReques
     consent: form.get("consent"),
     trainingOptIn: form.get("trainingOptIn") ?? undefined,
     requestId: form.get("requestId") ?? undefined,
+    role: form.get("role") ?? undefined,
+    partnerConsent: form.get("partnerConsent") ?? undefined,
   });
+  const partner = fields.role === "partner";
 
   const guest = actor.user ? null : ensureGuestKey(request, actor);
   const image = Buffer.from(await file.arrayBuffer());
@@ -70,7 +73,10 @@ export const POST = withErrorHandling("palm.analyze", async (request: NextReques
       timer,
       image,
       hand: fields.hand,
-      trainingOptIn: fields.trainingOptIn === "true" || Boolean(actor.user?.trainingOptIn),
+      // A partner's photo is never used for training: only they could agree to that.
+      trainingOptIn:
+        !partner && (fields.trainingOptIn === "true" || Boolean(actor.user?.trainingOptIn)),
+      role: fields.role,
       userId: actor.user?.id ?? null,
       guestKeyHash: guest?.guestKeyHash ?? null,
     }),

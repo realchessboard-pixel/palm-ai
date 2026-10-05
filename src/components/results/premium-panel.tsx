@@ -1,4 +1,7 @@
+import Link from "next/link";
+import { BalanceUnlock } from "@/components/payments/balance-unlock";
 import { Alert } from "@/components/ui/misc";
+import { PRODUCTS, formatInr } from "@/lib/monetization/price";
 import { lineLabel } from "@/lib/palmistry/features";
 import type { PaymentState } from "@/lib/payments/states";
 import type { LockedContent } from "@/lib/readings/projection";
@@ -32,13 +35,17 @@ export function PremiumPanel({
   priceLabel,
   paymentsEnabled,
   paymentState = "UNPAID",
+  balances = null,
 }: {
   readingId: string;
   locked: LockedContent;
   priceLabel: string;
   paymentsEnabled: boolean;
   paymentState?: PaymentState;
+  /** Signed-in visitors: credits and wallet they can use instead of paying again. */
+  balances?: { readingCredits: number; walletPaise: number } | null;
 }) {
+  const pricePaise = PRODUCTS.DETAILED_READING.priceInr * 100;
   const notice = STATE_NOTICE[paymentState];
   const items = [
     ...locked.detailedSections.map((id) => `In-depth ${SECTION_TITLES[id].toLowerCase()} reading`),
@@ -101,6 +108,27 @@ export function PremiumPanel({
               <span className="text-sm text-mist">one-time, for this reading</span>
             </p>
             <UnlockButton readingId={readingId} priceLabel={priceLabel} />
+            {balances ? (
+              <div className="mt-4">
+                <BalanceUnlock
+                  order={{ product: "DETAILED_READING", readingId }}
+                  credits={balances.readingCredits}
+                  canPayFromWallet={balances.walletPaise >= pricePaise}
+                  walletLabel={`${formatInr(balances.walletPaise / 100)} available`}
+                />
+              </div>
+            ) : null}
+            <p className="mt-5 text-sm text-mist">
+              Reading for the whole family?{" "}
+              <Link href="/pricing" className="text-gold-300 underline underline-offset-2">
+                {PRODUCTS.FAMILY_PACK.name} — {formatInr(PRODUCTS.FAMILY_PACK.priceInr)}
+              </Link>{" "}
+              or{" "}
+              <Link href="/pricing" className="text-gold-300 underline underline-offset-2">
+                every reading in full for a year — {formatInr(PRODUCTS.MEMBERSHIP_YEAR.priceInr)}
+              </Link>
+              .
+            </p>
           </>
         ) : (
           <p className="text-sm text-mist">
@@ -108,8 +136,8 @@ export function PremiumPanel({
           </p>
         )}
         <p className="mt-3 text-xs text-mist-dim">
-          Unlocks the detailed reading for this palm reading only. No subscription. Same
-          entertainment-only disclaimer applies.
+          One-time payment that unlocks the detailed reading for this palm reading only. No
+          auto-renewal. Same entertainment-only disclaimer applies.
         </p>
       </div>
     </section>

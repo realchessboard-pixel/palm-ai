@@ -8,6 +8,7 @@ import { getEnv } from "@/lib/config/env";
 import { db } from "@/lib/db";
 import { AppError, isAppError } from "@/lib/http/errors";
 import { logger } from "@/lib/logger";
+import { qualifyReferral } from "@/lib/growth/referrals";
 import { trackFunnelEvent } from "@/lib/monetization/funnel";
 import { PipelineTimer, stageMetrics, usageCounts } from "@/lib/perf/timing";
 import { availableFeatures } from "@/lib/palmistry/features";
@@ -232,6 +233,7 @@ async function runInterpretation(
         }),
       ]),
     );
+    if (!reading.isDemo) await qualifyReferral(reading.userId);
     return { readingId, status: "COMPLETE" };
   } catch (error) {
     const code = isAppError(error) ? error.code : "INTERNAL_ERROR";

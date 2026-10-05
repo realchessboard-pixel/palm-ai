@@ -18,6 +18,14 @@ export const SignupSchema = z.object({
   email: EmailSchema,
   password: PasswordSchema,
   name: z.string().trim().max(80).optional(),
+  /** Referral code from a shared link (`/?ref=CODE`), if any. */
+  ref: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z2-9]{8}$/)
+    .optional()
+    .catch(undefined),
 });
 
 export const LoginSchema = z.object({
@@ -41,17 +49,26 @@ export const MockPaymentOutcomeSchema = z.object({
 export const HandSchema = z.enum(["left", "right"]);
 
 /** Multipart fields accompanying the uploaded image. */
-export const AnalyzeFieldsSchema = z.object({
-  /**
-   * PalmAI reads the right hand only. The field is still accepted (older
-   * clients send it) but every new reading is stored as the right hand.
-   */
-  hand: HandSchema.optional().transform(() => "right" as const),
-  /** Client-generated id that makes repeated submissions of one photo idempotent. */
-  requestId: z.uuid().optional(),
-  consent: z.literal("true", { message: "Please confirm consent to continue." }),
-  trainingOptIn: z.enum(["true", "false"]).default("false"),
-});
+export const AnalyzeFieldsSchema = z
+  .object({
+    /**
+     * PalmAI reads the right hand only. The field is still accepted (older
+     * clients send it) but every new reading is stored as the right hand.
+     */
+    hand: HandSchema.optional().transform(() => "right" as const),
+    /** Client-generated id that makes repeated submissions of one photo idempotent. */
+    requestId: z.uuid().optional(),
+    consent: z.literal("true", { message: "Please confirm consent to continue." }),
+    trainingOptIn: z.enum(["true", "false"]).default("false"),
+    /** "partner": the partner's palm for a couple reading. */
+    role: z.enum(["self", "partner"]).default("self"),
+    /** Required for a partner's palm: the user confirms their partner agreed. */
+    partnerConsent: z.literal("true").optional(),
+  })
+  .refine((f) => f.role !== "partner" || f.partnerConsent === "true", {
+    message: "Please confirm your partner agreed to have their palm read.",
+    path: ["partnerConsent"],
+  });
 
 export const RazorpayVerifySchema = z.object({
   orderId: z.string().min(1).max(100),

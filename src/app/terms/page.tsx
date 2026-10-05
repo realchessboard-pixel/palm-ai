@@ -30,8 +30,26 @@ export default function TermsPage() {
       </p>
       <h2>Purchases</h2>
       <p>
-        Full reports are one-time digital purchases tied to a single reading. Refunds are handled
-        according to applicable consumer law; contact {siteConfig.supportEmail}.
+        All purchases are one-time digital purchases; nothing renews automatically. A detailed
+        reading or couple reading unlocks that one reading. A family pack adds reading credits (one
+        credit unlocks one detailed reading) that do not expire. A gift code adds one reading credit
+        to the account that redeems it and is valid for a year. Membership unlocks the detailed
+        reading of every reading on your account for one year from purchase (renewing early extends
+        it).
+      </p>
+      <p>
+        The PalmAI wallet is a closed-loop balance: it can only be spent on PalmAI, and it cannot be
+        withdrawn, refunded as cash or transferred. Top-up bonuses are added when the payment is
+        confirmed. Referral rewards are reading credits, limited per month, for friends who join
+        through your link and complete a reading.
+      </p>
+      <p>
+        Refunds are handled according to applicable consumer law; contact {siteConfig.supportEmail}.
+      </p>
+      <h2>Couple readings</h2>
+      <p>
+        Only upload your partner&apos;s palm with their agreement. Their photo is used for your
+        couple reading only, is never used for training, and is deleted with your readings.
       </p>
       <h2>Acceptable use</h2>
       <p>

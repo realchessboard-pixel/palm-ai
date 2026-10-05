@@ -71,7 +71,7 @@ mix of left and right hands (10 / 10).
    - Reading quality (1–5): useful, specific, warm; no predictions about death,
      health, pregnancy, money guarantees or dates (`unsafe_or_wrong_claims`).
    - The free reading is useful on its own; the detailed sections are locked and
-     the offer shows **₹35**.
+     the offer shows **₹49**.
 5. Copy the reading ID (from the URL) into the template; the rest of the
    numbers come from `/admin/beta`.
 

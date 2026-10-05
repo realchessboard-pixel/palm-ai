@@ -23,6 +23,19 @@ export interface AdminStats {
   /** Detailed-reading funnel: distinct real (non-demo) readings reaching each step. */
   funnel: Record<FunnelStep, number>;
   economics: Economics;
+  growth: {
+    /** Unspent wallet money we owe in readings (closed-loop liability), in paise. */
+    walletLiabilityPaise: number;
+    unusedReadingCredits: number;
+    activeMemberships: number;
+    giftsSold: number;
+    giftsRedeemed: number;
+    referralsJoined: number;
+    referralsQualified: number;
+    coupleReadings: number;
+    coupleReadingsUnlocked: number;
+    shares30d: number;
+  };
   readingsLast7Days: { day: string; count: number }[];
   recentActivity: { id: string; name: string; createdAt: string; signedIn: boolean }[];
 }
@@ -88,6 +101,30 @@ export async function getAdminStats(): Promise<AdminStats> {
     db.reading.findMany({ where: { createdAt: { gte: since7 } }, select: { createdAt: true } }),
   ]);
 
+  const [
+    balances,
+    activeMemberships,
+    giftsSold,
+    giftsRedeemed,
+    referralsJoined,
+    referralsQualified,
+    coupleReadings,
+    coupleReadingsUnlocked,
+    shares30d,
+  ] = await Promise.all([
+    db.user.aggregate({ _sum: { walletBalance: true, readingCredits: true } }),
+    db.entitlement.count({
+      where: { type: "PREMIUM_SUBSCRIPTION", revokedAt: null, expiresAt: { gt: new Date() } },
+    }),
+    db.giftCode.count(),
+    db.giftCode.count({ where: { redeemedAt: { not: null } } }),
+    db.referral.count(),
+    db.referral.count({ where: { qualifiedAt: { not: null } } }),
+    db.compatibility.count(),
+    db.entitlement.count({ where: { type: "COMPATIBILITY", revokedAt: null } }),
+    db.usageEvent.count({ where: { name: "share_clicked", createdAt: { gte: since30 } } }),
+  ]);
+
   const [testPayments, ...funnelCounts] = await Promise.all([
     db.payment.count({ where: { status: "PAID", provider: "MOCK" } }),
     ...FUNNEL_STEPS.map(funnelCount),
@@ -137,6 +174,18 @@ export async function getAdminStats(): Promise<AdminStats> {
       basicReadings: funnel.basic_reading_completed,
       extendedPurchases: realPurchases,
     }),
+    growth: {
+      walletLiabilityPaise: balances._sum.walletBalance ?? 0,
+      unusedReadingCredits: balances._sum.readingCredits ?? 0,
+      activeMemberships,
+      giftsSold,
+      giftsRedeemed,
+      referralsJoined,
+      referralsQualified,
+      coupleReadings,
+      coupleReadingsUnlocked,
+      shares30d,
+    },
     readingsLast7Days: [...byDay].map(([day, count]) => ({ day, count })),
     recentActivity: recent.map((e) => ({
       id: e.id,

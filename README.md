@@ -201,15 +201,42 @@ If the provider is missing or misconfigured, the API returns a friendly `AI_NOT_
 
 ## Monetization
 
-The basic reading is free. The **detailed reading costs ₹35**, set once in
-`src/lib/monetization/price.ts` (`EXTENDED_READING_PRICE_INR`); every label,
-checkout amount and analytics property derives from it.
+The main reading is free. Every price lives in one catalogue,
+`src/lib/monetization/price.ts` (`PRODUCTS`, `WALLET_TOPUPS`); every label,
+checkout amount and analytics property derives from it. Prices are never
+taken from the request.
 
-- **What's free:** the overview, personality and career summaries, the heart,
-  head and life line summaries, the palm map and the detected features.
-- **What ₹35 unlocks (for that one reading):** every section in depth, all
-  line, mount, finger and marking readings, and the PDF. It's projected from
-  the same stored interpretation, so unlocking makes no extra AI call.
+| Product          | Price                                 | What it gives                                                                               |
+| ---------------- | ------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Detailed reading | ₹49                                   | Every section in depth, all lines, parvats, fingers, markings and the PDF — for one reading |
+| Couple reading   | ₹99                                   | Your right palm and your partner's read side by side (`/compatibility`)                     |
+| Family pack      | ₹149                                  | 4 reading credits (one credit unlocks one detailed reading; never expire)                   |
+| Gift a reading   | ₹49                                   | A gift code to share on WhatsApp (`/gift/CODE`), worth one credit, valid a year             |
+| Membership       | ₹299                                  | Every reading on the account includes the detailed reading for 365 days; no auto-renewal    |
+| Wallet top-up    | ₹100 → ₹110, ₹250 → ₹280, ₹500 → ₹575 | Closed-loop balance, spendable only on PalmAI                                               |
+
+- **What's free:** the main reading (headline, introduction, the way you
+  think, the way you care, strengths, career nature, one insight), the palm
+  map and the detected features.
+- **The detailed reading is written only after it is unlocked**
+  (`POST /api/readings/[id]/detailed`, claim-guarded and idempotent), so a
+  free reading costs only the vision call plus the short main reading. The
+  results page writes it automatically after purchase; the PDF waits (409)
+  until it exists.
+- **Credits and wallet** are kept in an append-only `LedgerEntry` table with a
+  unique `(unit, reason, refId)`, so replayed webhooks and double clicks can't
+  credit twice. Wallet spends create a `WALLET` payment that admin revenue
+  excludes (the money was counted when the wallet was topped up).
+- **Referrals:** a signed-in visitor's share link is `/?ref=CODE`. A referral
+  qualifies when the friend signs up through it and completes a real
+  (non-demo) reading; every 3 qualified referrals earn one reading credit, up
+  to 5 per 30 days.
+- **Couple readings:** the partner's palm is analysed only (role `PARTNER`,
+  never used for training, kept out of the reading list) and requires the
+  user to confirm the partner agreed. The couple reading is written after the
+  ₹99 unlock, grounded in both palms' observed features and filtered for
+  safety (no marriage/break-up predictions, kundli/guna matching, scores,
+  doshas or remedies).
 - **Access is decided on the server** by a `READING_PREMIUM` entitlement that
   only a verified payment for that reading grants. Locked content is removed
   before anything reaches the browser; query strings, client state and request
@@ -310,8 +337,9 @@ Integration tests need `TEST_DATABASE_URL`. **That database is truncated by the 
 | `tests/integration/payments.test.ts`        | Entitlements; mock, Stripe and Razorpay checkout; webhook verification and idempotency; PDF gating                              |
 | `tests/integration/razorpay.test.ts`        | Razorpay order, signature + API verification, failed/cancelled, webhook replay/duplicates, refresh, Reading A vs B              |
 | `tests/integration/beta-report.test.ts`     | Beta report rows (hands, timings, retries, tokens, cost), CSV export and admin-only access                                      |
-| `tests/integration/monetization.test.ts`    | Free → ₹35 flow; failed, cancelled and verified payments; cross-reading replay; manipulation; funnel events                     |
+| `tests/integration/monetization.test.ts`    | Free → ₹49 flow; failed, cancelled and verified payments; cross-reading replay; manipulation; funnel events                     |
 | `tests/unit/monetization.test.tsx`          | Central price, economics maths, ad slot, the detailed-reading offer and payment-state notices                                   |
+| `tests/integration/growth.test.ts`          | Family pack credits, wallet top-up and spend, gifts, membership, referrals and couple readings                                  |
 | `tests/unit/pipeline-performance.test.ts`   | Image preprocessing, timing logs, thinking levels, prompt trimming, duplicate-request protection                                |
 | `tests/integration/admin-and-ops.test.ts`   | Admin access, stats, the analytics allow-list, the cleanup job                                                                  |
 | `tests/components/reading-journey.test.tsx` | Hand selection, file validation, quality blocking, consent, progress steps, free and premium results                            |

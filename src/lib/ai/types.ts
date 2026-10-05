@@ -3,7 +3,11 @@
  * only depend on this interface, never on a specific vendor SDK.
  */
 export type AiTask =
-  "palm_analysis" | "palm_interpretation" | "palm_detailed_reading" | "reading_translation";
+  | "palm_analysis"
+  | "palm_interpretation"
+  | "palm_detailed_reading"
+  | "palm_compatibility"
+  | "reading_translation";
 
 export interface AiImage {
   data: Buffer;

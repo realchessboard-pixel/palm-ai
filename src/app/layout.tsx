@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
+import { ReferralCapture } from "@/components/share/referral-capture";
 import { getCurrentUser } from "@/lib/auth/actor";
 import { siteConfig } from "@/lib/config/site";
 import { logger } from "@/lib/logger";
@@ -81,6 +82,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         </main>
         <SiteFooter />
         <ServiceWorkerRegistration />
+        <ReferralCapture />
       </body>
     </html>
   );
