@@ -1,0 +1,52 @@
+import { SectionHeading } from "@/components/ui/misc";
+
+export const FAQ_ITEMS = [
+  {
+    q: "Is an AI palm reading accurate?",
+    a: "Palmistry is a cultural tradition, not a science, so no palm reading — human or AI — can accurately predict your future. What we measure is how confidently the AI could see features in your photo. The reading itself is for entertainment and reflection.",
+  },
+  {
+    q: "Which hand should I use?",
+    a: "Traditionally, your dominant hand is said to reflect your present and the path you're shaping, while the other hand reflects natural tendencies. Pick whichever you're curious about — you can read both.",
+  },
+  {
+    q: "How do I take a good palm photo?",
+    a: "Use bright, even light (daylight near a window is ideal), open your hand with fingers relaxed and slightly apart, and hold the camera directly above your palm so the whole hand fits in the frame.",
+  },
+  {
+    q: "What happens to my photo?",
+    a: "It's re-encoded without metadata and stored privately. Only you can view it, and you can delete it — or your entire account — at any time. We never use it to train AI models without your explicit opt-in.",
+  },
+  {
+    q: "What's included for free?",
+    a: "Every reading includes a personality summary, the basics of your heart, head and life lines, and a career summary. The full report adds the fate line, mounts, fingers, markings, relationships, money, detailed strengths and challenges, and a downloadable PDF.",
+  },
+  {
+    q: "Will the reading tell me about my health or lifespan?",
+    a: "No. We deliberately never make medical, lifespan, pregnancy or guaranteed financial claims. Palmistry cannot tell you these things.",
+  },
+];
+
+export function Faq() {
+  return (
+    <section id="faq" aria-labelledby="faq-title" className="scroll-mt-20 px-4 py-20 sm:px-6">
+      <SectionHeading id="faq-title" eyebrow="FAQ" title="Questions, answered honestly" />
+      <div className="mx-auto mt-12 max-w-3xl space-y-3">
+        {FAQ_ITEMS.map((item) => (
+          <details key={item.q} className="group card rounded-2xl px-6 py-1 open:pb-5">
+            <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 text-left font-medium text-parchment [&::-webkit-details-marker]:hidden">
+              {item.q}
+              <span
+                className="inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-white/10 text-gold-300 transition-transform group-open:rotate-45"
+                aria-hidden="true"
+              >
+                +
+              </span>
+            </summary>
+            <p className="leading-relaxed text-mist">{item.a}</p>
+          </details>
+        ))}
+      </div>
+    </section>
+  );
+}
