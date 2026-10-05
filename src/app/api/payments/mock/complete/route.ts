@@ -11,9 +11,9 @@ const RETURN_STATE = { success: "success", failure: "failed", cancel: "cancelled
 export const POST = withErrorHandling("payments.mock.complete", async (request: NextRequest) => {
   const actor = await getActorFromRequest(request);
   const { paymentId, outcome } = await parseJsonBody(request, MockPaymentOutcomeSchema);
-  const { readingId } = await completeMockPayment(paymentId, outcome, actor);
+  const { readingId, returnPath } = await completeMockPayment(paymentId, outcome, actor);
   return NextResponse.json({
     readingId,
-    redirect: `/readings/${readingId}?checkout=${RETURN_STATE[outcome]}`,
+    redirect: `${returnPath}?checkout=${RETURN_STATE[outcome]}`,
   });
 });

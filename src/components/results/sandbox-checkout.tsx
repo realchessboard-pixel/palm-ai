@@ -10,11 +10,13 @@ type Outcome = "success" | "failure" | "cancel";
 
 export function SandboxCheckout({
   paymentId,
-  readingId,
+  backHref,
+  productName,
   amountLabel,
 }: {
   paymentId: string;
-  readingId: string;
+  backHref: string;
+  productName: string;
   amountLabel: string;
 }) {
   const router = useRouter();
@@ -43,7 +45,7 @@ export function SandboxCheckout({
         counted as revenue.
       </Alert>
       <div className="card space-y-2 rounded-3xl p-6">
-        <p className="text-sm text-mist">Detailed palm reading</p>
+        <p className="text-sm text-mist">{productName}</p>
         <p className="text-4xl text-parchment">{amountLabel}</p>
       </div>
       <div className="grid gap-3">
@@ -58,8 +60,8 @@ export function SandboxCheckout({
         </Button>
       </div>
       {error ? <Alert tone="error">{error}</Alert> : null}
-      <ButtonLink href={`/readings/${readingId}`} variant="ghost" size="sm">
-        Back to my reading
+      <ButtonLink href={backHref} variant="ghost" size="sm">
+        Go back
       </ButtonLink>
     </div>
   );

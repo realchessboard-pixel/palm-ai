@@ -15,7 +15,7 @@ import { composeRuleBasedReading, matchRules } from "@/lib/palmistry/interpretat
 import { getOwnedReading, parseStoredAnalysis } from "@/lib/readings/service";
 import type { PalmAnalysis } from "@/lib/schemas/palm-analysis";
 import {
-  GeneratedInterpretationSchema,
+  GeneratedNarrativeSchema,
   INTERPRETATION_SCHEMA_VERSION,
   PalmInterpretationSchema,
   toStoredInterpretation,
@@ -39,28 +39,31 @@ export function finalizeInterpretation(
 ): { interpretation: PalmInterpretation; removed: number } {
   const grounded = groundInterpretation(raw, analysis);
   const safe = sanitizeInterpretation(grounded.interpretation);
-  const parsed = PalmInterpretationSchema.safeParse(safe.interpretation);
+  const parsed = PalmInterpretationSchema.safeParse({
+    ...safe.interpretation,
+    ...(raw.detailedPending ? { detailedPending: true } : {}),
+  });
   if (!parsed.success) {
     throw new AppError("AI_INVALID_RESPONSE", { internal: parsed.error });
   }
   return { interpretation: parsed.data, removed: grounded.removed + safe.removed };
 }
 
+/** The free reading: only the main reading is written now (see detailed.ts for the rest). */
 async function generateWithModel(analysis: PalmAnalysis, hand: "left" | "right") {
   const env = getEnv();
   const provider = getAiProvider();
   const rules = matchRules(analysis);
   const available = availableFeatures(analysis);
-  const sections = composeRuleBasedReading(analysis).sections.map((s) => s.id);
 
   const result = await generateStructured({
     provider,
     task: "palm_interpretation",
     model: interpretationModel(provider),
     system: INTERPRETATION_SYSTEM_PROMPT,
-    prompt: buildInterpretationPrompt({ analysis, hand, available, rules, sections }),
-    schema: GeneratedInterpretationSchema,
-    maxTokens: 12000,
+    prompt: buildInterpretationPrompt({ analysis, hand, available, rules }),
+    schema: GeneratedNarrativeSchema,
+    maxTokens: 6000,
     timeoutMs: env.AI_TIMEOUT_MS,
     maxAttempts: env.AI_MAX_ATTEMPTS,
     thinking: env.AI_INTERPRETATION_THINKING,
@@ -71,9 +74,6 @@ async function generateWithModel(analysis: PalmAnalysis, hand: "left" | "right")
         problems.push(
           `You cited or wrote about features that are not in AVAILABLE FEATURES. Only use: ${[...available.keys()].join(", ")}`,
         );
-      }
-      if (grounded.interpretation.sections.length === 0) {
-        problems.push("No section cited valid features in basedOn.");
       }
       const story = grounded.interpretation.narrative;
       if (!story || (!story.thinking && !story.caring) || story.strengths.length === 0) {

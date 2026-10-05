@@ -46,6 +46,8 @@ export interface ReadingView {
   language: Language;
   /** True while some visible text has no translation yet (English is shown meanwhile). */
   translationPending: boolean;
+  /** Unlocked, but the detailed reading is still to be written (it is written after purchase). */
+  detailedPending: boolean;
   /** Display only — access is decided server-side by the entitlement. */
   paymentState: PaymentState;
   lines: LineObservationView[];

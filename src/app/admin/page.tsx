@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ProductKind } from "@prisma/client";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ReadingsChart } from "@/components/admin/readings-chart";
@@ -7,8 +8,14 @@ import { getAdminStats } from "@/lib/admin/stats";
 import { getCurrentUser } from "@/lib/auth/actor";
 import { getEnv } from "@/lib/config/env";
 import { isRazorpayTestMode } from "@/lib/payments";
+import { PRODUCTS } from "@/lib/monetization/price";
 
 export const metadata: Metadata = { title: "Admin", robots: { index: false, follow: false } };
+
+const PRODUCT_LABELS: Record<ProductKind, string> = {
+  ...Object.fromEntries(Object.entries(PRODUCTS).map(([k, p]) => [k, p.name])),
+  WALLET_TOPUP: "Wallet top-ups",
+} as Record<ProductKind, string>;
 
 function money(amount: number, currency: string) {
   const formatter = new Intl.NumberFormat("en", {
@@ -83,6 +90,24 @@ export default async function AdminPage() {
           hint={`Verified real payments, all time${stats.testPayments ? ` · ${stats.testPayments} test payment(s) excluded` : ""}${razorpayTest ? " · Razorpay is in TEST mode: these are test payments" : ""}`}
         />
       </section>
+
+      {stats.revenueByProduct.length ? (
+        <section aria-labelledby="products-title" className="space-y-4">
+          <h2 id="products-title" className="text-2xl">
+            Revenue by product
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {stats.revenueByProduct.map((r) => (
+              <Stat
+                key={`${r.product}-${r.currency}`}
+                label={PRODUCT_LABELS[r.product]}
+                value={money(r.amount, r.currency)}
+                hint={`${r.count.toLocaleString()} paid`}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section aria-labelledby="economics-title" className="space-y-4">
         <div>

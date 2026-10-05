@@ -3,6 +3,7 @@ import { POST as analyze } from "@/app/api/palm/analyze/route";
 import { POST as interpret } from "@/app/api/palm/interpret/route";
 import { POST as mockComplete } from "@/app/api/payments/mock/complete/route";
 import { POST as checkout } from "@/app/api/payments/checkout/route";
+import { POST as writeDetailed } from "@/app/api/readings/[id]/detailed/route";
 import { POST as translate } from "@/app/api/readings/[id]/translation/route";
 import { setAiProvider } from "@/lib/ai";
 import type { AiRequest } from "@/lib/ai/types";
@@ -128,10 +129,14 @@ describe.skipIf(!hasTestDatabase)("reading translation", () => {
 
   it("translates only what the visitor may see, and tops up after unlocking", async () => {
     const analysis = sampleAnalysis("right");
+    const { overview: _o, narrative, ...detailed } = composeRuleBasedReading(analysis);
+    void _o;
+    const translateOrWrite = (r: AiRequest) =>
+      r.task === "palm_detailed_reading" ? JSON.stringify(detailed) : translator("[de]")(r);
     const provider = new ScriptedProvider([
       JSON.stringify(analysis),
-      JSON.stringify(composeRuleBasedReading(analysis)),
-      ...Array.from({ length: 12 }, () => translator("[de]")),
+      JSON.stringify({ narrative }),
+      ...Array.from({ length: 12 }, () => translateOrWrite),
     ]);
     const jar = new CookieJar();
     const readingId = await completedReading(provider, jar);
@@ -163,6 +168,12 @@ describe.skipIf(!hasTestDatabase)("reading translation", () => {
       makeRequest("/api/payments/mock/complete", { json: { paymentId, outcome: "success" }, jar }),
       ctx,
     );
+    // The detailed reading is written after unlocking, in English first.
+    const written = await writeDetailed(
+      makeRequest(`/api/readings/${readingId}/detailed`, { json: {}, jar }),
+      params({ id: readingId }),
+    );
+    expect(written.status).toBe(200);
     expect((await viewIn(readingId, "de", jar)).translationPending).toBe(true);
 
     const before = provider.requests.length;
@@ -170,12 +181,16 @@ describe.skipIf(!hasTestDatabase)("reading translation", () => {
     expect(topUp.translated).toBeGreaterThan(0);
     const secondIds = provider.requests
       .slice(before)
+      .filter((r) => r.task === "reading_translation")
       .flatMap((r) =>
         (
           JSON.parse(r.prompt.slice(r.prompt.indexOf("{"))) as { items: { id: string }[] }
         ).items.map((i) => i.id),
       );
     expect(secondIds.some((id) => id.startsWith("narrative."))).toBe(false);
+    expect(provider.requests.slice(before).every((r) => r.task === "reading_translation")).toBe(
+      true,
+    );
     expect(secondIds.some((id) => id.startsWith("mounts."))).toBe(true);
 
     const full = await viewIn(readingId, "de", jar);

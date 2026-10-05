@@ -4,8 +4,10 @@ import { COMBINATIONS, PARVATS, REKHAS, type NarrativePart } from "@/lib/palmist
 import type { MatchedRule } from "@/lib/palmistry/types";
 import { LINE_NAMES, MOUNT_NAMES, type PalmAnalysis } from "@/lib/schemas/palm-analysis";
 import {
-  GeneratedInterpretationSchema,
+  GeneratedDetailedSchema,
+  GeneratedNarrativeSchema,
   SECTION_TITLES,
+  type ReadingNarrative,
   type SectionId,
 } from "@/lib/schemas/palm-interpretation";
 
@@ -14,7 +16,8 @@ import {
  * model never sees the photo here, so it cannot introduce visual details that
  * stage 1 didn't report.
  */
-export const INTERPRETATION_PROMPT_VERSION = "palm-interpretation/2026-10-05-samudrika";
+export const INTERPRETATION_PROMPT_VERSION = "palm-interpretation/2026-10-05-main";
+export const DETAILED_PROMPT_VERSION = "palm-detailed/2026-10-05";
 
 export const INTERPRETATION_SYSTEM_PROMPT = `You are an experienced, warm palm reader trained in traditional Indian palmistry — Hasta Samudrika Shastra, part of Samudrika Shastra. You have looked carefully at the visitor's right palm and are now explaining, in person, what you see and what tradition says it means.
 
@@ -41,8 +44,11 @@ SAFETY
 
 Return valid JSON matching the supplied schema. Output only the JSON object.`;
 
-const SCHEMA_JSON = JSON.stringify(
-  z.toJSONSchema(GeneratedInterpretationSchema, { unrepresentable: "any" }),
+const NARRATIVE_SCHEMA_JSON = JSON.stringify(
+  z.toJSONSchema(GeneratedNarrativeSchema, { unrepresentable: "any" }),
+);
+const DETAILED_SCHEMA_JSON = JSON.stringify(
+  z.toJSONSchema(GeneratedDetailedSchema, { unrepresentable: "any" }),
 );
 
 function withoutPathPoints(lines: PalmAnalysis["lines"]) {
@@ -66,14 +72,16 @@ const PART_TITLES: Record<NarrativePart, string> = {
   career: '"career" — Your career nature',
 };
 
-export function buildInterpretationPrompt(input: {
+interface PromptInput {
   analysis: PalmAnalysis;
   /** The hand the reading is for (PalmAI reads the right hand). */
   hand: "left" | "right";
   available: Map<FeatureKey, number>;
   rules: MatchedRule[];
-  sections: SectionId[];
-}): string {
+}
+
+/** What both prompts share: the observations, the citable keys and the parvats. */
+function observationContext(input: PromptInput): string {
   const features = [...input.available.entries()]
     .map(([key, confidence]) => {
       const label = featureLabel(key, input.analysis);
@@ -88,24 +96,12 @@ export function buildInterpretationPrompt(input: {
     })
     .join("\n");
 
-  // Group the traditional notes by the part of the reading they serve.
-  const plan = (Object.keys(COMBINATIONS) as NarrativePart[])
-    .map((part) => {
-      const keys = new Set<string>(COMBINATIONS[part].features);
-      const relevant = input.rules.filter((r) => r.features.some((f) => keys.has(f)));
-      return `${PART_TITLES[part]}\n${COMBINATIONS[part].guide}\n${relevant.length ? relevant.map(noteFor).join("\n") : "- (no relevant features were observed: set this to null)"}`;
-    })
-    .join("\n\n");
-
   const mounts = MOUNT_NAMES.filter((m) => input.available.has(`mounts.${m}`))
     .map(
       (m) =>
         `- ${PARVATS[m].name} (${PARVATS[m].western}), ruled by ${PARVATS[m].planet}: ${PARVATS[m].themes}`,
     )
     .join("\n");
-
-  const allNotes = input.rules.map((r) => `- [${r.category}] ${noteFor(r).slice(2)}`).join("\n");
-  const sectionList = input.sections.map((id) => `- ${id}: "${SECTION_TITLES[id]}"`).join("\n");
 
   // Overlay coordinates only drive the diagram, so they are left out to keep the
   // prompt lean. The reading is always for the stored hand, never the model's guess.
@@ -125,7 +121,25 @@ AVAILABLE FEATURES (the ONLY keys you may cite in basedOn, and the only features
 ${features}
 
 PARVATS SEEN IN THIS PALM (traditional planetary associations):
-${mounts || "- none clearly seen"}
+${mounts || "- none clearly seen"}`;
+}
+
+function allNotes(rules: MatchedRule[]): string {
+  return rules.map((r) => `- [${r.category}] ${noteFor(r).slice(2)}`).join("\n");
+}
+
+/** The free reading: the main, human-style reading only. */
+export function buildInterpretationPrompt(input: PromptInput): string {
+  // Group the traditional notes by the part of the reading they serve.
+  const plan = (Object.keys(COMBINATIONS) as NarrativePart[])
+    .map((part) => {
+      const keys = new Set<string>(COMBINATIONS[part].features);
+      const relevant = input.rules.filter((r) => r.features.some((f) => keys.has(f)));
+      return `${PART_TITLES[part]}\n${COMBINATIONS[part].guide}\n${relevant.length ? relevant.map(noteFor).join("\n") : "- (no relevant features were observed: set this to null)"}`;
+    })
+    .join("\n\n");
+
+  return `${observationContext(input)}
 
 PLAN FOR THE MAIN READING ("narrative")
 - "headline": one evocative, personal line drawn from this palm (not a prediction), e.g. "A thoughtful mind with a quietly independent nature" — but write your own.
@@ -138,8 +152,47 @@ ${plan}
 "insight" — Something interesting about you: the most engaging part. Find a real tension or balance between two or more observations (logic and emotion, independence and loyalty, curiosity and discipline, ambition and patience…) and explain it warmly in one or two paragraphs. Give it a short title.
 
 TRADITIONAL NOTES (all matched interpretations — your source material):
-${allNotes}
+${allNotes(input.rules)}
 
+JSON schema:
+${NARRATIVE_SCHEMA_JSON}`;
+}
+
+/** Plain text of the main reading, so the detailed reading can build on it without repeating it. */
+function narrativeText(n: ReadingNarrative): string {
+  return [
+    n.headline,
+    n.introduction,
+    n.thinking?.text,
+    n.caring?.text,
+    ...n.strengths.map((s) => `${s.name}: ${s.text}`),
+    n.career?.text,
+    n.insight ? `${n.insight.title}: ${n.insight.text}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+/** The detailed reading, written after it is unlocked. */
+export function buildDetailedPrompt(
+  input: PromptInput & { sections: SectionId[]; narrative: ReadingNarrative | null },
+): string {
+  const sectionList = input.sections.map((id) => `- ${id}: "${SECTION_TITLES[id]}"`).join("\n");
+
+  return `${observationContext(input)}
+
+TRADITIONAL NOTES (all matched interpretations — your source material):
+${allNotes(input.rules)}
+${
+  input.narrative
+    ? `
+THE MAIN READING YOU ALREADY GAVE THIS VISITOR (stay consistent with it; go deeper rather than repeating it):
+"""
+${narrativeText(input.narrative)}
+"""
+`
+    : ""
+}
 DETAILED READING (same voice, more extensive; it complements the main reading rather than repeating it)
 Write these sections, in this order:
 ${sectionList}
@@ -150,5 +203,5 @@ ${sectionList}
 - "markings": only if a "markings.N" key is available, otherwise null.
 
 JSON schema:
-${SCHEMA_JSON}`;
+${DETAILED_SCHEMA_JSON}`;
 }

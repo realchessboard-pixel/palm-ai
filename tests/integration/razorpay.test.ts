@@ -99,9 +99,9 @@ function webhookRequest(
     entity: "event",
     event,
     payload: {
-      payment: { entity: { amount: 3500, currency: "INR", ...payment } },
+      payment: { entity: { amount: 4900, currency: "INR", ...payment } },
       ...(event === "order.paid"
-        ? { order: { entity: { id: payment.order_id, amount: 3500, currency: "INR" } } }
+        ? { order: { entity: { id: payment.order_id, amount: 4900, currency: "INR" } } }
         : {}),
     },
   });
@@ -127,7 +127,7 @@ const reportStatus = async (readingId: string, jar: CookieJar) =>
     )
   ).status;
 
-describe.skipIf(!hasTestDatabase)("Razorpay ₹35 checkout", () => {
+describe.skipIf(!hasTestDatabase)("Razorpay ₹49 checkout", () => {
   beforeEach(async () => {
     await resetDatabase();
     setEnv({ PAYMENT_PROVIDER: "razorpay" });
@@ -137,17 +137,17 @@ describe.skipIf(!hasTestDatabase)("Razorpay ₹35 checkout", () => {
     setEnv({ PAYMENT_PROVIDER: "mock" });
   });
 
-  it("creates a ₹35 INR order server-side with only the public key id sent to the browser", async () => {
+  it("creates a ₹49 INR order server-side with only the public key id sent to the browser", async () => {
     const api = razorpayApi();
     const jar = new CookieJar();
     const readingId = await completedReading(jar);
     const order = await startOrder(jar, readingId);
-    expect(order).toMatchObject({ type: "razorpay", amount: 3500, currency: "INR" });
+    expect(order).toMatchObject({ type: "razorpay", amount: 4900, currency: "INR" });
     expect(order.keyId).toBe("rzp_test_key");
     expect(JSON.stringify(order)).not.toContain(KEY_SECRET);
     const [, init] = api.mock.calls.find(([u]) => String(u).endsWith("/v1/orders"))!;
     expect(JSON.parse(String(init!.body))).toMatchObject({
-      amount: 3500,
+      amount: 4900,
       currency: "INR",
       notes: { readingId },
     });
@@ -155,7 +155,7 @@ describe.skipIf(!hasTestDatabase)("Razorpay ₹35 checkout", () => {
       provider: "RAZORPAY",
       providerRef: order.orderId,
       status: "PENDING",
-      amount: 3500,
+      amount: 4900,
       currency: "inr",
     });
     expect((await view(readingId, jar)).premium).toBe(false);
@@ -167,7 +167,7 @@ describe.skipIf(!hasTestDatabase)("Razorpay ₹35 checkout", () => {
         id: "pay_ok",
         order_id: "order_1",
         status: "captured",
-        amount: 3500,
+        amount: 4900,
         currency: "INR",
       },
     });
@@ -200,7 +200,7 @@ describe.skipIf(!hasTestDatabase)("Razorpay ₹35 checkout", () => {
         id: "pay_auth",
         order_id: "order_2",
         status: "authorized",
-        amount: 3500,
+        amount: 4900,
         currency: "INR",
       },
     });
@@ -259,7 +259,7 @@ describe.skipIf(!hasTestDatabase)("Razorpay ₹35 checkout", () => {
         id: "pay_bad",
         order_id: "order_1",
         status: "failed",
-        amount: 3500,
+        amount: 4900,
         currency: "INR",
       },
     });
@@ -326,7 +326,7 @@ describe.skipIf(!hasTestDatabase)("Razorpay ₹35 checkout", () => {
         id: "pay_ok",
         order_id: "order_1",
         status: "captured",
-        amount: 3500,
+        amount: 4900,
         currency: "INR",
       },
     });
@@ -355,7 +355,7 @@ describe.skipIf(!hasTestDatabase)("Razorpay ₹35 checkout", () => {
         id: "pay_A",
         order_id: "order_1",
         status: "captured",
-        amount: 3500,
+        amount: 4900,
         currency: "INR",
       },
     });

@@ -35,6 +35,8 @@ enum PaymentProvider {
   STRIPE
   RAZORPAY
   MOCK
+  /// Paid from the user's PalmAI wallet balance (no new money; not counted as revenue).
+  WALLET
 }
 
 enum PaymentStatus {
@@ -49,23 +51,67 @@ enum PaymentStatus {
 enum EntitlementType {
   READING_PREMIUM
   PREMIUM_SUBSCRIPTION
+  /// Unlocks one couple-compatibility reading.
+  COMPATIBILITY
+}
+
+/// What a payment (or wallet purchase) buys. Prices live in src/lib/monetization/products.ts.
+enum ProductKind {
+  DETAILED_READING
+  COUPLE_COMPATIBILITY
+  FAMILY_PACK
+  GIFT_READING
+  MEMBERSHIP_YEAR
+  WALLET_TOPUP
+}
+
+enum ReadingRole {
+  /// The visitor's own palm.
+  SELF
+  /// A partner's palm, uploaded with their permission for a compatibility reading.
+  PARTNER
+}
+
+/// Balance a ledger entry changes.
+enum LedgerUnit {
+  /// Closed-loop wallet balance, in paise.
+  WALLET_PAISE
+  /// Detailed-reading credits (family pack, gifts, referral rewards).
+  READING_CREDIT
+}
+
+enum CompatibilityStatus {
+  LOCKED
+  GENERATING
+  COMPLETE
+  FAILED
 }
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  passwordHash  String
-  name          String?
-  role          Role     @default(USER)
+  id             String   @id @default(cuid())
+  email          String   @unique
+  passwordHash   String
+  name           String?
+  role           Role     @default(USER)
   /// Explicit opt-in to allow palm photos to be used for model improvement.
-  trainingOptIn Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  trainingOptIn  Boolean  @default(false)
+  /// Closed-loop wallet balance in paise (spendable only on PalmAI, not withdrawable).
+  walletBalance  Int      @default(0)
+  readingCredits Int      @default(0)
+  referralCode   String?  @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  sessions     Session[]
-  readings     Reading[]
-  payments     Payment[]
-  entitlements Entitlement[]
+  sessions        Session[]
+  readings        Reading[]
+  payments        Payment[]
+  entitlements    Entitlement[]
+  ledger          LedgerEntry[]
+  giftsBought     GiftCode[]      @relation("GiftPurchaser")
+  giftsRedeemed   GiftCode[]      @relation("GiftRecipient")
+  referralsMade   Referral[]      @relation("Referrer")
+  referredBy      Referral?       @relation("Referred")
+  compatibilities Compatibility[]
 }
 
 model Session {
@@ -89,6 +135,7 @@ model Reading {
   /// SHA-256 of the anonymous guest cookie that created the reading.
   guestKeyHash       String?
   hand               Hand
+  role               ReadingRole   @default(SELF)
   status             ReadingStatus @default(PENDING)
   /// Private object-storage keys. Never public URLs.
   imageKey           String?
@@ -109,10 +156,12 @@ model Reading {
   updatedAt          DateTime      @updatedAt
   completedAt        DateTime?
 
-  analysis       PalmAnalysis?
-  interpretation PalmInterpretation?
-  payments       Payment[]
-  entitlements   Entitlement[]
+  analysis                 PalmAnalysis?
+  interpretation           PalmInterpretation?
+  payments                 Payment[]
+  entitlements             Entitlement[]
+  compatibilitiesAsSelf    Compatibility[]     @relation("CompatibilitySelf")
+  compatibilitiesAsPartner Compatibility[]     @relation("CompatibilityPartner")
 
   @@index([userId, createdAt])
   @@index([guestKeyHash])
@@ -158,6 +207,9 @@ model Payment {
   readingId         String?
   reading           Reading?        @relation(fields: [readingId], references: [id], onDelete: SetNull)
   provider          PaymentProvider
+  product           ProductKind     @default(DETAILED_READING)
+  compatibilityId   String?
+  compatibility     Compatibility?  @relation(fields: [compatibilityId], references: [id], onDelete: SetNull)
   /// Checkout session id (Stripe) or order id (Razorpay).
   providerRef       String?         @unique
   providerPaymentId String?
@@ -169,24 +221,28 @@ model Payment {
   paidAt            DateTime?
 
   entitlement Entitlement?
+  gift        GiftCode?
 
   @@index([userId])
   @@index([readingId])
   @@index([status, createdAt])
+  @@index([product, status])
 }
 
 model Entitlement {
-  id        String          @id @default(cuid())
-  type      EntitlementType
-  userId    String?
-  user      User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  readingId String?
-  reading   Reading?        @relation(fields: [readingId], references: [id], onDelete: Cascade)
-  paymentId String?         @unique
-  payment   Payment?        @relation(fields: [paymentId], references: [id], onDelete: SetNull)
-  expiresAt DateTime?
-  revokedAt DateTime?
-  createdAt DateTime        @default(now())
+  id              String          @id @default(cuid())
+  type            EntitlementType
+  userId          String?
+  user            User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readingId       String?
+  reading         Reading?        @relation(fields: [readingId], references: [id], onDelete: Cascade)
+  paymentId       String?         @unique
+  payment         Payment?        @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  compatibilityId String?
+  compatibility   Compatibility?  @relation(fields: [compatibilityId], references: [id], onDelete: Cascade)
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime        @default(now())
 
   @@index([userId])
   @@index([readingId])
@@ -211,4 +267,75 @@ model ProcessedWebhookEvent {
   id        String   @id
   provider  String
   createdAt DateTime @default(now())
+}
+
+/// Append-only record of every wallet and credit change (the balances on User mirror it).
+model LedgerEntry {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unit      LedgerUnit
+  delta     Int
+  reason    String
+  /// Payment, gift, referral or reading this entry relates to (makes grants idempotent).
+  refId     String?
+  createdAt DateTime   @default(now())
+
+  @@unique([unit, reason, refId])
+  @@index([userId, createdAt])
+}
+
+model GiftCode {
+  id           String    @id @default(cuid())
+  code         String    @unique
+  purchaserId  String?
+  purchaser    User?     @relation("GiftPurchaser", fields: [purchaserId], references: [id], onDelete: SetNull)
+  paymentId    String?   @unique
+  payment      Payment?  @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  redeemedById String?
+  redeemedBy   User?     @relation("GiftRecipient", fields: [redeemedById], references: [id], onDelete: SetNull)
+  redeemedAt   DateTime?
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+
+  @@index([purchaserId])
+}
+
+model Referral {
+  id          String    @id @default(cuid())
+  referrerId  String
+  referrer    User      @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referredId  String    @unique
+  referred    User      @relation("Referred", fields: [referredId], references: [id], onDelete: Cascade)
+  /// Set when the referred person completes their first reading.
+  qualifiedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([referrerId, qualifiedAt])
+}
+
+model Compatibility {
+  id               String              @id @default(cuid())
+  userId           String?
+  user             User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guestKeyHash     String?
+  readingId        String
+  reading          Reading             @relation("CompatibilitySelf", fields: [readingId], references: [id], onDelete: Cascade)
+  partnerReadingId String
+  partnerReading   Reading             @relation("CompatibilityPartner", fields: [partnerReadingId], references: [id], onDelete: Cascade)
+  status           CompatibilityStatus @default(LOCKED)
+  data             Json?
+  provider         String?
+  model            String?
+  errorCode        String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  completedAt      DateTime?
+
+  payments     Payment[]
+  entitlements Entitlement[]
+
+  @@unique([readingId, partnerReadingId])
+  @@index([userId])
+  @@index([guestKeyHash])
 }

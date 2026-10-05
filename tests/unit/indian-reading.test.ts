@@ -11,13 +11,15 @@ import { resolveTranslation, sourceHash } from "@/lib/readings/translation-cache
 import { applyTexts, collectTexts } from "@/lib/readings/translation-texts";
 import { AnalyzeFieldsSchema } from "@/lib/schemas/api";
 import {
-  GeneratedInterpretationSchema,
+  GeneratedDetailedSchema,
+  GeneratedNarrativeSchema,
   PalmInterpretationSchema,
   toStoredInterpretation,
 } from "@/lib/schemas/palm-interpretation";
 import { buildAnalysisPrompt } from "@/prompts/palm-analysis";
 import {
   INTERPRETATION_SYSTEM_PROMPT,
+  buildDetailedPrompt,
   buildInterpretationPrompt,
 } from "@/prompts/palm-interpretation";
 import { translationSystemPrompt } from "@/prompts/reading-translation";
@@ -59,14 +61,22 @@ describe("traditional Indian palmistry layer", () => {
     expect(composeRuleBasedReading(other).narrative!.thinking!.text).not.toBe(n.thinking!.text);
   });
 
-  it("stores the generated reading with an overview derived from the narrative", () => {
-    const { overview: _o, ...generated } = reading;
-    void _o;
-    const parsed = GeneratedInterpretationSchema.parse(generated);
+  it("stores the free reading as the main reading only, marked detailed-pending", () => {
+    const parsed = GeneratedNarrativeSchema.parse({ narrative: reading.narrative });
     const stored = toStoredInterpretation(parsed);
     expect(stored.overview.headline).toBe(parsed.narrative.headline);
     expect(stored.overview.summary).toBe(parsed.narrative.introduction.split("\n\n")[0]);
+    expect(stored).toMatchObject({ sections: [], lines: [], mounts: [], detailedPending: true });
     expect(PalmInterpretationSchema.safeParse(stored).success).toBe(true);
+  });
+
+  it("stores a complete reading when the detailed parts are present", () => {
+    const { overview: _o, narrative, ...body } = reading;
+    void _o;
+    const detailed = GeneratedDetailedSchema.parse(body);
+    const stored = toStoredInterpretation({ narrative: narrative!, ...detailed });
+    expect(stored.detailedPending).toBeUndefined();
+    expect(stored.sections.length).toBeGreaterThan(0);
   });
 });
 
@@ -115,7 +125,23 @@ describe("prompts", () => {
     hand: "right",
     available: availableFeatures(analysis),
     rules: matchRules(analysis),
+  });
+  const detailedPrompt = buildDetailedPrompt({
+    analysis,
+    hand: "right",
+    available: availableFeatures(analysis),
+    rules: matchRules(analysis),
     sections: ["personality", "relationships"],
+    narrative: reading.narrative!,
+  });
+
+  it("writes only the main reading for free, and the detailed reading separately", () => {
+    expect(prompt).not.toContain("DETAILED READING");
+    expect(detailedPrompt).toContain("DETAILED READING");
+    expect(detailedPrompt).toContain('- relationships: "Love & Relationships"');
+    // The detailed reading builds on what the visitor was already told.
+    expect(detailedPrompt).toContain(reading.narrative!.headline);
+    expect(detailedPrompt).toContain("HAND: the visitor's RIGHT hand");
   });
 
   it("asks for a warm, personal, traditional Indian reading", () => {

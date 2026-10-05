@@ -114,7 +114,6 @@ describe("prompts", () => {
       hand: "right",
       available: availableFeatures(analysis),
       rules: matchRules(analysis),
-      sections: ["personality"],
     });
     const observed = prompt.slice(
       prompt.indexOf("OBSERVED PALM FEATURES"),

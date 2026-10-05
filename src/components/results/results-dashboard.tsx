@@ -9,6 +9,7 @@ import { narrativeFor } from "@/lib/readings/narrative-view";
 import type { ReadingView } from "@/lib/readings/view";
 import { SECTION_IDS } from "@/lib/schemas/palm-interpretation";
 import { AnalysisDetails } from "./analysis-details";
+import { DetailedPending } from "./detailed-pending";
 import { InterpretationPending } from "./interpretation-pending";
 import { LanguageSelector } from "./language-selector";
 import { PremiumPanel } from "./premium-panel";
@@ -105,6 +106,8 @@ export function ResultsDashboard({
           hasImage={reading.hasImage}
         />
       </Card>
+
+      {reading.detailedPending && !sample ? <DetailedPending readingId={reading.id} /> : null}
 
       {hasDetailed && interpretation ? (
         <section lang={lang} aria-labelledby="detailed-title" className="space-y-8">
@@ -207,7 +210,7 @@ export function ResultsDashboard({
         </div>
       ) : (
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          {reading.premium && !interpretationPending ? (
+          {reading.premium && !interpretationPending && !reading.detailedPending ? (
             <ButtonLink
               href={`/api/readings/${reading.id}/report`}
               prefetch={false}

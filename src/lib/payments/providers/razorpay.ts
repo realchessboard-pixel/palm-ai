@@ -74,7 +74,10 @@ export class RazorpayProvider implements PaymentProvider {
         amount: input.amount,
         currency: input.currency.toUpperCase(),
         receipt: input.paymentId.slice(0, 40),
-        notes: { paymentId: input.paymentId, readingId: input.readingId },
+        notes: {
+          paymentId: input.paymentId,
+          ...(input.readingId ? { readingId: input.readingId } : {}),
+        },
       }),
       signal: AbortSignal.timeout(20_000),
     }).catch((error) => {

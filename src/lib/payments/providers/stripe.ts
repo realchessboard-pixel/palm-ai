@@ -62,7 +62,7 @@ export class StripeProvider implements PaymentProvider {
       "line_items[0][price_data][unit_amount]": String(input.amount),
       "line_items[0][price_data][product_data][name]": input.description,
       "metadata[paymentId]": input.paymentId,
-      "metadata[readingId]": input.readingId,
+      ...(input.readingId ? { "metadata[readingId]": input.readingId } : {}),
     });
     if (input.customerEmail) form.set("customer_email", input.customerEmail);
     const session = await this.request<StripeCheckoutSession>("/checkout/sessions", {

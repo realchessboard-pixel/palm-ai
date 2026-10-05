@@ -104,7 +104,7 @@ export const ReadingNarrativeSchema = z.object({
 export type ReadingNarrative = z.infer<typeof ReadingNarrativeSchema>;
 
 const InterpretationBody = {
-  sections: z.array(ReadingSectionSchema).min(1).max(SECTION_IDS.length),
+  sections: z.array(ReadingSectionSchema).max(SECTION_IDS.length),
   lines: z.array(LineReadingSchema).max(LINE_NAMES.length),
   mounts: z.array(MountReadingSchema).max(MOUNT_NAMES.length),
   fingers: NarrativeSchema.nullable(),
@@ -150,24 +150,33 @@ export const PalmInterpretationSchema = z
     }),
     narrative: ReadingNarrativeSchema.optional(),
     ...InterpretationBody,
+    /**
+     * True while only the main reading exists: the detailed reading (sections,
+     * lines, mounts, fingers, markings) is written after it is unlocked, so a
+     * free reading doesn't pay for content nobody may read. Absent = complete.
+     */
+    detailedPending: z.boolean().optional(),
   })
   .superRefine(checkUnique);
 
 export type PalmInterpretation = z.infer<typeof PalmInterpretationSchema>;
 
-/**
- * What the model writes. The overview is derived from the narrative on the
- * server, so the model isn't asked to write the same thing twice.
- */
-export const GeneratedInterpretationSchema = z
+/** What the model writes for the free reading: the main reading only. */
+export const GeneratedNarrativeSchema = z.object({
+  narrative: ReadingNarrativeSchema.extend({
+    strengths: z.array(StrengthSchema).min(3).max(6),
+  }),
+});
+export type GeneratedNarrative = z.infer<typeof GeneratedNarrativeSchema>;
+
+/** What the model writes once the detailed reading is unlocked. */
+export const GeneratedDetailedSchema = z
   .object({
-    narrative: ReadingNarrativeSchema.extend({
-      strengths: z.array(StrengthSchema).min(3).max(6),
-    }),
     ...InterpretationBody,
+    sections: z.array(ReadingSectionSchema).min(1).max(SECTION_IDS.length),
   })
   .superRefine(checkUnique);
-export type GeneratedInterpretation = z.infer<typeof GeneratedInterpretationSchema>;
+export type GeneratedDetailed = z.infer<typeof GeneratedDetailedSchema>;
 
 /** First paragraph of the introduction, trimmed to fit the overview summary. */
 function firstParagraph(text: string): string {
@@ -177,11 +186,38 @@ function firstParagraph(text: string): string {
   return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), 600))}…`;
 }
 
-export function toStoredInterpretation(generated: GeneratedInterpretation): PalmInterpretation {
-  const { narrative, ...rest } = generated;
+/**
+ * Stored form of a freshly written main reading. The overview is derived from
+ * the narrative, so the model isn't asked to write the same thing twice. With
+ * no detailed content yet, the reading is marked `detailedPending`.
+ */
+export function toStoredInterpretation(
+  generated: GeneratedNarrative & Partial<GeneratedDetailed>,
+): PalmInterpretation {
+  const { narrative, ...detailed } = generated;
+  const overview = {
+    headline: narrative.headline,
+    summary: firstParagraph(narrative.introduction),
+  };
+  if (!detailed.sections) {
+    return {
+      overview,
+      narrative,
+      sections: [],
+      lines: [],
+      mounts: [],
+      fingers: null,
+      markings: null,
+      detailedPending: true,
+    };
+  }
   return {
-    overview: { headline: narrative.headline, summary: firstParagraph(narrative.introduction) },
+    overview,
     narrative,
-    ...rest,
+    sections: detailed.sections,
+    lines: detailed.lines ?? [],
+    mounts: detailed.mounts ?? [],
+    fingers: detailed.fingers ?? null,
+    markings: detailed.markings ?? null,
   };
 }
