@@ -193,5 +193,6 @@ describe("transient error detection", () => {
     expect(isTransientError(new ApiClientError("x", "IMAGE_QUALITY", 422))).toBe(false);
     expect(isTransientError(new ApiClientError("x", "CSRF_REJECTED", 403))).toBe(false);
     expect(isTransientError(new ApiClientError("x", "RATE_LIMITED", 429))).toBe(false);
+    expect(isTransientError(new ApiClientError("x", "AI_NOT_CONFIGURED", 503))).toBe(false);
   });
 });
