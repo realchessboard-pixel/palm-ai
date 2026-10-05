@@ -42,7 +42,11 @@ export const HandSchema = z.enum(["left", "right"]);
 
 /** Multipart fields accompanying the uploaded image. */
 export const AnalyzeFieldsSchema = z.object({
-  hand: HandSchema,
+  /**
+   * PalmAI reads the right hand only. The field is still accepted (older
+   * clients send it) but every new reading is stored as the right hand.
+   */
+  hand: HandSchema.optional().transform(() => "right" as const),
   /** Client-generated id that makes repeated submissions of one photo idempotent. */
   requestId: z.uuid().optional(),
   consent: z.literal("true", { message: "Please confirm consent to continue." }),

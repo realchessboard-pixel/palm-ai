@@ -1,4 +1,5 @@
 import { availableFeatures, type FeatureKey } from "@/lib/palmistry/features";
+import { PARVATS, REKHAS } from "@/lib/palmistry/tradition";
 import { LINE_NAMES, MOUNT_NAMES, type PalmAnalysis } from "@/lib/schemas/palm-analysis";
 import type { PalmInterpretation } from "@/lib/schemas/palm-interpretation";
 
@@ -18,11 +19,17 @@ export interface GroundingResult {
 function mentionPatterns(available: Map<FeatureKey, number>): RegExp[] {
   const patterns: RegExp[] = [];
   for (const line of LINE_NAMES) {
-    if (!available.has(`lines.${line}`)) patterns.push(new RegExp(`\\b${line}[- ]?lines?\\b`, "i"));
+    if (!available.has(`lines.${line}`)) {
+      const rekha = REKHAS[line].name.split(" ")[0];
+      patterns.push(new RegExp(`\\b(${line}[- ]?lines?|${rekha} rekha)\\b`, "i"));
+    }
   }
   for (const mount of MOUNT_NAMES) {
     if (!available.has(`mounts.${mount}`)) {
-      patterns.push(new RegExp(`\\b(mounts? of ${mount}|${mount} mount)\\b`, "i"));
+      const parvat = PARVATS[mount].name.split(" ")[0];
+      patterns.push(
+        new RegExp(`\\b(mounts? of (the )?${mount}|${mount} mount|${parvat} parvat)\\b`, "i"),
+      );
     }
   }
   return patterns;
@@ -43,18 +50,25 @@ export function groundInterpretation(
     return [...new Set(valid)];
   };
 
+  // Scrub sentence by sentence within each paragraph, keeping paragraph breaks.
   const scrub = (text: string) => {
     if (!patterns.length) return text;
-    const sentences = text.match(/[^.!?\n]+(?:[.!?]+["')\]]*|\n+|$)/g) ?? [text];
-    const kept = sentences.filter((s) => {
-      const bad = patterns.some((re) => re.test(s));
-      if (bad) removed++;
-      return !bad;
-    });
-    return kept
-      .join("")
-      .replace(/[ \t]+/g, " ")
-      .trim();
+    return text
+      .split(/\n{2,}/)
+      .map((paragraph) => {
+        const sentences = paragraph.match(/[^.!?\n]+(?:[.!?]+["')\]]*|\n+|$)/g) ?? [paragraph];
+        return sentences
+          .filter((s) => {
+            const bad = patterns.some((re) => re.test(s));
+            if (bad) removed++;
+            return !bad;
+          })
+          .join("")
+          .replace(/[ \t]+/g, " ")
+          .trim();
+      })
+      .filter(Boolean)
+      .join("\n\n");
   };
 
   const sections = input.sections.flatMap((section) => {
@@ -132,8 +146,37 @@ export function groundInterpretation(
     }
   }
 
+  const passage = <P extends { text: string; basedOn: string[] }>(p: P | null): P | null => {
+    if (!p) return null;
+    const basedOn = cite(p.basedOn);
+    const text = scrub(p.text);
+    if (basedOn.length === 0 || !text) {
+      removed++;
+      return null;
+    }
+    return { ...p, basedOn, text };
+  };
+
+  const narrative = input.narrative
+    ? {
+        headline: scrub(input.narrative.headline) || "Your palm, as traditional palmistry sees it",
+        introduction:
+          scrub(input.narrative.introduction) ||
+          "Here is how traditional palmistry reads the features we could see — for reflection, not prediction.",
+        thinking: passage(input.narrative.thinking),
+        caring: passage(input.narrative.caring),
+        strengths: input.narrative.strengths.flatMap((s) => {
+          const kept = passage(s);
+          return kept ? [kept] : [];
+        }),
+        career: passage(input.narrative.career),
+        insight: passage(input.narrative.insight),
+      }
+    : undefined;
+
   return {
     interpretation: {
+      ...(narrative ? { narrative } : {}),
       overview: {
         headline: input.overview.headline,
         summary:

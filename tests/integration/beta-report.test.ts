@@ -57,25 +57,25 @@ describe.skipIf(!hasTestDatabase)("internal beta report", () => {
   });
 
   it("records hands, confidence, stage timings, retries, model and cost per reading", async () => {
-    // Selected LEFT; the model says RIGHT (0.9) and needs one retry in stage 1.
+    // PalmAI reads the right hand; the model says LEFT (0.9) and needs one retry in stage 1.
     setAiProvider(
       new ScriptedProvider(
         [
           "not json",
-          JSON.stringify({ ...sampleAnalysis("left"), hand: "right", handConfidence: 0.9 }),
-          JSON.stringify(composeRuleBasedReading(sampleAnalysis("left"))),
+          JSON.stringify({ ...sampleAnalysis("right"), hand: "left", handConfidence: 0.9 }),
+          JSON.stringify(composeRuleBasedReading(sampleAnalysis("right"))),
         ],
         { inputTokens: 4600, imageTokens: 1064, outputTokens: 1300, thinkingTokens: 1000 },
       ),
     );
-    const id = await reading(new CookieJar(), "left");
+    const id = await reading(new CookieJar(), "right");
 
     const [row] = await getBetaReport();
     expect(row).toMatchObject<Partial<BetaReportRow>>({
       readingId: id,
       status: "COMPLETE",
-      selectedHand: "left",
-      detectedHand: "right",
+      selectedHand: "right",
+      detectedHand: "left",
       detectedHandConfidence: 0.9,
       handMismatch: true,
       analysisAttempts: 2,

@@ -5,10 +5,9 @@ import { PalmGuide } from "@/components/palm/palm-guide";
 import { Button } from "@/components/ui/button";
 import { Alert, Spinner } from "@/components/ui/misc";
 import { captureVideoFrame } from "@/lib/image/client-image";
-import type { Hand } from "./hand-selector";
 
 const TIPS = [
-  "Place your entire palm inside the frame.",
+  "Place your entire right palm inside the frame.",
   "Keep your fingers naturally separated.",
   "Use bright, even lighting.",
   "Keep the camera directly above your palm.",
@@ -25,7 +24,7 @@ export function CameraCapture({
   onCapture,
   onCancel,
 }: {
-  hand: Hand;
+  hand: "left" | "right";
   onCapture: (blob: Blob) => void;
   onCancel: () => void;
 }) {

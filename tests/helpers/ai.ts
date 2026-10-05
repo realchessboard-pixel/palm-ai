@@ -1,6 +1,11 @@
 import type { AiProvider, AiRequest, AiUsage } from "@/lib/ai/types";
 
-/** A scripted provider: returns (or throws) each queued response in order. */
+type ScriptStep = string | Error | ((request: AiRequest) => string);
+
+/**
+ * A scripted provider: returns (or throws) each queued response in order. A
+ * step may be a function of the request (e.g. to echo translation ids).
+ */
 export class ScriptedProvider implements AiProvider {
   readonly name = "anthropic" as const;
   readonly isMock = false;
@@ -8,7 +13,7 @@ export class ScriptedProvider implements AiProvider {
   readonly requests: AiRequest[] = [];
 
   constructor(
-    private readonly script: (string | Error)[],
+    private readonly script: ScriptStep[],
     private readonly usage?: AiUsage,
   ) {}
 
@@ -17,6 +22,7 @@ export class ScriptedProvider implements AiProvider {
     const next = this.script.shift();
     if (next === undefined) throw new Error("script exhausted");
     if (next instanceof Error) throw next;
-    return { text: next, model: "test-model", usage: this.usage };
+    const text = typeof next === "function" ? next(request) : next;
+    return { text, model: "test-model", usage: this.usage };
   }
 }

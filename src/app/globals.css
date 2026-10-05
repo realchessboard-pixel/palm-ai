@@ -166,6 +166,36 @@
     border: 1px solid rgb(255 255 255 / 0.07);
   }
 
+  /*
+   * Long-form reading text: fully justified, with hyphenation (driven by the
+   * element's lang attribute) so justified lines don't open up wide gaps on
+   * narrow phone screens. Applies only to paragraphs, never headings or controls.
+   */
+  .reading-prose p {
+    text-align: justify;
+    text-justify: inter-word;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    overflow-wrap: break-word;
+    line-height: 1.8;
+  }
+
+  .reading-prose p + p {
+    margin-top: 1em;
+  }
+
+  .reading-prose:lang(ja) p,
+  .reading-prose:lang(ko) p {
+    text-justify: inter-character;
+    hyphens: manual;
+    line-break: strict;
+    word-break: keep-all;
+  }
+
+  .reading-prose:lang(ja) p {
+    word-break: normal;
+  }
+
   .text-gold-gradient {
     background: linear-gradient(
       100deg,

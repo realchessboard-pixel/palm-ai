@@ -1,4 +1,5 @@
 import type { FeatureKey } from "./features";
+import type { KnowledgeSourceId } from "./tradition";
 
 /** Reading themes a rule can contribute to. */
 export const CATEGORIES = [
@@ -37,6 +38,8 @@ export interface PalmistryRule<Observation> {
    * reflection. Feeds the Challenges section.
    */
   shadow?: string;
+  /** Where this interpretation comes from; defaults to PalmAI's curated summaries. */
+  source?: KnowledgeSourceId;
 }
 
 export interface MatchedRule {
@@ -47,6 +50,7 @@ export interface MatchedRule {
   explanation: string;
   confidenceConsiderations: string;
   shadow?: string;
+  source: KnowledgeSourceId;
   features: FeatureKey[];
   /** Detection confidence of the weakest feature the rule relies on. */
   confidence: number;

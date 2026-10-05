@@ -15,12 +15,10 @@ import {
 import { hasBlockingIssue } from "@/lib/image/quality";
 import { AnalysisProgress, type PipelinePhase } from "./analysis-progress";
 import { CameraCapture } from "./camera-capture";
-import { HandSelector, type Hand } from "./hand-selector";
 import { PhotoReview, type ReviewChoices } from "./photo-review";
 import { PhotoSource } from "./photo-source";
 
 type Step =
-  | { kind: "hand" }
   | { kind: "source"; error?: string }
   | { kind: "camera" }
   | { kind: "checking" }
@@ -43,10 +41,12 @@ interface AnalyzeResponse {
   status: string;
 }
 
+/** PalmAI reads the right hand only, following the traditional reading of the right palm. */
+const HAND = "right" as const;
+
 const STEP_TITLES: Record<Step["kind"], string> = {
-  hand: "Which hand would you like read?",
-  source: "Add a photo of your palm",
-  camera: "Position your palm",
+  source: "Show us your right palm",
+  camera: "Place your right palm in the frame",
   checking: "Checking your photo",
   review: "Review your photo",
   processing: "Reading your palm",
@@ -55,8 +55,7 @@ const STEP_TITLES: Record<Step["kind"], string> = {
 
 export function ReadingFlow() {
   const router = useRouter();
-  const [hand, setHand] = useState<Hand | null>(null);
-  const [step, setStep] = useState<Step>({ kind: "hand" });
+  const [step, setStep] = useState<Step>({ kind: "source" });
   const headingRef = useRef<HTMLHeadingElement>(null);
   const submission = useRef<Submission | null>(null);
   const inFlight = useRef(false);
@@ -97,7 +96,7 @@ export function ReadingFlow() {
   }
 
   async function analyze(image: PreparedImage, choices: ReviewChoices, retry = false) {
-    if (!hand || inFlight.current) return;
+    if (inFlight.current) return;
     inFlight.current = true;
     const previous = submission.current;
     const current: Submission = {
@@ -108,11 +107,11 @@ export function ReadingFlow() {
     };
     submission.current = current;
     setStep({ kind: "processing", phase: "preparing" });
-    track("image_uploaded", { hand });
+    track("image_uploaded", { hand: HAND });
 
     const form = new FormData();
     form.set("image", image.blob, "palm.jpg");
-    form.set("hand", hand);
+    form.set("hand", HAND);
     form.set("consent", "true");
     form.set("trainingOptIn", String(choices.trainingOptIn));
     if (current.requestId) form.set("requestId", current.requestId);
@@ -157,13 +156,12 @@ export function ReadingFlow() {
   }
 
   const stepNumber = {
-    hand: 1,
-    source: 2,
-    camera: 2,
-    checking: 2,
-    review: 3,
-    processing: 4,
-    failed: 4,
+    source: 1,
+    camera: 1,
+    checking: 1,
+    review: 2,
+    processing: 3,
+    failed: 3,
   }[step.kind];
 
   return (
@@ -171,15 +169,13 @@ export function ReadingFlow() {
       {step.kind !== "processing" ? (
         <div className="mb-6 flex items-center justify-between gap-3">
           <p className="text-xs font-semibold tracking-[0.2em] text-gold-300 uppercase">
-            Step {stepNumber} of 4
+            Step {stepNumber} of 3
           </p>
-          {step.kind !== "hand" && step.kind !== "failed" ? (
+          {step.kind === "review" || step.kind === "camera" ? (
             <button
               type="button"
               className="min-h-11 rounded-full px-3 text-sm text-mist hover:text-parchment"
-              onClick={() =>
-                setStep(step.kind === "review" ? { kind: "source" } : { kind: "hand" })
-              }
+              onClick={() => setStep({ kind: "source" })}
             >
               ← Back
             </button>
@@ -199,30 +195,20 @@ export function ReadingFlow() {
         {STEP_TITLES[step.kind]}
       </h1>
 
-      {step.kind === "hand" ? (
-        <div className="space-y-6">
-          <HandSelector value={hand} onChange={setHand} />
-          <Button
-            size="lg"
-            className="w-full"
-            disabled={!hand}
-            onClick={() => setStep({ kind: "source" })}
-          >
-            Continue
-          </Button>
-        </div>
-      ) : null}
-
       {step.kind === "source" ? (
         <div className="space-y-4">
+          <p className="-mt-2 text-mist">
+            Place your right hand clearly inside the frame — palm facing the camera, fingers relaxed
+            and slightly apart.
+          </p>
           {step.error ? <Alert tone="error">{step.error}</Alert> : null}
           <PhotoSource onFile={handleSource} onOpenCamera={() => setStep({ kind: "camera" })} />
         </div>
       ) : null}
 
-      {step.kind === "camera" && hand ? (
+      {step.kind === "camera" ? (
         <CameraCapture
-          hand={hand}
+          hand={HAND}
           onCapture={handleSource}
           onCancel={() => setStep({ kind: "source" })}
         />

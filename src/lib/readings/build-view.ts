@@ -1,5 +1,6 @@
 import { availableFeatures, featureLabel } from "@/lib/palmistry/features";
 import { INSUFFICIENT, LINE_NAMES, type PalmAnalysis } from "@/lib/schemas/palm-analysis";
+import { DEFAULT_LANGUAGE, type Language } from "@/lib/i18n/languages";
 import type { PaymentState } from "@/lib/payments/states";
 import type { PalmInterpretation } from "@/lib/schemas/palm-interpretation";
 import { assessHandSide } from "./hand-side";
@@ -61,6 +62,8 @@ export function buildReadingView(input: {
   interpretation: PalmInterpretation | null;
   premium: boolean;
   paymentState?: PaymentState;
+  language?: Language;
+  translationPending?: boolean;
 }): ReadingView {
   const { reading, analysis, interpretation, premium } = input;
   const projected = interpretation ? projectInterpretation(interpretation, premium) : null;
@@ -84,6 +87,8 @@ export function buildReadingView(input: {
     analysisConfidence: reading.analysisConfidence,
     rejectionReason: reading.rejectionReason,
     premium,
+    language: input.language ?? DEFAULT_LANGUAGE,
+    translationPending: input.translationPending ?? false,
     // An entitlement (from a verified payment) is what unlocks; show it as paid even if the
     // latest checkout attempt was abandoned.
     paymentState: premium ? "PAYMENT_SUCCESS" : unlockedStateGuard(input.paymentState),

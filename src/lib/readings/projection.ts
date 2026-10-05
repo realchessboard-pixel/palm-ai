@@ -4,6 +4,7 @@ import {
   type LineReading,
   type MountReading,
   type PalmInterpretation,
+  type ReadingNarrative,
   type ReadingSection,
   type SectionId,
 } from "@/lib/schemas/palm-interpretation";
@@ -21,6 +22,8 @@ export type ProjectedLine = Omit<LineReading, "details"> & { details: string | n
 
 export interface ProjectedInterpretation {
   overview: PalmInterpretation["overview"];
+  /** The main (free) reading. Null for readings written before schema v2. */
+  narrative: ReadingNarrative | null;
   sections: ProjectedSection[];
   lines: ProjectedLine[];
   mounts: MountReading[];
@@ -41,28 +44,35 @@ export function projectInterpretation(
   interpretation: PalmInterpretation,
   premium: boolean,
 ): { interpretation: ProjectedInterpretation; locked: LockedContent | null } {
+  const narrative = interpretation.narrative ?? null;
   if (premium) {
-    return { interpretation: { ...interpretation }, locked: null };
+    return { interpretation: { ...interpretation, narrative }, locked: null };
   }
 
+  // v2 readings: the main reading is free; the whole detailed reading is locked.
+  // v1 readings keep their original split (a few section and line summaries free).
+  const freeSectionIds: readonly SectionId[] = narrative ? [] : FREE_SECTIONS;
+  const freeLineNames: readonly LineName[] = narrative ? [] : FREE_LINES;
+
   const freeSections = interpretation.sections
-    .filter((s) => FREE_SECTIONS.includes(s.id))
+    .filter((s) => freeSectionIds.includes(s.id))
     .map((s) => ({ ...s, details: null, points: [] }));
   const freeLines = interpretation.lines
-    .filter((l) => FREE_LINES.includes(l.line))
+    .filter((l) => freeLineNames.includes(l.line))
     .map((l) => ({ ...l, details: null }));
 
   const lockedSections = interpretation.sections
-    .filter((s) => !FREE_SECTIONS.includes(s.id))
+    .filter((s) => !freeSectionIds.includes(s.id))
     .map((s) => s.id)
     .sort((a, b) => SECTION_IDS.indexOf(a) - SECTION_IDS.indexOf(b));
   const lockedLines = interpretation.lines
-    .filter((l) => !FREE_LINES.includes(l.line))
+    .filter((l) => !freeLineNames.includes(l.line))
     .map((l) => l.line);
 
   return {
     interpretation: {
       overview: interpretation.overview,
+      narrative,
       sections: freeSections,
       lines: freeLines,
       mounts: [],

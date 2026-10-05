@@ -6,7 +6,7 @@ import { PalmAnalysisSchema } from "@/lib/schemas/palm-analysis";
  * no predictions. Bump the version whenever the wording changes so stored
  * analyses can be traced to the prompt that produced them.
  */
-export const ANALYSIS_PROMPT_VERSION = "palm-analysis/2026-10-04b";
+export const ANALYSIS_PROMPT_VERSION = "palm-analysis/2026-10-05-right-hand";
 
 export const ANALYSIS_SYSTEM_PROMPT = `You are analyzing a photograph for traditional palmistry feature extraction.
 
@@ -24,7 +24,11 @@ Rules:
 const SCHEMA_JSON = JSON.stringify(z.toJSONSchema(PalmAnalysisSchema, { unrepresentable: "any" }));
 
 export function buildAnalysisPrompt(input: { hand: "left" | "right" }): string {
-  return `The user says this is a photo of their ${input.hand.toUpperCase()} hand. Their selection is authoritative; "hand" is only your independent check. Report which hand you believe is shown, and set "handConfidence" honestly. Hand side is easy to misjudge: selfie cameras often mirror photos, and the thumb's side depends on whether the palm faces the camera. Use "unknown" or a low confidence when unsure.
+  const expected =
+    input.hand === "right"
+      ? "PalmAI reads the RIGHT hand only, and the user was asked to photograph their RIGHT palm, so this image is expected to show the user's RIGHT hand."
+      : "The user says this is a photo of their LEFT hand.";
+  return `${expected} That is authoritative; "hand" is only your independent check. Report which hand you believe is shown, and set "handConfidence" honestly. Hand side is easy to misjudge: selfie cameras often mirror photos, and the thumb's side depends on whether the palm faces the camera. Use "unknown" or a low confidence when unsure.
 
 Field guidance:
 - imageQuality.score: overall suitability of the photo for reading palm lines (0–1).

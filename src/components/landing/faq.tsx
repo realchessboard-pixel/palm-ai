@@ -6,8 +6,8 @@ export const FAQ_ITEMS = [
     a: "Palmistry is a cultural tradition, not a science, so no palm reading — human or AI — can accurately predict your future. What we measure is how confidently the AI could see features in your photo. The reading itself is for entertainment and reflection.",
   },
   {
-    q: "Which hand should I use?",
-    a: "Traditionally, your dominant hand is said to reflect your present and the path you're shaping, while the other hand reflects natural tendencies. Pick whichever you're curious about — you can read both.",
+    q: "Which hand does PalmAI read?",
+    a: "Your right hand. PalmAI follows the traditional practice of reading the right palm, so just show us your right palm — there's no need to choose.",
   },
   {
     q: "How do I take a good palm photo?",
@@ -19,7 +19,7 @@ export const FAQ_ITEMS = [
   },
   {
     q: "What's included for free?",
-    a: "Every reading includes a personality summary, the basics of your heart, head and life lines, and a career summary. The full report adds the fate line, mounts, fingers, markings, relationships, money, detailed strengths and challenges, and a downloadable PDF.",
+    a: "Every reading includes your full main reading: the way you think, the way you care, your natural strengths, your career nature and something interesting about you. The detailed reading adds love, money, life path, strengths and challenges in depth, every major line, the parvats (mounts), fingers and thumb, markings, and a downloadable PDF.",
   },
   {
     q: "Will the reading tell me about my health or lifespan?",

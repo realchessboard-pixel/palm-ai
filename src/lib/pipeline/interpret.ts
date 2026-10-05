@@ -15,8 +15,10 @@ import { composeRuleBasedReading, matchRules } from "@/lib/palmistry/interpretat
 import { getOwnedReading, parseStoredAnalysis } from "@/lib/readings/service";
 import type { PalmAnalysis } from "@/lib/schemas/palm-analysis";
 import {
+  GeneratedInterpretationSchema,
   INTERPRETATION_SCHEMA_VERSION,
   PalmInterpretationSchema,
+  toStoredInterpretation,
   type PalmInterpretation,
 } from "@/lib/schemas/palm-interpretation";
 import {
@@ -57,13 +59,13 @@ async function generateWithModel(analysis: PalmAnalysis, hand: "left" | "right")
     model: interpretationModel(provider),
     system: INTERPRETATION_SYSTEM_PROMPT,
     prompt: buildInterpretationPrompt({ analysis, hand, available, rules, sections }),
-    schema: PalmInterpretationSchema,
+    schema: GeneratedInterpretationSchema,
     maxTokens: 12000,
     timeoutMs: env.AI_TIMEOUT_MS,
     maxAttempts: env.AI_MAX_ATTEMPTS,
     thinking: env.AI_INTERPRETATION_THINKING,
     check: (value) => {
-      const grounded = groundInterpretation(value, analysis);
+      const grounded = groundInterpretation(toStoredInterpretation(value), analysis);
       const problems: string[] = [];
       if (grounded.invalidCitations > 3) {
         problems.push(
@@ -73,11 +75,17 @@ async function generateWithModel(analysis: PalmAnalysis, hand: "left" | "right")
       if (grounded.interpretation.sections.length === 0) {
         problems.push("No section cited valid features in basedOn.");
       }
+      const story = grounded.interpretation.narrative;
+      if (!story || (!story.thinking && !story.caring) || story.strengths.length === 0) {
+        problems.push(
+          'The main reading ("narrative") must include "thinking" or "caring" and at least three strengths, each citing AVAILABLE FEATURES in basedOn.',
+        );
+      }
       return problems;
     },
   });
   return {
-    raw: result.data,
+    raw: toStoredInterpretation(result.data),
     provider: provider.name,
     model: result.model,
     attempts: result.attempts,

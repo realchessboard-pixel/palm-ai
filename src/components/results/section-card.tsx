@@ -1,4 +1,4 @@
-import { featureLabel } from "@/lib/palmistry/features";
+import { cn } from "@/lib/cn";
 import type { ProjectedSection } from "@/lib/readings/projection";
 
 const ICONS: Record<string, string> = {
@@ -13,60 +13,27 @@ const ICONS: Record<string, string> = {
   highlights: "M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z",
 };
 
-export function EmphasisBar({ value }: { value: number }) {
+/**
+ * Long-form reading text. Rendered as plain text nodes — model output is never
+ * injected as HTML. Paragraphs are justified via `.reading-prose`.
+ */
+export function Prose({ text, className }: { text: string; className?: string }) {
   return (
-    <div
-      className="flex items-center gap-2"
-      title="How strongly the observed features speak to this theme"
-    >
-      <div
-        className="h-1.5 w-24 overflow-hidden rounded-full bg-white/10"
-        role="meter"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={value}
-        aria-label="Feature emphasis"
-      >
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-gold-500 to-gold-200"
-          style={{ width: `${value}%` }}
-        />
-      </div>
-      <span className="text-xs text-mist">Feature emphasis {value}%</span>
-    </div>
-  );
-}
-
-export function BasedOn({ keys }: { keys: string[] }) {
-  if (keys.length === 0) return null;
-  return (
-    <div className="flex flex-wrap items-center gap-2 text-xs">
-      <span className="text-mist-dim">Based on:</span>
-      {keys.map((key) => (
-        <span key={key} className="rounded-full border border-white/10 px-2.5 py-1 text-mist">
-          {featureLabel(key)}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-export function Paragraphs({ text }: { text: string }) {
-  // Rendered as plain text nodes — model output is never injected as HTML.
-  return (
-    <div className="space-y-3">
+    <div className={cn("reading-prose text-[1.05rem] text-parchment/88", className)}>
       {text.split(/\n{2,}/).map((p, i) => (
-        <p key={i} className="leading-relaxed text-parchment/85">
-          {p}
-        </p>
+        <p key={i}>{p}</p>
       ))}
     </div>
   );
 }
 
-export function SectionCard({ section }: { section: ProjectedSection }) {
+export function SectionCard({ section, lang }: { section: ProjectedSection; lang?: string }) {
   return (
-    <article className="card rounded-3xl p-6 sm:p-7" aria-labelledby={`section-${section.id}`}>
+    <article
+      lang={lang}
+      className="card rounded-3xl p-6 sm:p-7"
+      aria-labelledby={`section-${section.id}`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="inline-flex size-10 items-center justify-center rounded-xl bg-gold-400/10 text-gold-300">
@@ -85,14 +52,9 @@ export function SectionCard({ section }: { section: ProjectedSection }) {
             {section.title}
           </h3>
         </div>
-        {section.emphasis !== null ? <EmphasisBar value={section.emphasis} /> : null}
       </div>
-      <p className="mt-4 text-lg leading-relaxed text-gold-100/90">{section.summary}</p>
-      {section.details ? (
-        <div className="mt-4">
-          <Paragraphs text={section.details} />
-        </div>
-      ) : null}
+      <Prose text={section.summary} className="mt-4 text-lg text-gold-100/90" />
+      {section.details ? <Prose text={section.details} className="mt-4" /> : null}
       {section.points.length > 0 ? (
         <ul className="mt-4 grid gap-2 sm:grid-cols-2">
           {section.points.map((point) => (
@@ -106,9 +68,6 @@ export function SectionCard({ section }: { section: ProjectedSection }) {
           ))}
         </ul>
       ) : null}
-      <div className="mt-5">
-        <BasedOn keys={section.basedOn} />
-      </div>
     </article>
   );
 }

@@ -5,7 +5,7 @@ import { Disclaimer } from "@/components/ui/disclaimer";
 export const metadata: Metadata = {
   title: "Start Your Palm Reading",
   description:
-    "Choose a hand, take or upload a photo of your palm, and receive an AI palmistry reading.",
+    "Show us your right palm — take or upload a photo and receive a warm, personal reading rooted in traditional Indian palmistry.",
   alternates: { canonical: "/read" },
 };
 

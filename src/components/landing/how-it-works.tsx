@@ -3,17 +3,17 @@ import { SectionHeading } from "@/components/ui/misc";
 const steps = [
   {
     title: "Photograph your palm",
-    body: "Choose your left or right hand, then take a photo with our palm guide or upload one you already have.",
+    body: "Show us your right palm: take a photo with our palm guide or upload one you already have.",
     icon: "M4 8a2 2 0 0 1 2-2h2l1.5-2h5L16 6h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM12 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z",
   },
   {
-    title: "AI maps the features",
-    body: "A vision model first records only what it can see: palm shape, fingers, major lines and mounts — each with a confidence score.",
+    title: "Your palm is studied",
+    body: "First we carefully note only what can be seen: the shape of your hand, your fingers, the major lines and the parvats (mounts).",
     icon: "M3 12h3l3-7 4 14 3-7h5",
   },
   {
-    title: "Explore your reading",
-    body: "Those observations are interpreted through traditional palmistry, so every insight shows the features it is based on.",
+    title: "Receive your reading",
+    body: "Those observations are read through traditional Indian palmistry, Hasta Samudrika Shastra — warmly, personally, and in your language.",
     icon: "M5 4h10l4 4v12H5zM14 4v5h5M8 13h8M8 17h5",
   },
 ];

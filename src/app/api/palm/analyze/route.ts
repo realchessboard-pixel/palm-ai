@@ -49,7 +49,7 @@ export const POST = withErrorHandling("palm.analyze", async (request: NextReques
   if (file.size > env.MAX_UPLOAD_BYTES) throw new AppError("IMAGE_TOO_LARGE");
 
   const fields = AnalyzeFieldsSchema.parse({
-    hand: form.get("hand"),
+    hand: form.get("hand") ?? undefined,
     consent: form.get("consent"),
     trainingOptIn: form.get("trainingOptIn") ?? undefined,
     requestId: form.get("requestId") ?? undefined,

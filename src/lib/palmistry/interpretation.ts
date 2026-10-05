@@ -12,7 +12,10 @@ import {
   type LineReading,
   type MountReading,
   type PalmInterpretation,
+  type ReadingNarrative,
+  type ReadingPassage,
   type ReadingSection,
+  type ReadingStrength,
   type SectionId,
 } from "@/lib/schemas/palm-interpretation";
 import { availableFeatures, featureLabel, lineLabel, type FeatureKey } from "./features";
@@ -21,6 +24,7 @@ import { ELEMENT_DESCRIPTIONS, ELEMENT_RULES, PALM_SHAPE_RULES, deriveElement } 
 import { LINE_RULES } from "./lines";
 import { MARKING_CAVEAT, MARKING_MEANINGS } from "./markings";
 import { MOUNT_RULES } from "./mounts";
+import { COMBINATIONS, DEFAULT_SOURCE, type NarrativePart } from "./tradition";
 import { CATEGORIES, type Category, type MatchedRule, type PalmistryRule } from "./types";
 
 const LOW_CONFIDENCE = 0.6;
@@ -41,6 +45,7 @@ function match<T>(
       explanation: rule.explanation,
       confidenceConsiderations: rule.confidenceConsiderations,
       shadow: rule.shadow,
+      source: rule.source ?? DEFAULT_SOURCE,
       features,
       confidence,
     }));
@@ -337,6 +342,115 @@ function rulesForCategory(matched: MatchedRule[], category: Category): MatchedRu
   return [...direct, ...shadows].sort((a, b) => b.confidence - a.confidence);
 }
 
+const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+
+/** Rules relevant to one part of the reading, strongest first, one per trait. */
+function rulesForPart(matched: MatchedRule[], part: NarrativePart): MatchedRule[] {
+  const keys = new Set<FeatureKey>(COMBINATIONS[part].features);
+  const seen = new Set<string>();
+  return matched.filter((r) => {
+    if (!r.features.some((f) => keys.has(f)) || r.trait === "balanced" || seen.has(r.trait)) {
+      return false;
+    }
+    seen.add(r.trait);
+    return true;
+  });
+}
+
+function passage(rules: MatchedRule[]): ReadingPassage | null {
+  const top = rules.slice(0, 3);
+  if (top.length === 0) return null;
+  const [first, ...rest] = top;
+  const text = [
+    `${first.traditional} ${first.explanation}`,
+    ...rest.map((r, i) => `${i === 0 ? "Alongside this, " : "And "}${lowerFirst(r.traditional)}`),
+    top.some((r) => r.confidence < LOW_CONFIDENCE)
+      ? "Some of these features are softer in your photo, so hold this part of the reading lightly."
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return { text: text.slice(0, 1800), basedOn: unique(top.flatMap((r) => r.features)).slice(0, 8) };
+}
+
+/**
+ * The main reading, assembled from the matched rules. Used in demo mode and
+ * as a grounded starting point; the language model rewrites it in a warmer,
+ * more personal voice.
+ */
+function buildNarrative(analysis: PalmAnalysis, matched: MatchedRule[]): ReadingNarrative {
+  const thinkingRules = rulesForPart(matched, "thinking");
+  const caringRules = rulesForPart(matched, "caring");
+  // Career leans on features the thinking passage didn't already use.
+  const usedForThinking = new Set(thinkingRules.slice(0, 3).map((r) => r.id));
+  const careerCandidates = rulesForPart(matched, "career");
+  const fresh = careerCandidates.filter((r) => !usedForThinking.has(r.id));
+  const careerRules = fresh.length ? fresh : careerCandidates;
+  const thinkTrait = thinkingRules[0]?.trait;
+  const careTrait = caringRules.find((r) => r.trait !== thinkTrait)?.trait;
+  const article = (word: string) => (/^[aeiou]/i.test(word) ? "an" : "a");
+  const headline =
+    thinkTrait && careTrait
+      ? `${capitalize(article(thinkTrait))} ${thinkTrait} mind and ${article(careTrait)} ${careTrait} nature`
+      : thinkTrait
+        ? `${capitalize(article(thinkTrait))} ${thinkTrait} way of seeing the world`
+        : "Your palm, as traditional palmistry sees it";
+
+  const available = availableFeatures(analysis);
+  const clearest = [...available.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([key]) => featureLabel(key, analysis).toLowerCase());
+  const element = matched.find((r) => r.id.startsWith("element."));
+  const introduction = [
+    `Looking at your right palm, the features that stand out most clearly are your ${clearest.length > 1 ? `${clearest.slice(0, -1).join(", ")} and ${clearest.at(-1)}` : clearest[0]}. Together they tell a story about temperament and tendencies, which is what traditional Indian palmistry, Hasta Samudrika Shastra, has always been most interested in.`,
+    element ? `${element.traditional} ${element.explanation}` : null,
+    "What follows is how tradition reads these features. It is offered for reflection and enjoyment, not as a prediction of what will happen.",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  const strengths: ReadingStrength[] = unique(
+    matched
+      .filter((r) => r.trait !== "balanced" && r.category !== "challenges")
+      .map((r) => r.trait),
+  )
+    .slice(0, 5)
+    .map((trait) => {
+      const rule = matched.find((r) => r.trait === trait)!;
+      return {
+        name: capitalize(trait).slice(0, 40),
+        text: rule.traditional.slice(0, 450),
+        basedOn: rule.features,
+      };
+    });
+
+  const a = thinkingRules[0];
+  const b =
+    caringRules.find((r) => r.trait !== a?.trait) ?? careerRules.find((r) => r.trait !== a?.trait);
+  const insight =
+    a && b
+      ? {
+          title: `${capitalize(a.trait)}, and ${b.trait}`.slice(0, 120),
+          text: `There is an interesting balance in this reading. ${a.traditional} At the same time, ${lowerFirst(b.traditional)} Traditionally, a palm that holds both is read as someone whose ${a.trait} side and ${b.trait} side keep each other in check.`.slice(
+            0,
+            1800,
+          ),
+          basedOn: unique([...a.features, ...b.features]),
+        }
+      : null;
+
+  return {
+    headline: headline.slice(0, 140),
+    introduction,
+    thinking: passage(thinkingRules),
+    caring: passage(caringRules),
+    strengths,
+    career: passage(careerRules),
+    insight,
+  };
+}
+
 /**
  * Deterministic reading built purely from the rule files. Used directly in
  * demo mode, and given to the language model as grounded source material.
@@ -355,8 +469,13 @@ export function composeRuleBasedReading(analysis: PalmAnalysis): PalmInterpretat
   const highlights = buildHighlights(analysis, matched);
   if (highlights) sections.push(highlights);
 
+  const narrative = buildNarrative(analysis, matched);
   return {
-    overview: buildOverview(analysis, matched),
+    overview: {
+      headline: narrative.headline,
+      summary: buildOverview(analysis, matched).summary,
+    },
+    narrative,
     sections,
     lines: buildLineReadings(analysis, matched),
     mounts: buildMountReadings(analysis, matched),

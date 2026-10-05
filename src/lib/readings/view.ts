@@ -1,5 +1,6 @@
 import type { LineName } from "@/lib/schemas/palm-analysis";
 import type { HandSideCheck } from "@/lib/readings/hand-side";
+import type { Language } from "@/lib/i18n/languages";
 import type { PaymentState } from "@/lib/payments/states";
 import type { LockedContent, ProjectedInterpretation } from "@/lib/readings/projection";
 
@@ -41,6 +42,10 @@ export interface ReadingView {
   analysisConfidence: number | null;
   rejectionReason: string | null;
   premium: boolean;
+  /** Language the reading text is shown in (English is the original). */
+  language: Language;
+  /** True while some visible text has no translation yet (English is shown meanwhile). */
+  translationPending: boolean;
   /** Display only — access is decided server-side by the entitlement. */
   paymentState: PaymentState;
   lines: LineObservationView[];
