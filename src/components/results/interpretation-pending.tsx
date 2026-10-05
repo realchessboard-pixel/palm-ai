@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, Spinner } from "@/components/ui/misc";
-import { ApiClientError, postJson } from "@/lib/api-client";
+import { ApiClientError, isTransientError, postJson } from "@/lib/api-client";
 
 const POLL_MS = 3_000;
 const GIVE_UP_MS = 3 * 60_000;
+/** Temporary failures are retried quietly this many times before asking the user. */
+const AUTO_RETRIES = 2;
 
 /**
  * Writes the interpretation for an analyzed reading, then refreshes the page to
@@ -23,6 +25,7 @@ export function InterpretationPending({ readingId }: { readingId: string }) {
   useEffect(() => {
     let cancelled = false;
     const deadline = Date.now() + GIVE_UP_MS;
+    let retries = 0;
     async function run() {
       while (!cancelled) {
         try {
@@ -34,11 +37,16 @@ export function InterpretationPending({ readingId }: { readingId: string }) {
             await new Promise((resolve) => setTimeout(resolve, POLL_MS));
             continue;
           }
+          if (retries < AUTO_RETRIES && isTransientError(err)) {
+            retries++;
+            await new Promise((resolve) => setTimeout(resolve, POLL_MS * retries));
+            continue;
+          }
           if (!cancelled) {
             setError(
-              err instanceof ApiClientError
+              err instanceof ApiClientError && !isTransientError(err)
                 ? err.message
-                : "We couldn't finish your reading. Please try again.",
+                : "Your palm map is ready — the written reading just needs another moment. Tap “Try again” to finish it.",
             );
           }
           return;

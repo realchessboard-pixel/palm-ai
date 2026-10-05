@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, Spinner } from "@/components/ui/misc";
 import { track } from "@/lib/analytics/client";
-import { ApiClientError, apiFetch } from "@/lib/api-client";
+import { ApiClientError, apiFetch, isTransientError } from "@/lib/api-client";
 import {
   ImageInputError,
   prepareImage,
@@ -28,6 +28,9 @@ type Step =
   | { kind: "processing"; phase: PipelinePhase }
   | { kind: "failed"; message: string; canRetry: boolean };
 
+const AUTO_RETRIES = 2;
+const RETRY_DELAYS_MS = [1500, 4000];
+
 interface Submission {
   image: PreparedImage;
   choices: ReviewChoices;
@@ -47,7 +50,7 @@ const STEP_TITLES: Record<Step["kind"], string> = {
   checking: "Checking your photo",
   review: "Review your photo",
   processing: "Reading your palm",
-  failed: "Something went wrong",
+  failed: "Let's give it another go",
 };
 
 export function ReadingFlow() {
@@ -116,13 +119,23 @@ export function ReadingFlow() {
 
     try {
       setStep({ kind: "processing", phase: "analyzing" });
-      const result = await apiFetch<AnalyzeResponse>("/api/palm/analyze", {
-        method: "POST",
-        body: form,
-      });
+      // Temporary hiccups are retried quietly (same request id, so never a duplicate reading).
+      let result: AnalyzeResponse | undefined;
+      for (let attempt = 0; ; attempt++) {
+        try {
+          result = await apiFetch<AnalyzeResponse>("/api/palm/analyze", {
+            method: "POST",
+            body: form,
+          });
+          break;
+        } catch (error) {
+          if (attempt >= AUTO_RETRIES || !isTransientError(error)) throw error;
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]));
+        }
+      }
       // The results page shows the palm map right away and writes the interpretation there.
       setStep({ kind: "processing", phase: "analyzed" });
-      router.push(`/readings/${result.readingId}`);
+      router.push(`/readings/${result!.readingId}`);
     } catch (error) {
       inFlight.current = false;
       if (
@@ -135,9 +148,9 @@ export function ReadingFlow() {
       setStep({
         kind: "failed",
         message:
-          error instanceof ApiClientError
+          error instanceof ApiClientError && !isTransientError(error)
             ? error.message
-            : "We couldn't analyze this palm right now. Please try again.",
+            : "Our palm reader is very busy right now. Your photo is ready — tap “Try again” and we'll pick up where we left off.",
         canRetry: true,
       });
     }

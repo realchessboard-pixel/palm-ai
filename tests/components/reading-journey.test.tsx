@@ -311,14 +311,37 @@ describe("progressive results", () => {
     }
   });
 
+  it("quietly retries temporary failures before bothering the user", async () => {
+    const busy = () =>
+      new Response(JSON.stringify({ error: { code: "AI_UNAVAILABLE", message: "busy" } }), {
+        status: 503,
+      });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(busy())
+      .mockResolvedValueOnce(busy())
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: "COMPLETE" }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      render(<InterpretationPending readingId="r1" />);
+      await act(() => vi.advanceTimersByTimeAsync(10_000));
+      await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("offers a retry when the interpretation fails", async () => {
     const user = userEvent.setup();
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
         new Response(
-          JSON.stringify({ error: { code: "AI_UNAVAILABLE", message: "Please try again." } }),
-          { status: 503 },
+          JSON.stringify({ error: { code: "NOT_FOUND", message: "Please try again." } }),
+          { status: 404 },
         ),
       )
       .mockResolvedValueOnce(new Response(JSON.stringify({ status: "COMPLETE" }), { status: 200 }));
