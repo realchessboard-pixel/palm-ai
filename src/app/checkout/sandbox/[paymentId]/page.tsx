@@ -13,6 +13,7 @@ import { IdSchema } from "@/lib/schemas/api";
 const PRODUCT_NAMES: Record<string, string> = {
   ...Object.fromEntries(Object.entries(PRODUCTS).map(([k, v]) => [k, v.name])),
   WALLET_TOPUP: "PalmAI wallet top-up",
+  READER_QUESTIONS: "Questions for an AI reader",
 };
 
 export const metadata: Metadata = {

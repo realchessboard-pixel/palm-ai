@@ -215,6 +215,15 @@ taken from the request.
 | Membership       | ₹299                                  | Every reading on the account includes the detailed reading for 365 days; no auto-renewal    |
 | Wallet top-up    | ₹100 → ₹110, ₹250 → ₹280, ₹500 → ₹575 | Closed-loop balance, spendable only on PalmAI                                               |
 
+- **Ask a Reader** (`/readers`, `/chat/[id]`): 8 AI reader personas
+  (`src/lib/readers/catalog.ts`), each **always labelled as an AI reader**
+  with an illustrated (not photographic) portrait. They answer questions about
+  the visitor's own reading. Pricing tiers live in `READER_TIERS`
+  (₹39 / ₹49 / ₹79 / ₹99 a question; bundles of 3 for ₹99 / ₹129, 8 for ₹150,
+  10 for ₹200). The first chat about a completed reading includes one free
+  question. A question is reserved atomically and given back if the answer
+  fails; answers pass the same safety filter as readings, and the persona
+  must say it is an AI if asked.
 - **What's free:** the main reading (headline, introduction, the way you
   think, the way you care, strengths, career nature, one insight), the palm
   map and the detected features.

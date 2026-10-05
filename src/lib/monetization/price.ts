@@ -80,6 +80,26 @@ export function walletTopup(payInr: number): WalletTopup | null {
   return WALLET_TOPUPS.find((t) => t.payInr === payInr) ?? null;
 }
 
+/**
+ * "Ask a Reader": each AI reader belongs to a tier. A single question, or a
+ * bundle (a short consultation) at a lower price per question.
+ */
+export const READER_TIERS = {
+  quick: { singleInr: 39, bundle: { questions: 3, priceInr: 99 } },
+  standard: { singleInr: 49, bundle: { questions: 3, priceInr: 129 } },
+  senior: { singleInr: 79, bundle: { questions: 8, priceInr: 150 } },
+  master: { singleInr: 99, bundle: { questions: 10, priceInr: 200 } },
+} as const;
+export type ReaderTier = keyof typeof READER_TIERS;
+export type ReaderPlan = "single" | "bundle";
+
+export function readerPlan(tier: ReaderTier, plan: ReaderPlan) {
+  const t = READER_TIERS[tier];
+  return plan === "single"
+    ? { questions: 1, priceInr: t.singleInr }
+    : { questions: t.bundle.questions, priceInr: t.bundle.priceInr };
+}
+
 // Kept for existing callers: the detailed reading is the main upsell.
 export const EXTENDED_READING_PRICE_INR = PRODUCTS.DETAILED_READING.priceInr;
 export const EXTENDED_READING_CURRENCY = "INR";

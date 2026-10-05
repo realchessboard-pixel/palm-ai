@@ -52,6 +52,7 @@ export type BuyOrder =
   | { product: "FAMILY_PACK" }
   | { product: "GIFT_READING" }
   | { product: "MEMBERSHIP_YEAR" }
+  | { product: "READER_QUESTIONS"; chatId: string; plan: "single" | "bundle" }
   | { product: "WALLET_TOPUP"; payInr: number };
 
 /**

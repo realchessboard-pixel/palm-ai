@@ -91,6 +91,8 @@ export async function startOrderCheckout(order: Order, actor: Actor): Promise<Ch
       currency,
       readingId: prepared.readingId,
       compatibilityId: prepared.compatibilityId,
+      readerChatId: prepared.readerChatId,
+      quantity: prepared.quantity,
       userId: prepared.userId,
     },
   });
@@ -178,6 +180,8 @@ export async function payWithWallet(
           currency: "inr",
           readingId: prepared.readingId,
           compatibilityId: prepared.compatibilityId,
+          readerChatId: prepared.readerChatId,
+          quantity: prepared.quantity,
           userId: prepared.userId ?? userId,
           providerRef: `wallet_${randomUUID()}`,
           status: "PAID",
@@ -298,10 +302,12 @@ export async function fulfillPayment(input: {
       return "mismatch" as const;
     }
 
-    await tx.payment.update({
-      where: { id: payment.id },
+    // Conditional transition: if two confirmations race, only one grants.
+    const flipped = await tx.payment.updateMany({
+      where: { id: payment.id, status: { not: "PAID" } },
       data: { status: "PAID", paidAt: new Date(), providerPaymentId: input.providerPaymentId },
     });
+    if (flipped.count === 0) return "already_fulfilled" as const;
     await grantOrder(tx, { ...payment, status: "PAID" });
     return "fulfilled" as const;
   });

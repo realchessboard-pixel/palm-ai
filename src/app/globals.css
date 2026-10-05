@@ -1,29 +1,49 @@
 @import "tailwindcss";
 
 @theme {
-  --color-night-950: #07060c;
-  --color-night-900: #0c0a14;
-  --color-night-850: #110e1b;
-  --color-night-800: #171323;
-  --color-night-700: #221c33;
-  --color-night-600: #2f2745;
+  /*
+   * "Almanac" palette: warm paper, ink and sindoor — the feel of a printed
+   * panchang or a hand-bound notebook rather than a glowing app. The old
+   * token names are kept so every component re-themes from here:
+   * night-* are paper tones, parchment is ink, gold-* are sindoor/turmeric.
+   */
+  --color-night-950: #f4ecdd;
+  --color-night-900: #efe5d2;
+  --color-night-850: #ebdfca;
+  --color-night-800: #e5d7bd;
+  --color-night-700: #d8c6a6;
+  --color-night-600: #c4ad86;
 
-  --color-parchment: #f5efe4;
-  --color-mist: #b8b0c4;
-  --color-mist-dim: #948ba3;
+  --color-parchment: #2a1e17;
+  --color-mist: #5f4d40;
+  --color-mist-dim: #7d6a5b;
 
-  --color-gold-100: #fbf0d6;
-  --color-gold-200: #f6e0ad;
-  --color-gold-300: #efcb83;
-  --color-gold-400: #e5b45e;
-  --color-gold-500: #d29a3b;
-  --color-gold-600: #a8742a;
+  --color-gold-100: #5c2412;
+  --color-gold-200: #7a2f17;
+  --color-gold-300: #9c3b1b;
+  --color-gold-400: #b8471f;
+  --color-gold-500: #a33d18;
+  --color-gold-600: #7f2e12;
 
-  --color-aura-400: #9d8cf5;
-  --color-aura-500: #7c69e8;
+  --color-aura-400: #3e5c76;
+  --color-aura-500: #2f4a63;
 
-  --color-danger-300: #fca5a5;
-  --color-success-300: #86efac;
+  /* "white" is used for hairlines and tints over the background: make it ink. */
+  --color-white: #2a1e17;
+
+  --color-red-100: #6e1a12;
+  --color-red-200: #7f1f15;
+  --color-red-300: #9b2a1c;
+  --color-red-400: #b3392a;
+  --color-red-500: #c2412f;
+  --color-emerald-100: #1f4a30;
+  --color-emerald-200: #245638;
+  --color-emerald-300: #2c6542;
+  --color-emerald-400: #3a7a52;
+  --color-emerald-500: #3f8a5a;
+
+  --color-danger-300: #9b2a1c;
+  --color-success-300: #2c6542;
 
   --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -99,7 +119,7 @@
 
 @layer base {
   html {
-    color-scheme: dark;
+    color-scheme: light;
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
   }
@@ -114,7 +134,7 @@
   }
 
   ::selection {
-    background: color-mix(in oklab, var(--color-gold-400) 35%, transparent);
+    background: color-mix(in oklab, var(--color-gold-400) 22%, transparent);
   }
 
   :focus-visible {
@@ -132,38 +152,142 @@
 }
 
 @layer components {
-  /* Soft, layered night-sky backdrop used behind the whole app. */
+  :root {
+    --paper: #f4ecdd;
+    --paper-raised: #fbf6ec;
+    --ink: #2a1e17;
+    --rule: rgb(42 30 23 / 0.16);
+  }
+
+  /* Paper with a faint fibre texture — no glows, no gradients. */
   .sky-backdrop {
-    background:
-      radial-gradient(60rem 40rem at 85% -10%, rgb(124 105 232 / 0.16), transparent 60%),
-      radial-gradient(50rem 36rem at -10% 10%, rgb(210 154 59 / 0.12), transparent 60%),
-      radial-gradient(40rem 30rem at 50% 110%, rgb(124 105 232 / 0.1), transparent 60%),
-      var(--color-night-950);
+    background-color: var(--paper);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.16 0 0 0 0 0.12 0 0 0 0 0.09 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
   .starfield {
-    background-image:
-      radial-gradient(1px 1px at 12% 22%, rgb(255 255 255 / 0.7), transparent 60%),
-      radial-gradient(1px 1px at 72% 12%, rgb(255 255 255 / 0.55), transparent 60%),
-      radial-gradient(1.5px 1.5px at 42% 68%, rgb(246 224 173 / 0.6), transparent 60%),
-      radial-gradient(1px 1px at 88% 58%, rgb(255 255 255 / 0.45), transparent 60%),
-      radial-gradient(1px 1px at 28% 88%, rgb(255 255 255 / 0.4), transparent 60%),
-      radial-gradient(1.2px 1.2px at 58% 34%, rgb(255 255 255 / 0.5), transparent 60%),
-      radial-gradient(1px 1px at 6% 52%, rgb(246 224 173 / 0.45), transparent 60%),
-      radial-gradient(1px 1px at 94% 86%, rgb(255 255 255 / 0.35), transparent 60%);
-    background-size: 420px 420px;
+    display: none;
   }
 
-  .glass {
-    background: linear-gradient(180deg, rgb(255 255 255 / 0.055), rgb(255 255 255 / 0.025));
-    border: 1px solid rgb(255 255 255 / 0.09);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+  .glass,
+  .card,
+  .paper-card {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 1.25rem;
+    box-shadow: 0 1px 0 rgb(42 30 23 / 0.04);
   }
 
-  .card {
-    background: linear-gradient(180deg, rgb(23 19 35 / 0.9), rgb(17 14 27 / 0.9));
-    border: 1px solid rgb(255 255 255 / 0.07);
+  .eyebrow {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-gold-300);
+  }
+
+  .note {
+    border-left: 3px solid var(--color-gold-400);
+    padding: 0.25rem 0 0.25rem 0.9rem;
+    font-size: 0.9rem;
+    color: var(--color-mist);
+  }
+
+  .link {
+    color: var(--color-gold-300);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .tag {
+    display: inline-block;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: 0.05rem 0.55rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--color-mist);
+    background: var(--paper);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: 0.25rem 0.85rem 0.25rem 0.3rem;
+    background: var(--paper-raised);
+    font-size: 0.9rem;
+  }
+
+  .rule {
+    height: 1px;
+    background: var(--rule);
+  }
+
+  .field {
+    border: 1px solid var(--rule);
+    border-radius: 0.9rem;
+    background: var(--paper);
+    padding: 0.75rem 0.9rem;
+    color: var(--ink);
+  }
+  .field:focus {
+    outline: 2px solid var(--color-gold-300);
+    outline-offset: 1px;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    min-height: 3rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--color-gold-400);
+    padding: 0 1.5rem;
+    font-weight: 600;
+    color: #fbf6ec;
+  }
+  .btn-primary:hover {
+    background: var(--color-gold-500);
+  }
+
+  .bubble-reader,
+  .bubble-user {
+    border-radius: 1.1rem;
+    padding: 0.8rem 1rem;
+    line-height: 1.65;
+  }
+  .bubble-reader {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-top-left-radius: 0.3rem;
+  }
+  .bubble-user {
+    background: #3a2a21;
+    color: #f7efe2;
+    border-top-right-radius: 0.3rem;
+  }
+
+  .dot {
+    display: inline-block;
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 999px;
+    background: currentColor;
+    animation: twinkle 1.2s ease-in-out infinite;
+  }
+
+  /* Ruled underline for display headings, like a printed almanac. */
+  .text-gold-gradient {
+    color: var(--color-gold-400);
+  }
+
+  .gold-hairline {
+    background: var(--rule);
+    height: 1px;
   }
 
   /*

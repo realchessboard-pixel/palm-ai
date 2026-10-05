@@ -17,6 +17,7 @@ import { PremiumPanel } from "./premium-panel";
 import { ReadingNarrativeView } from "./reading-narrative";
 import { Prose, SectionCard } from "./section-card";
 import { ShareAndCouple } from "./share-and-couple";
+import { AskReaderCard } from "@/components/readers/ask-reader-card";
 import { TranslationLoader } from "./translation-loader";
 import { Visualization } from "./visualization";
 
@@ -104,6 +105,10 @@ export function ResultsDashboard({
         <InterpretationPending readingId={reading.id} />
       ) : main ? (
         <ReadingNarrativeView narrative={main.narrative} messages={t} lang={lang} />
+      ) : null}
+
+      {!sample && !interpretationPending && !reading.isPartner && main ? (
+        <AskReaderCard readingId={reading.id} />
       ) : null}
 
       {!sample && !interpretationPending && !reading.isPartner && main && shareUrl ? (

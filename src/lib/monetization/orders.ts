@@ -14,9 +14,12 @@ import {
   PRODUCTS,
   WALLET_TOPUPS,
   formatInr,
+  readerPlan,
   toPaise,
   walletTopup,
 } from "./price";
+import { getOwnedReaderChat } from "@/lib/readers/access";
+import { getReader } from "@/lib/readers/catalog";
 import { getOwnedCompatibility, hasCompatibilityAccess } from "./compatibility-access";
 
 /** What a visitor can buy. Prices are never taken from the request. */
@@ -26,6 +29,11 @@ export const OrderSchema = z.discriminatedUnion("product", [
   z.object({ product: z.literal("FAMILY_PACK") }),
   z.object({ product: z.literal("GIFT_READING") }),
   z.object({ product: z.literal("MEMBERSHIP_YEAR") }),
+  z.object({
+    product: z.literal("READER_QUESTIONS"),
+    chatId: IdSchema,
+    plan: z.enum(["single", "bundle"]),
+  }),
   z.object({
     product: z.literal("WALLET_TOPUP"),
     payInr: z.union(WALLET_TOPUPS.map((t) => z.literal(t.payInr)) as never),
@@ -39,6 +47,9 @@ export interface PreparedOrder {
   userId: string | null;
   readingId: string | null;
   compatibilityId: string | null;
+  readerChatId: string | null;
+  /** Units bought (questions for a reader chat; 1 otherwise). */
+  quantity: number;
   description: string;
   /** Where the buyer returns after checkout. */
   returnPath: string;
@@ -57,7 +68,13 @@ function requireAccount(actor: Actor): string {
 
 /** Validate an order for this actor and price it from the catalogue. */
 export async function prepareOrder(order: Order, actor: Actor): Promise<PreparedOrder> {
-  const base = { readingId: null, compatibilityId: null, alreadyOwned: false };
+  const base = {
+    readingId: null,
+    compatibilityId: null,
+    readerChatId: null,
+    quantity: 1,
+    alreadyOwned: false,
+  };
   switch (order.product) {
     case "DETAILED_READING": {
       const reading = await getOwnedReading(order.readingId, actor);
@@ -102,6 +119,22 @@ export async function prepareOrder(order: Order, actor: Actor): Promise<Prepared
         description: PRODUCTS[order.product].name,
         returnPath: "/account",
       };
+    case "READER_QUESTIONS": {
+      const chat = await getOwnedReaderChat(order.chatId, actor);
+      const reader = getReader(chat.readerId);
+      if (!reader) throw new AppError("NOT_FOUND");
+      const plan = readerPlan(reader.tier, order.plan);
+      return {
+        ...base,
+        product: order.product,
+        amountPaise: toPaise(plan.priceInr),
+        userId: chat.userId,
+        readerChatId: chat.id,
+        quantity: plan.questions,
+        description: `${plan.questions} question${plan.questions === 1 ? "" : "s"} for ${reader.name} (AI reader)`,
+        returnPath: `/chat/${chat.id}`,
+      };
+    }
     case "WALLET_TOPUP": {
       const topup = walletTopup(order.payInr);
       if (!topup) throw new AppError("VALIDATION_ERROR");
@@ -215,6 +248,15 @@ export async function grantOrder(tx: Prisma.TransactionClient, payment: Payment)
       });
       return;
     }
+    case "READER_QUESTIONS":
+      // Runs once per payment: callers only grant on the PENDING → PAID transition.
+      if (payment.readerChatId) {
+        await tx.readerChat.update({
+          where: { id: payment.readerChatId },
+          data: { questionsAllowed: { increment: payment.quantity } },
+        });
+      }
+      return;
     case "WALLET_TOPUP": {
       const topup = walletTopup(payment.amount / 100);
       if (payment.userId && topup) {
@@ -233,20 +275,25 @@ export async function grantOrder(tx: Prisma.TransactionClient, payment: Payment)
 
 /** Who may continue, settle or cancel a payment: the owner of what it buys. */
 export async function assertPaymentOwner(
-  payment: Pick<Payment, "readingId" | "compatibilityId" | "userId">,
+  payment: Pick<Payment, "readingId" | "compatibilityId" | "readerChatId" | "userId">,
   actor: Actor,
 ): Promise<void> {
   if (payment.readingId) {
     await getOwnedReading(payment.readingId, actor);
   } else if (payment.compatibilityId) {
     await getOwnedCompatibility(payment.compatibilityId, actor);
+  } else if (payment.readerChatId) {
+    await getOwnedReaderChat(payment.readerChatId, actor);
   } else if (!payment.userId || actor.user?.id !== payment.userId) {
     throw new AppError("NOT_FOUND");
   }
 }
 
-export function returnPathFor(payment: Pick<Payment, "readingId" | "compatibilityId">): string {
+export function returnPathFor(
+  payment: Pick<Payment, "readingId" | "compatibilityId" | "readerChatId">,
+): string {
   if (payment.readingId) return `/readings/${payment.readingId}`;
   if (payment.compatibilityId) return `/compatibility/${payment.compatibilityId}`;
+  if (payment.readerChatId) return `/chat/${payment.readerChatId}`;
   return "/account";
 }

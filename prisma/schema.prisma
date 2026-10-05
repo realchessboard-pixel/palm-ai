@@ -63,6 +63,7 @@ enum ProductKind {
   GIFT_READING
   MEMBERSHIP_YEAR
   WALLET_TOPUP
+  READER_QUESTIONS
 }
 
 enum ReadingRole {
@@ -112,6 +113,7 @@ model User {
   referralsMade   Referral[]      @relation("Referrer")
   referredBy      Referral?       @relation("Referred")
   compatibilities Compatibility[]
+  readerChats     ReaderChat[]
 }
 
 model Session {
@@ -162,6 +164,7 @@ model Reading {
   entitlements             Entitlement[]
   compatibilitiesAsSelf    Compatibility[]     @relation("CompatibilitySelf")
   compatibilitiesAsPartner Compatibility[]     @relation("CompatibilityPartner")
+  readerChats              ReaderChat[]
 
   @@index([userId, createdAt])
   @@index([guestKeyHash])
@@ -210,6 +213,10 @@ model Payment {
   product           ProductKind     @default(DETAILED_READING)
   compatibilityId   String?
   compatibility     Compatibility?  @relation(fields: [compatibilityId], references: [id], onDelete: SetNull)
+  readerChatId      String?
+  readerChat        ReaderChat?     @relation(fields: [readerChatId], references: [id], onDelete: SetNull)
+  /// Units bought (e.g. questions for a reader chat).
+  quantity          Int             @default(1)
   /// Checkout session id (Stripe) or order id (Razorpay).
   providerRef       String?         @unique
   providerPaymentId String?
@@ -338,4 +345,42 @@ model Compatibility {
   @@unique([readingId, partnerReadingId])
   @@index([userId])
   @@index([guestKeyHash])
+}
+
+enum ReaderMessageRole {
+  USER
+  READER
+}
+
+/// A chat with one of PalmAI's AI palm readers (always disclosed as AI).
+model ReaderChat {
+  id               String          @id @default(cuid())
+  userId           String?
+  user             User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guestKeyHash     String?
+  /// Reader persona id from the catalogue (src/lib/readers/catalog.ts).
+  readerId         String
+  /// The palm reading the reader answers about, if any.
+  readingId        String?
+  reading          Reading?        @relation(fields: [readingId], references: [id], onDelete: SetNull)
+  questionsAllowed Int             @default(0)
+  questionsUsed    Int             @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  messages         ReaderMessage[]
+  payments         Payment[]
+
+  @@index([userId])
+  @@index([guestKeyHash])
+}
+
+model ReaderMessage {
+  id        String            @id @default(cuid())
+  chatId    String
+  chat      ReaderChat        @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  role      ReaderMessageRole
+  text      String
+  createdAt DateTime          @default(now())
+
+  @@index([chatId, createdAt])
 }

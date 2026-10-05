@@ -7,6 +7,7 @@ export type AiTask =
   | "palm_interpretation"
   | "palm_detailed_reading"
   | "palm_compatibility"
+  | "reader_answer"
   | "reading_translation";
 
 export interface AiImage {

@@ -67,6 +67,8 @@ export const RATE_LIMITS = {
   checkout: { max: 20, windowMs: 60 * 60 * 1000 },
   // Each new language for a reading is one AI translation; cached afterwards.
   translate: { max: 30, windowMs: 60 * 60 * 1000 },
+  // Questions to AI readers (each is paid or the one free question).
+  reader: { max: 40, windowMs: 60 * 60 * 1000 },
   events: { max: 120, windowMs: 60 * 1000 },
   general: { max: 120, windowMs: 60 * 1000 },
 } as const;

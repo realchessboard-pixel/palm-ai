@@ -134,6 +134,11 @@ export async function claimGuestReadings(
     where: { guestKeyHash, userId: null },
     data: { userId },
   });
+  // Chats with readers started as a guest move to the account too.
+  await db.readerChat.updateMany({
+    where: { guestKeyHash, userId: null },
+    data: { userId, guestKeyHash: null },
+  });
   // Couple readings started as a guest move to the account too.
   await db.compatibility.updateMany({
     where: { guestKeyHash, userId: null },

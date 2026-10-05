@@ -15,6 +15,7 @@ export const metadata: Metadata = { title: "Admin", robots: { index: false, foll
 const PRODUCT_LABELS: Record<ProductKind, string> = {
   ...Object.fromEntries(Object.entries(PRODUCTS).map(([k, p]) => [k, p.name])),
   WALLET_TOPUP: "Wallet top-ups",
+  READER_QUESTIONS: "Ask a Reader (AI)",
 } as Record<ProductKind, string>;
 
 function money(amount: number, currency: string) {

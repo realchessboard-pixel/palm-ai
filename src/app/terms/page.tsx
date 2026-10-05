@@ -46,6 +46,12 @@ export default function TermsPage() {
       <p>
         Refunds are handled according to applicable consumer law; contact {siteConfig.supportEmail}.
       </p>
+      <h2>Ask a Reader</h2>
+      <p>
+        PalmAI&apos;s readers are AI characters with their own style. They are not real people, and
+        their portraits are illustrations. Questions you buy belong to that conversation and
+        don&apos;t expire. A question is only used when an answer is delivered.
+      </p>
       <h2>Couple readings</h2>
       <p>
         Only upload your partner&apos;s palm with their agreement. Their photo is used for your
