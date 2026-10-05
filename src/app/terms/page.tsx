@@ -46,6 +46,14 @@ export default function TermsPage() {
       <p>
         Refunds are handled according to applicable consumer law; contact {siteConfig.supportEmail}.
       </p>
+      <h2>Astrology</h2>
+      <p>
+        Kundli, Kundli Milan, panchang and rashifal are calculated with standard astronomical
+        methods (Lahiri ayanamsa) and described in the Jyotish tradition for reflection and cultural
+        interest. They are not predictions, and Guna Milan does not decide whether a relationship or
+        marriage is right. A free Kundli is calculated in your browser; your birth details are
+        stored only if you ask for the full Kundli reading.
+      </p>
       <h2>Ask a Reader</h2>
       <p>
         PalmAI&apos;s readers are AI characters with their own style. They are not real people, and

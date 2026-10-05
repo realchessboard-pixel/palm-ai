@@ -18,6 +18,7 @@ import {
   toPaise,
   walletTopup,
 } from "./price";
+import { getOwnedKundli, hasKundliAccess } from "@/lib/kundli/access";
 import { getOwnedReaderChat } from "@/lib/readers/access";
 import { getReader } from "@/lib/readers/catalog";
 import { getOwnedCompatibility, hasCompatibilityAccess } from "./compatibility-access";
@@ -29,6 +30,7 @@ export const OrderSchema = z.discriminatedUnion("product", [
   z.object({ product: z.literal("FAMILY_PACK") }),
   z.object({ product: z.literal("GIFT_READING") }),
   z.object({ product: z.literal("MEMBERSHIP_YEAR") }),
+  z.object({ product: z.literal("KUNDLI_REPORT"), kundliId: IdSchema }),
   z.object({
     product: z.literal("READER_QUESTIONS"),
     chatId: IdSchema,
@@ -48,6 +50,7 @@ export interface PreparedOrder {
   readingId: string | null;
   compatibilityId: string | null;
   readerChatId: string | null;
+  kundliId: string | null;
   /** Units bought (questions for a reader chat; 1 otherwise). */
   quantity: number;
   description: string;
@@ -72,6 +75,7 @@ export async function prepareOrder(order: Order, actor: Actor): Promise<Prepared
     readingId: null,
     compatibilityId: null,
     readerChatId: null,
+    kundliId: null,
     quantity: 1,
     alreadyOwned: false,
   };
@@ -119,6 +123,19 @@ export async function prepareOrder(order: Order, actor: Actor): Promise<Prepared
         description: PRODUCTS[order.product].name,
         returnPath: "/account",
       };
+    case "KUNDLI_REPORT": {
+      const kundli = await getOwnedKundli(order.kundliId, actor);
+      return {
+        ...base,
+        product: order.product,
+        amountPaise: toPaise(PRODUCTS.KUNDLI_REPORT.priceInr),
+        userId: kundli.userId,
+        kundliId: kundli.id,
+        description: PRODUCTS.KUNDLI_REPORT.name,
+        returnPath: `/kundli/${kundli.id}`,
+        alreadyOwned: await hasKundliAccess(kundli),
+      };
+    }
     case "READER_QUESTIONS": {
       const chat = await getOwnedReaderChat(order.chatId, actor);
       const reader = getReader(chat.readerId);
@@ -248,6 +265,9 @@ export async function grantOrder(tx: Prisma.TransactionClient, payment: Payment)
       });
       return;
     }
+    case "KUNDLI_REPORT":
+      // Access comes from the PAID payment itself (see hasKundliAccess).
+      return;
     case "READER_QUESTIONS":
       // Runs once per payment: callers only grant on the PENDING → PAID transition.
       if (payment.readerChatId) {
@@ -275,7 +295,7 @@ export async function grantOrder(tx: Prisma.TransactionClient, payment: Payment)
 
 /** Who may continue, settle or cancel a payment: the owner of what it buys. */
 export async function assertPaymentOwner(
-  payment: Pick<Payment, "readingId" | "compatibilityId" | "readerChatId" | "userId">,
+  payment: Pick<Payment, "readingId" | "compatibilityId" | "readerChatId" | "kundliId" | "userId">,
   actor: Actor,
 ): Promise<void> {
   if (payment.readingId) {
@@ -284,16 +304,19 @@ export async function assertPaymentOwner(
     await getOwnedCompatibility(payment.compatibilityId, actor);
   } else if (payment.readerChatId) {
     await getOwnedReaderChat(payment.readerChatId, actor);
+  } else if (payment.kundliId) {
+    await getOwnedKundli(payment.kundliId, actor);
   } else if (!payment.userId || actor.user?.id !== payment.userId) {
     throw new AppError("NOT_FOUND");
   }
 }
 
 export function returnPathFor(
-  payment: Pick<Payment, "readingId" | "compatibilityId" | "readerChatId">,
+  payment: Pick<Payment, "readingId" | "compatibilityId" | "readerChatId" | "kundliId">,
 ): string {
   if (payment.readingId) return `/readings/${payment.readingId}`;
   if (payment.compatibilityId) return `/compatibility/${payment.compatibilityId}`;
   if (payment.readerChatId) return `/chat/${payment.readerChatId}`;
+  if (payment.kundliId) return `/kundli/${payment.kundliId}`;
   return "/account";
 }

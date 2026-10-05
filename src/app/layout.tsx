@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import { headers } from "next/headers";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { BottomTabs } from "@/components/layout/bottom-tabs";
 import { SiteHeader } from "@/components/layout/site-header";
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
 import { ReferralCapture } from "@/components/share/referral-capture";
@@ -69,7 +70,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
 
   return (
     <html lang="en" className={`${inter.variable} ${fraunces.variable}`}>
-      <body className="sky-backdrop min-h-dvh antialiased">
+      <body className="sky-backdrop min-h-dvh pb-16 antialiased md:pb-0">
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-gold-300 focus:px-4 focus:py-2 focus:text-night-950"
@@ -81,6 +82,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           {children}
         </main>
         <SiteFooter />
+        <BottomTabs />
         <ServiceWorkerRegistration />
         <ReferralCapture />
       </body>

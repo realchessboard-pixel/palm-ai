@@ -134,6 +134,10 @@ export async function claimGuestReadings(
     where: { guestKeyHash, userId: null },
     data: { userId },
   });
+  await db.kundliProfile.updateMany({
+    where: { guestKeyHash, userId: null },
+    data: { userId, guestKeyHash: null },
+  });
   // Chats with readers started as a guest move to the account too.
   await db.readerChat.updateMany({
     where: { guestKeyHash, userId: null },

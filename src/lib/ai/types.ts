@@ -8,6 +8,8 @@ export type AiTask =
   | "palm_detailed_reading"
   | "palm_compatibility"
   | "reader_answer"
+  | "daily_horoscope"
+  | "kundli_report"
   | "reading_translation";
 
 export interface AiImage {

@@ -64,6 +64,7 @@ enum ProductKind {
   MEMBERSHIP_YEAR
   WALLET_TOPUP
   READER_QUESTIONS
+  KUNDLI_REPORT
 }
 
 enum ReadingRole {
@@ -114,6 +115,7 @@ model User {
   referredBy      Referral?       @relation("Referred")
   compatibilities Compatibility[]
   readerChats     ReaderChat[]
+  kundlis         KundliProfile[]
 }
 
 model Session {
@@ -213,6 +215,8 @@ model Payment {
   product           ProductKind     @default(DETAILED_READING)
   compatibilityId   String?
   compatibility     Compatibility?  @relation(fields: [compatibilityId], references: [id], onDelete: SetNull)
+  kundliId          String?
+  kundli            KundliProfile?  @relation(fields: [kundliId], references: [id], onDelete: SetNull)
   readerChatId      String?
   readerChat        ReaderChat?     @relation(fields: [readerChatId], references: [id], onDelete: SetNull)
   /// Units bought (e.g. questions for a reader chat).
@@ -383,4 +387,46 @@ model ReaderMessage {
   createdAt DateTime          @default(now())
 
   @@index([chatId, createdAt])
+}
+
+/// Daily horoscope for one Moon sign, written once per day and language.
+model DailyHoroscope {
+  id        String   @id @default(cuid())
+  /// Calendar date in IST, YYYY-MM-DD.
+  date      String
+  /// Rashi index 0 (Mesha) … 11 (Meena).
+  sign      Int
+  language  String
+  data      Json
+  provider  String
+  createdAt DateTime @default(now())
+
+  @@unique([date, sign, language])
+}
+
+enum KundliReportStatus {
+  NONE
+  GENERATING
+  COMPLETE
+  FAILED
+}
+
+/// A saved birth chart (only when the visitor asks for the paid Kundli reading).
+model KundliProfile {
+  id           String             @id @default(cuid())
+  userId       String?
+  user         User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guestKeyHash String?
+  name         String
+  /// Birth details as entered (date, time, place, coordinates, UTC offset).
+  birth        Json
+  chart        Json
+  reportStatus KundliReportStatus @default(NONE)
+  report       Json?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  payments     Payment[]
+
+  @@index([userId])
+  @@index([guestKeyHash])
 }

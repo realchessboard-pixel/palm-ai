@@ -12,6 +12,7 @@ export const PRODUCT_KINDS = [
   "FAMILY_PACK",
   "GIFT_READING",
   "MEMBERSHIP_YEAR",
+  "KUNDLI_REPORT",
 ] as const;
 export type CatalogProduct = (typeof PRODUCT_KINDS)[number];
 
@@ -24,6 +25,13 @@ export interface ProductInfo {
 }
 
 export const PRODUCTS: Record<CatalogProduct, ProductInfo> = {
+  KUNDLI_REPORT: {
+    priceInr: 99,
+    name: "Full Kundli reading",
+    description:
+      "A personal written reading of your birth chart: Lagna and Moon nature, mind, career, relationships, strengths and your current dasha.",
+    requiresAccount: false,
+  },
   DETAILED_READING: {
     priceInr: 49,
     name: "Detailed palm reading",
@@ -54,7 +62,7 @@ export const PRODUCTS: Record<CatalogProduct, ProductInfo> = {
     priceInr: 299,
     name: "PalmAI membership — 1 year",
     description:
-      "Every reading you take for a year includes the detailed reading and PDF. Read your palm again each month.",
+      "For a year, every palm reading includes the detailed reading and PDF, and every Kundli includes the full Kundli reading.",
     requiresAccount: true,
   },
 };

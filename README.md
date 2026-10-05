@@ -215,6 +215,17 @@ taken from the request.
 | Membership       | ₹299                                  | Every reading on the account includes the detailed reading for 365 days; no auto-renewal    |
 | Wallet top-up    | ₹100 → ₹110, ₹250 → ₹280, ₹500 → ₹575 | Closed-loop balance, spendable only on PalmAI                                               |
 
+- **Astrology (free):** `/horoscope` (daily rashifal for 12 Moon signs, one
+  cached AI call per day and language, grounded in the Moon's transit house,
+  rule-based fallback), `/kundli` (Lagna chart, nine grahas, nakshatra,
+  Vimshottari dasha — computed in the browser with `astronomy-engine`, Lahiri
+  ayanamsa, whole-sign houses), `/kundli-milan` (Ashtakoota Guna Milan /36)
+  and `/panchang` (tithi, nakshatra, yoga, karana, sunrise/sunset, Rahu Kaal).
+  Maths lives in `src/lib/astro/` and is unit-tested against known dates.
+- **Full Kundli reading (₹99):** the chart is saved only when the visitor asks
+  for it (`KundliProfile`), and written by AI after payment (or with
+  membership), grounded in the chart facts and safety-filtered (no doshas,
+  remedies or event predictions).
 - **Ask a Reader** (`/readers`, `/chat/[id]`): 8 AI reader personas
   (`src/lib/readers/catalog.ts`), each **always labelled as an AI reader**
   with an illustrated (not photographic) portrait. They answer questions about

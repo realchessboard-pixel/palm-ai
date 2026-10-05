@@ -6,6 +6,9 @@ import { Features } from "@/components/landing/features";
 import { Hero } from "@/components/landing/hero";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { PrivacySection } from "@/components/landing/privacy-section";
+import { Services } from "@/components/landing/services";
+import { SignGrid } from "@/components/astro/sign-grid";
+import Link from "next/link";
 import { ButtonLink } from "@/components/ui/button";
 import { Disclaimer } from "@/components/ui/disclaimer";
 import { siteConfig } from "@/lib/config/site";
@@ -55,6 +58,24 @@ export default async function LandingPage() {
       <TrackOnMount event="landing_page_view" />
       <Hero />
       <div className="gold-hairline mx-auto max-w-4xl" aria-hidden="true" />
+      <Services />
+      <section
+        aria-labelledby="rashifal-title"
+        className="mx-auto max-w-6xl space-y-5 px-4 pb-14 sm:px-6"
+      >
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="eyebrow">Free · updated every morning</p>
+            <h2 id="rashifal-title" className="mt-1 text-3xl sm:text-4xl">
+              Aaj ka Rashifal
+            </h2>
+          </div>
+          <Link href="/kundli" className="link text-sm">
+            Don&apos;t know your rashi? Find it free
+          </Link>
+        </div>
+        <SignGrid />
+      </section>
       <HowItWorks />
       <Features />
       <ExampleReading />
