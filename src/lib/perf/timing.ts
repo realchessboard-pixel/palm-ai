@@ -33,6 +33,11 @@ export class PipelineTimer {
     this.steps[label] = Math.round((this.steps[label] ?? 0) + ms);
   }
 
+  /** Milliseconds since the pipeline started. */
+  elapsedMs(): number {
+    return Math.round(performance.now() - this.started);
+  }
+
   note(values: Record<string, unknown>): void {
     Object.assign(this.info, values);
   }
@@ -53,6 +58,34 @@ export class PipelineTimer {
  * Token counts keyed so the logger's secret redaction (which matches "token")
  * leaves them readable.
  */
+/**
+ * Stored once per completed AI stage (UsageEvent "ai_stage_completed") so the
+ * internal beta report can show per-reading timings, retries and token use.
+ * Durations, counts and model names only.
+ */
+export function stageMetrics(input: {
+  stage: "analysis" | "interpretation";
+  totalMs: number;
+  providerMs: number;
+  attempts: number;
+  provider: string;
+  model: string;
+  usage: AiUsage | undefined;
+}): Record<string, string | number> {
+  const usage = usageCounts(input.usage);
+  return {
+    stage: input.stage,
+    total_ms: input.totalMs,
+    model_ms: Math.round(input.providerMs),
+    attempts: input.attempts,
+    provider: input.provider,
+    model: input.model,
+    ...Object.fromEntries(
+      Object.entries(usage).flatMap(([k, v]) => (v === undefined ? [] : [[`${k}_tok`, v]])),
+    ),
+  };
+}
+
 export function usageCounts(usage: AiUsage | undefined) {
   return {
     input: usage?.inputTokens,

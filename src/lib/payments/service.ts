@@ -9,7 +9,13 @@ import { grantReadingPremium, hasPremiumAccess } from "@/lib/entitlements";
 import { AppError } from "@/lib/http/errors";
 import { logger } from "@/lib/logger";
 import { getOwnedReading } from "@/lib/readings/service";
-import { getPaymentProvider, getProviderByName, razorpayProvider, stripeProvider } from "./index";
+import {
+  getPaymentProvider,
+  getProviderByName,
+  isRazorpayTestMode,
+  razorpayProvider,
+  stripeProvider,
+} from "./index";
 import { funnelContext, trackFunnelEvent } from "@/lib/monetization/funnel";
 import { extendedReadingPrice, paymentsEnabled } from "./pricing";
 import type { CheckoutSession, PaymentProviderName, WebhookEvent } from "./types";
@@ -42,7 +48,8 @@ async function trackPaymentEvent(
 ): Promise<void> {
   if (!payment.readingId) return;
   const context = await funnelContext(payment.readingId, {
-    testPayment: payment.provider === "MOCK",
+    testPayment:
+      payment.provider === "MOCK" || (payment.provider === "RAZORPAY" && isRazorpayTestMode()),
   });
   if (context)
     await trackFunnelEvent(name, context, { payment_provider: payment.provider, ...extra });
@@ -289,19 +296,55 @@ export async function handleWebhook(
   return { status: event.kind === "ignored" ? "ignored" : "processed" };
 }
 
-/** Razorpay Checkout success handler: verify the signature, then fulfil. */
+/**
+ * Razorpay Checkout success handler. The browser's callback is only a hint:
+ * the signature must verify with our key secret, AND the payment fetched from
+ * Razorpay's API must belong to this order, be captured, and match the stored
+ * amount and currency. An authorized-but-uncaptured payment stays pending and
+ * is completed by the webhook.
+ */
 export async function confirmRazorpayPayment(
   input: { orderId: string; paymentId: string; signature: string },
   actor: Actor,
-): Promise<void> {
+): Promise<{ status: "paid" | "pending" }> {
   const payment = await db.payment.findUnique({ where: { providerRef: input.orderId } });
   if (!payment || payment.provider !== "RAZORPAY" || !payment.readingId)
     throw new AppError("NOT_FOUND");
   await getOwnedReading(payment.readingId, actor);
-  if (!razorpayProvider().verifyPaymentSignature(input.orderId, input.paymentId, input.signature)) {
+  if (payment.status === "PAID") return { status: "paid" };
+  const provider = razorpayProvider();
+  if (!provider.verifyPaymentSignature(input.orderId, input.paymentId, input.signature)) {
     throw new AppError("PAYMENT_ERROR", { message: "We couldn't verify this payment." });
   }
-  await fulfillPayment({ providerRef: input.orderId, providerPaymentId: input.paymentId });
+
+  let remote;
+  try {
+    remote = await provider.fetchPayment(input.paymentId);
+  } catch (error) {
+    // Signature is valid but Razorpay couldn't be reached: the webhook will settle it.
+    logger.warn("razorpay_payment_lookup_failed", { error });
+    return { status: "pending" };
+  }
+  if (remote.order_id !== input.orderId) {
+    throw new AppError("PAYMENT_ERROR", { message: "We couldn't verify this payment." });
+  }
+  if (remote.status === "captured") {
+    const outcome = await fulfillPayment({
+      providerRef: input.orderId,
+      providerPaymentId: remote.id,
+      amount: remote.amount,
+      currency: remote.currency,
+    });
+    if (outcome === "mismatch") {
+      throw new AppError("PAYMENT_ERROR", { message: "We couldn't verify this payment." });
+    }
+    return { status: "paid" };
+  }
+  if (remote.status === "failed") {
+    await failPayment(input.orderId);
+    throw new AppError("PAYMENT_ERROR", { message: "This payment didn't go through." });
+  }
+  return { status: "pending" };
 }
 
 /**

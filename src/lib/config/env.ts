@@ -52,6 +52,10 @@ const EnvSchema = z.object({
   PAYMENT_FEE_PERCENT: z.coerce.number().min(0).max(100).optional(),
   PAYMENT_FEE_FIXED_INR: z.coerce.number().min(0).max(1000).optional(),
   AD_REVENUE_PER_1000_READINGS_INR: z.coerce.number().min(0).optional(),
+  // Optional model token prices (INR per 1M tokens) for per-reading cost estimates in the
+  // beta report. Thinking tokens are billed as output. Unset: the flat estimate above is used.
+  AI_COST_INPUT_PER_1M_TOKENS_INR: z.coerce.number().min(0).optional(),
+  AI_COST_OUTPUT_PER_1M_TOKENS_INR: z.coerce.number().min(0).optional(),
 
   // Ads: "placeholder" shows clearly-marked development boxes; no real network is integrated.
   // Defaults to "placeholder" in development and "off" everywhere else.

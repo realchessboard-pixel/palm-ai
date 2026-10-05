@@ -9,6 +9,15 @@ interface RazorpayOrder {
   currency: string;
 }
 
+/** The subset of a Razorpay payment entity the server checks before unlocking. */
+export interface RazorpayPayment {
+  id: string;
+  order_id: string | null;
+  status: "created" | "authorized" | "captured" | "refunded" | "failed";
+  amount: number;
+  currency: string;
+}
+
 interface RazorpayWebhook {
   event: string;
   payload?: {
@@ -34,12 +43,31 @@ export class RazorpayProvider implements PaymentProvider {
     return { keyId: this.config.keyId, keySecret: this.config.keySecret };
   }
 
-  async createCheckout(input: CheckoutInput): Promise<CheckoutSession> {
+  private authHeader(): string {
     const { keyId, keySecret } = this.credentials();
+    return `Basic ${Buffer.from(`${keyId}:${keySecret}`).toString("base64")}`;
+  }
+
+  /** Look a payment up server-side (the browser's word is never taken for it). */
+  async fetchPayment(paymentId: string): Promise<RazorpayPayment> {
+    const response = await fetch(
+      `https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}`,
+      { headers: { Authorization: this.authHeader() }, signal: AbortSignal.timeout(15_000) },
+    ).catch((error) => {
+      throw new AppError("PAYMENT_ERROR", { internal: error });
+    });
+    if (!response.ok) {
+      throw new AppError("PAYMENT_ERROR", { internal: `Razorpay HTTP ${response.status}` });
+    }
+    return (await response.json()) as RazorpayPayment;
+  }
+
+  async createCheckout(input: CheckoutInput): Promise<CheckoutSession> {
+    const { keyId } = this.credentials();
     const response = await fetch("https://api.razorpay.com/v1/orders", {
       method: "POST",
       headers: {
-        Authorization: `Basic ${Buffer.from(`${keyId}:${keySecret}`).toString("base64")}`,
+        Authorization: this.authHeader(),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

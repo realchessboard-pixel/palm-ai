@@ -10,7 +10,7 @@ import { processPalmImage } from "@/lib/image/process";
 import { QUALITY_MESSAGES } from "@/lib/image/quality";
 import { logger } from "@/lib/logger";
 import { trackFunnelEvent } from "@/lib/monetization/funnel";
-import { PipelineTimer, usageCounts } from "@/lib/perf/timing";
+import { PipelineTimer, stageMetrics, usageCounts } from "@/lib/perf/timing";
 import { availableFeatures } from "@/lib/palmistry/features";
 import { deleteReadingImages } from "@/lib/readings/service";
 import {
@@ -220,6 +220,19 @@ async function runAnalysis(input: AnalyzeInput, timer: PipelineTimer): Promise<A
   }
 
   await analyticsStarted;
+  await trackServerEvent("ai_stage_completed", {
+    userId: input.userId,
+    readingId: reading.id,
+    properties: stageMetrics({
+      stage: "analysis",
+      totalMs: timer.elapsedMs(),
+      providerMs: result.providerMs,
+      attempts: result.attempts,
+      provider: provider.name,
+      model: result.model,
+      usage: result.usage,
+    }),
+  });
 
   const analysis = result.data;
   const analysisRecord: Prisma.PalmAnalysisUncheckedCreateInput = {

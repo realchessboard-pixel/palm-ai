@@ -26,6 +26,11 @@ export function razorpayProvider(): RazorpayProvider {
   });
 }
 
+/** Razorpay test-mode keys: payments are real API calls but no real money moves. */
+export function isRazorpayTestMode(): boolean {
+  return getEnv().RAZORPAY_KEY_ID?.startsWith("rzp_test_") ?? false;
+}
+
 /** The provider used for new checkouts, selected by PAYMENT_PROVIDER. */
 export function getPaymentProvider(): PaymentProvider {
   if (!paymentsEnabled()) throw new AppError("PAYMENT_NOT_CONFIGURED");

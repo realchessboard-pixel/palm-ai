@@ -152,6 +152,7 @@ All variables are documented inline in [`.env.example`](.env.example) and valida
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`                      | Razorpay                                                            |
 | `ESTIMATED_BASIC_AI_COST_INR`, `ESTIMATED_EXTENDED_AI_COST_INR`                          | Internal AI cost estimates for the admin economics (defaults 4 / 0) |
 | `PAYMENT_FEE_PERCENT`, `PAYMENT_FEE_FIXED_INR`, `AD_REVENUE_PER_1000_READINGS_INR`       | Optional; unset = "not configured" (never assumed)                  |
+| `AI_COST_INPUT_PER_1M_TOKENS_INR`, `AI_COST_OUTPUT_PER_1M_TOKENS_INR`                    | Optional token prices for per-reading cost in the beta report       |
 | `ADS_MODE`                                                                               | `off` or `placeholder` (development ad boxes; no ad network)        |
 | `STORAGE_PROVIDER`                                                                       | `local`, `s3` or `memory`                                           |
 | `STORAGE_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | S3-compatible private bucket                                        |
@@ -232,7 +233,17 @@ checkout amount and analytics property derives from it.
   on free results (never during upload or analysis). No ad network is
   integrated; in development it renders a labelled placeholder.
 
+## Beta testing
+
+- `docs/BETA_TEST_CHECKLIST.md` — the 20-photo test script, payment checks and
+  go/no-go criteria, with a results template in `docs/beta/`.
+- `/admin/beta` (admins only) — per-reading selected vs detected hand,
+  confidence, stage 1/2 times, retries, filtered items, provider/model, tokens
+  and estimated AI cost; CSV export at `/api/admin/beta-report`.
+
 ## Payment setup
+
+See `docs/RAZORPAY.md` for the full Razorpay setup and verification flow.
 
 **Stripe**
 
@@ -297,6 +308,8 @@ Integration tests need `TEST_DATABASE_URL`. **That database is truncated by the 
 | `tests/integration/auth.test.ts`            | Signup, login, logout, sessions, rate limiting, account deletion                                                                |
 | `tests/integration/palm-pipeline.test.ts`   | Upload validation; reading creation and retrieval; access control; AI rejection, timeouts and invalid JSON; grounding; deletion |
 | `tests/integration/payments.test.ts`        | Entitlements; mock, Stripe and Razorpay checkout; webhook verification and idempotency; PDF gating                              |
+| `tests/integration/razorpay.test.ts`        | Razorpay order, signature + API verification, failed/cancelled, webhook replay/duplicates, refresh, Reading A vs B              |
+| `tests/integration/beta-report.test.ts`     | Beta report rows (hands, timings, retries, tokens, cost), CSV export and admin-only access                                      |
 | `tests/integration/monetization.test.ts`    | Free → ₹35 flow; failed, cancelled and verified payments; cross-reading replay; manipulation; funnel events                     |
 | `tests/unit/monetization.test.tsx`          | Central price, economics maths, ad slot, the detailed-reading offer and payment-state notices                                   |
 | `tests/unit/pipeline-performance.test.ts`   | Image preprocessing, timing logs, thinking levels, prompt trimming, duplicate-request protection                                |

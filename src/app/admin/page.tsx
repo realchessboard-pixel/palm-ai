@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ReadingsChart } from "@/components/admin/readings-chart";
 import { Card } from "@/components/ui/misc";
 import { getAdminStats } from "@/lib/admin/stats";
 import { getCurrentUser } from "@/lib/auth/actor";
+import { getEnv } from "@/lib/config/env";
+import { isRazorpayTestMode } from "@/lib/payments";
 
 export const metadata: Metadata = { title: "Admin", robots: { index: false, follow: false } };
 
@@ -42,12 +45,16 @@ export default async function AdminPage() {
   const stats = await getAdminStats();
   const pct = (v: number) => `${Math.round(v * 1000) / 10}%`;
   const e = stats.economics;
+  const razorpayTest = getEnv().PAYMENT_PROVIDER === "razorpay" && isRazorpayTestMode();
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-4 pt-10 pb-20 sm:px-6">
       <div>
         <h1 className="text-4xl">Admin</h1>
         <p className="mt-2 text-mist">Aggregate metrics only — no personal data is shown here.</p>
+        <Link href="/admin/beta" className="mt-2 inline-block text-sm text-gold-300 underline">
+          Beta report (per-reading timings, hands, retries, cost) →
+        </Link>
       </div>
 
       <section aria-label="Key metrics" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -73,7 +80,7 @@ export default async function AdminPage() {
               ? stats.revenue.map((r) => money(r.amount, r.currency)).join(" · ")
               : "—"
           }
-          hint={`Verified real payments, all time${stats.testPayments ? ` · ${stats.testPayments} test payment(s) excluded` : ""}`}
+          hint={`Verified real payments, all time${stats.testPayments ? ` · ${stats.testPayments} test payment(s) excluded` : ""}${razorpayTest ? " · Razorpay is in TEST mode: these are test payments" : ""}`}
         />
       </section>
 

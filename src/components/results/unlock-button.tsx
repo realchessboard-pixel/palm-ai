@@ -48,6 +48,7 @@ export function UnlockButton({ readingId, priceLabel }: { readingId: string; pri
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   async function unlock() {
     setBusy(true);
@@ -76,11 +77,23 @@ export function UnlockButton({ readingId, priceLabel }: { readingId: string; pri
         theme: { color: "#d29a3b" },
         handler: async (result: RazorpayResult) => {
           try {
-            await postJson("/api/payments/razorpay/verify", {
-              orderId: result.razorpay_order_id,
-              paymentId: result.razorpay_payment_id,
-              signature: result.razorpay_signature,
-            });
+            const verified = await postJson<{ status: "paid" | "pending" }>(
+              "/api/payments/razorpay/verify",
+              {
+                orderId: result.razorpay_order_id,
+                paymentId: result.razorpay_payment_id,
+                signature: result.razorpay_signature,
+              },
+            );
+            if (verified.status === "pending") {
+              // Razorpay hasn't captured it yet; the webhook will unlock the reading.
+              setConfirming(true);
+              for (let i = 0; i < 10; i++) {
+                await new Promise((resolve) => setTimeout(resolve, 3000));
+                router.refresh();
+              }
+              return;
+            }
             router.refresh();
           } catch (err) {
             setError(
@@ -119,6 +132,12 @@ export function UnlockButton({ readingId, priceLabel }: { readingId: string; pri
       <Button size="lg" className="w-full sm:w-auto" onClick={unlock} disabled={busy}>
         {busy ? "Opening checkout…" : `Unlock Detailed Reading — ${priceLabel}`}
       </Button>
+      {confirming ? (
+        <Alert tone="info">
+          Payment received — we&apos;re confirming it with Razorpay. Your detailed reading will
+          unlock automatically; you can also refresh this page in a minute.
+        </Alert>
+      ) : null}
       {error ? <Alert tone="error">{error}</Alert> : null}
     </div>
   );

@@ -25,6 +25,8 @@ export const ANALYTICS_EVENTS = [
   "extended_payment_success",
   "extended_payment_failed",
   "extended_reading_unlocked",
+  // Server-only: per-stage AI timing, retries and token counts (beta report).
+  "ai_stage_completed",
 ] as const;
 
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];

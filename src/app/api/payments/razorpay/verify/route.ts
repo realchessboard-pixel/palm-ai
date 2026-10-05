@@ -8,6 +8,5 @@ import { RazorpayVerifySchema } from "@/lib/schemas/api";
 export const POST = withErrorHandling("payments.razorpay.verify", async (request: NextRequest) => {
   const actor = await getActorFromRequest(request);
   const input = await parseJsonBody(request, RazorpayVerifySchema);
-  await confirmRazorpayPayment(input, actor);
-  return NextResponse.json({ ok: true });
+  return NextResponse.json(await confirmRazorpayPayment(input, actor));
 });

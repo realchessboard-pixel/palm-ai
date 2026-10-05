@@ -9,7 +9,7 @@ import { db } from "@/lib/db";
 import { AppError, isAppError } from "@/lib/http/errors";
 import { logger } from "@/lib/logger";
 import { trackFunnelEvent } from "@/lib/monetization/funnel";
-import { PipelineTimer, usageCounts } from "@/lib/perf/timing";
+import { PipelineTimer, stageMetrics, usageCounts } from "@/lib/perf/timing";
 import { availableFeatures } from "@/lib/palmistry/features";
 import { composeRuleBasedReading, matchRules } from "@/lib/palmistry/interpretation";
 import { getOwnedReading, parseStoredAnalysis } from "@/lib/readings/service";
@@ -208,6 +208,19 @@ async function runInterpretation(
           aiProvider: generated.provider,
           model: generated.model,
           isDemo: reading.isDemo,
+        }),
+        trackServerEvent("ai_stage_completed", {
+          userId: reading.userId,
+          readingId: reading.id,
+          properties: stageMetrics({
+            stage: "interpretation",
+            totalMs: timer.elapsedMs(),
+            providerMs: "providerMs" in generated ? generated.providerMs : 0,
+            attempts: generated.attempts,
+            provider: generated.provider,
+            model: generated.model,
+            usage: "usage" in generated ? generated.usage : undefined,
+          }),
         }),
       ]),
     );

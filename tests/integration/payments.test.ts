@@ -333,6 +333,17 @@ describe.skipIf(!hasTestDatabase)("payments and entitlements", () => {
       expect((await view(readingId, jar)).premium).toBe(false);
 
       const signature = hmacSha256Hex("rzp_test_secret", "order_ABC|pay_1");
+      vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            id: "pay_1",
+            order_id: "order_ABC",
+            status: "captured",
+            amount: 3500,
+            currency: "INR",
+          }),
+        ),
+      );
       const ok = await razorpayVerify(
         makeRequest("/api/payments/razorpay/verify", {
           json: { orderId: "order_ABC", paymentId: "pay_1", signature },
