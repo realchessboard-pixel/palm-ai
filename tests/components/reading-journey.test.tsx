@@ -10,29 +10,38 @@ import { ResultsDashboard } from "@/components/results/results-dashboard";
 import { issue } from "@/lib/image/quality";
 import { composeRuleBasedReading } from "@/lib/palmistry/interpretation";
 import { sampleAnalysis } from "@/lib/palmistry/sample-analysis";
+import type { Language } from "@/lib/i18n/languages";
 import { buildReadingView } from "@/lib/readings/build-view";
 
 const push = vi.fn();
 const refresh = vi.fn();
 // Like Next's, the router object is stable across renders.
 const router = { push, refresh, replace: vi.fn(), prefetch: vi.fn() };
+let searchParams = new URLSearchParams();
 vi.mock("next/navigation", () => ({
   useRouter: () => router,
   usePathname: () => "/read",
+  useSearchParams: () => searchParams,
 }));
 
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 204 })));
 });
 afterEach(() => {
+  searchParams = new URLSearchParams();
+  localStorage.clear();
   cleanup();
   vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
 
-function readingView(premium: boolean) {
+function readingView(
+  premium: boolean,
+  extra: { language?: Language; translationPending?: boolean } = {},
+) {
   const analysis = sampleAnalysis("right");
   return buildReadingView({
+    ...extra,
     reading: {
       id: "r1",
       hand: "RIGHT",
@@ -50,20 +59,13 @@ function readingView(premium: boolean) {
 }
 
 describe("reading flow", () => {
-  it("requires choosing a hand before continuing to the photo step", async () => {
-    const user = userEvent.setup();
+  it("goes straight to the right-palm photo step, with no hand choice", () => {
     render(<ReadingFlow />);
-    const continueButton = screen.getByRole("button", { name: "Continue" });
-    expect(continueButton).toBeDisabled();
-
-    await user.click(screen.getByRole("radio", { name: /Left hand/ }));
-    expect(screen.getByRole("radio", { name: /Left hand/ })).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
-    await user.click(continueButton);
-
-    expect(screen.getByRole("heading", { name: "Add a photo of your palm" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Show us your right palm" })).toBeInTheDocument();
+    expect(screen.getByText(/Place your right hand clearly inside the frame/)).toBeInTheDocument();
+    expect(screen.getByText("Step 1 of 3")).toBeInTheDocument();
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/left hand|which hand/i);
     expect(screen.getByRole("button", { name: /Take photo/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Choose from gallery" })).toBeInTheDocument();
   });
@@ -71,9 +73,6 @@ describe("reading flow", () => {
   it("rejects unsupported file types with a helpful message", async () => {
     const user = userEvent.setup({ applyAccept: false });
     render(<ReadingFlow />);
-    await user.click(screen.getByRole("radio", { name: /Right hand/ }));
-    await user.click(screen.getByRole("button", { name: "Continue" }));
-
     const input = screen.getByLabelText("Upload a palm photo");
     await user.upload(input, new File(["%PDF-1.4"], "palm.pdf", { type: "application/pdf" }));
     expect(
@@ -150,7 +149,7 @@ describe("reading flow", () => {
 });
 
 describe("results dashboard", () => {
-  it("labels confidence as image analysis, never prediction accuracy", () => {
+  it("reads like a palm reading, not a technical report", () => {
     render(
       <ResultsDashboard
         reading={readingView(false)}
@@ -159,15 +158,29 @@ describe("results dashboard", () => {
         signedIn={false}
       />,
     );
-    expect(screen.getByText("Image Analysis Confidence")).toBeInTheDocument();
-    expect(screen.getByText("87%")).toBeInTheDocument();
-    expect(document.body.textContent).not.toMatch(/prediction accuracy/i);
     expect(
       screen.getByRole("heading", { level: 1, name: "Your Palm Reading" }),
     ).toBeInTheDocument();
+    expect(screen.getByText(/Right hand · Basic reading/)).toBeInTheDocument();
+    const reading = screen.getByRole("article", { name: /mind/i });
+    for (const name of [
+      "The way you think",
+      "The way you care",
+      "Your natural strengths",
+      "Your career nature",
+    ]) {
+      expect(within(reading).getByRole("heading", { name })).toBeInTheDocument();
+    }
+    expect(within(reading).getByText("Something interesting about you")).toBeInTheDocument();
+    // No scores, citations or AI language in the reading itself.
+    expect(reading.textContent).not.toMatch(/confidence|Feature emphasis|%|\bAI\b/i);
+    expect(reading.textContent).not.toContain("Based on:");
+    expect(document.body.textContent).not.toMatch(/prediction accuracy|Image Analysis Confidence/i);
+    // Long-form text is justified.
+    expect(reading.querySelector(".reading-prose p")).not.toBeNull();
   });
 
-  it("free readings show the basics and an unlock option, without premium sections", () => {
+  it("keeps technical details in a collapsed Analysis details section", () => {
     render(
       <ResultsDashboard
         reading={readingView(false)}
@@ -176,14 +189,25 @@ describe("results dashboard", () => {
         signedIn={false}
       />,
     );
-    expect(screen.getByRole("heading", { name: "Personality" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Career" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Your Heart line" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Palm mounts" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Money & Success" })).not.toBeInTheDocument();
-    expect(screen.getByText("Your Basic Reading Is Ready")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Want the complete picture?" })).toBeInTheDocument();
-    expect(screen.getByText("₹35")).toBeInTheDocument();
+    const details = screen.getByText("Analysis details").closest("details")!;
+    expect(details).not.toHaveAttribute("open");
+    expect(details.textContent).toContain("Overall image clarity · 87%");
+    expect(details.textContent).toMatch(/Head line · \d+%/);
+  });
+
+  it("free readings show the main reading and an unlock option, without the detailed reading", () => {
+    render(
+      <ResultsDashboard
+        reading={readingView(false)}
+        priceLabel="₹35"
+        paymentsEnabled
+        signedIn={false}
+      />,
+    );
+    expect(
+      screen.queryByRole("heading", { name: "Your detailed reading" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /parvats/ })).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Unlock Detailed Reading — ₹35" }),
     ).toBeInTheDocument();
@@ -191,20 +215,22 @@ describe("results dashboard", () => {
     expect(screen.getByText(/Create a free account/)).toBeInTheDocument();
   });
 
-  it("premium readings show every section and the PDF download", () => {
+  it("detailed readings show every section, lines with their rekha, parvats, and the PDF", () => {
     render(
       <ResultsDashboard reading={readingView(true)} priceLabel="₹35" paymentsEnabled signedIn />,
     );
-    for (const name of [
-      "Love & Relationships",
-      "Money & Success",
-      "Life Path",
-      "Strengths",
-      "Challenges",
-    ]) {
+    expect(screen.getByText(/Right hand · Detailed reading/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Your detailed reading" })).toBeInTheDocument();
+    for (const name of ["Love & Relationships", "Money & Success", "Life Path", "Challenges"]) {
       expect(screen.getByRole("heading", { name })).toBeInTheDocument();
     }
-    expect(screen.getByRole("heading", { name: "Palm mounts" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Heart Line · Hridaya Rekha" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "The parvats (mounts) of your palm" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Shukra Parvat · Mount of Venus" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Download PDF report" })).toHaveAttribute(
       "href",
       "/api/readings/r1/report",
@@ -212,10 +238,10 @@ describe("results dashboard", () => {
     expect(
       screen.queryByRole("button", { name: /Unlock Detailed Reading/ }),
     ).not.toBeInTheDocument();
-    expect(screen.getAllByText("Based on:").length).toBeGreaterThan(3);
+    expect(screen.queryByText("Based on:")).not.toBeInTheDocument();
   });
 
-  it("warns (without changing the hand) when the model strongly disagrees with the selection", () => {
+  it("mentions a likely left-hand photo only quietly, inside Analysis details", () => {
     const view = readingView(false);
     view.handCheck = {
       canonical: "right",
@@ -225,28 +251,77 @@ describe("results dashboard", () => {
       strongMismatch: true,
     };
     render(<ResultsDashboard reading={view} priceLabel="₹35" paymentsEnabled signedIn={false} />);
-    expect(screen.getByText("Please confirm your photo")).toBeInTheDocument();
-    expect(
-      screen.getByText(/You selected your right hand, but the photo may show a left hand/),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Right hand analyzed/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "start a new reading" })).toHaveAttribute(
-      "href",
-      "/read",
-    );
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    const details = screen.getByText("Analysis details").closest("details")!;
+    expect(details.textContent).toMatch(/might show a left hand/);
+    expect(screen.getByText(/Right hand · Basic reading/)).toBeInTheDocument();
   });
 
-  it("shows no hand warning when the model agrees or is unsure", () => {
-    const view = readingView(false);
-    view.handCheck = {
-      canonical: "right",
-      detected: "left",
-      detectedConfidence: 0.3,
-      mismatch: true,
-      strongMismatch: false,
-    };
-    render(<ResultsDashboard reading={view} priceLabel="₹35" paymentsEnabled signedIn={false} />);
-    expect(screen.queryByText("Please confirm your photo")).not.toBeInTheDocument();
+  it("shows headings in the reader's language and offers the language selector", () => {
+    render(
+      <ResultsDashboard
+        reading={readingView(false, { language: "hi" })}
+        priceLabel="₹35"
+        paymentsEnabled
+        signedIn={false}
+      />,
+    );
+    expect(screen.getByRole("heading", { level: 1, name: "आपकी हस्तरेखा" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "आपके सोचने का ढंग" })).toBeInTheDocument();
+    expect(screen.getByRole("article", { name: /mind/i })).toHaveAttribute("lang", "hi");
+    const select = screen.getByLabelText("भाषा");
+    expect(select).toHaveValue("hi");
+    expect(
+      within(select)
+        .getAllByRole("option")
+        .map((o) => o.textContent),
+    ).toEqual([
+      "English",
+      "हिन्दी",
+      "Deutsch",
+      "Español",
+      "Français",
+      "Português",
+      "Italiano",
+      "Bahasa Indonesia",
+      "日本語",
+      "한국어",
+    ]);
+  });
+
+  it("switching language changes the URL (the reading is never re-analysed) and is remembered", async () => {
+    const user = userEvent.setup();
+    render(
+      <ResultsDashboard
+        reading={readingView(false)}
+        priceLabel="₹35"
+        paymentsEnabled
+        signedIn={false}
+      />,
+    );
+    await user.selectOptions(screen.getByLabelText("Language"), "de");
+    expect(push).toHaveBeenCalledWith("/read?lang=de", { scroll: false });
+    expect(localStorage.getItem("palmai.language")).toBe("de");
+  });
+
+  it("requests a missing translation once, then refreshes", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ translated: 12 }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(
+      <ResultsDashboard
+        reading={readingView(false, { language: "ja", translationPending: true })}
+        priceLabel="₹35"
+        paymentsEnabled
+        signedIn={false}
+      />,
+    );
+    expect(screen.getAllByText("鑑定を翻訳しています…").length).toBeGreaterThan(0);
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+    const [url, init] = fetchMock.mock.calls.find(([u]) => String(u).includes("/translation"))!;
+    expect(url).toBe("/api/readings/r1/translation");
+    expect(JSON.parse(String(init.body))).toEqual({ language: "ja" });
   });
 
   it("explains that the diagram is illustrative", () => {
@@ -263,7 +338,7 @@ describe("results dashboard", () => {
 });
 
 describe("progressive results", () => {
-  it("shows the palm map and findings while the interpretation is written", () => {
+  it("shows the palm map and analysis details while the interpretation is written", () => {
     const view = readingView(false);
     view.status = "ANALYZED";
     view.interpretation = null;
@@ -279,8 +354,8 @@ describe("progressive results", () => {
     expect(
       screen.getByRole("heading", { name: "Preparing your interpretation…" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Palm visualization" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Major findings" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Your palm map" })).toBeInTheDocument();
+    expect(screen.getByText("Analysis details")).toBeInTheDocument();
     // Nothing to buy or download until the reading exists.
     expect(screen.queryByRole("button", { name: /Unlock/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Download PDF report" })).not.toBeInTheDocument();
@@ -311,14 +386,37 @@ describe("progressive results", () => {
     }
   });
 
+  it("quietly retries temporary failures before bothering the user", async () => {
+    const busy = () =>
+      new Response(JSON.stringify({ error: { code: "AI_UNAVAILABLE", message: "busy" } }), {
+        status: 503,
+      });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(busy())
+      .mockResolvedValueOnce(busy())
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: "COMPLETE" }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      render(<InterpretationPending readingId="r1" />);
+      await act(() => vi.advanceTimersByTimeAsync(10_000));
+      await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("offers a retry when the interpretation fails", async () => {
     const user = userEvent.setup();
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
         new Response(
-          JSON.stringify({ error: { code: "AI_UNAVAILABLE", message: "Please try again." } }),
-          { status: 503 },
+          JSON.stringify({ error: { code: "NOT_FOUND", message: "Please try again." } }),
+          { status: 404 },
         ),
       )
       .mockResolvedValueOnce(new Response(JSON.stringify({ status: "COMPLETE" }), { status: 200 }));

@@ -57,7 +57,7 @@ export const ELEMENT_RULES: PalmistryRule<Element>[] = (
   category: "personality" as const,
   trait: ELEMENT_DESCRIPTIONS[element].traits.split(",")[0],
   appliesTo: (e: Element) => e === element,
-  traditional: `Your palm proportions and finger length resemble what palmistry calls an ${ELEMENT_DESCRIPTIONS[element].title.toLowerCase()}, traditionally associated with being ${ELEMENT_DESCRIPTIONS[element].traits}.`,
+  traditional: `Your palm proportions and finger length resemble what palmistry calls ${/^[aeiou]/i.test(ELEMENT_DESCRIPTIONS[element].title) ? "an" : "a"} ${ELEMENT_DESCRIPTIONS[element].title.toLowerCase()}, traditionally associated with being ${ELEMENT_DESCRIPTIONS[element].traits}.`,
   explanation:
     "Classical palmistry groups hands into four elemental types based on the shape of the palm and the length of the fingers.",
   confidenceConsiderations:

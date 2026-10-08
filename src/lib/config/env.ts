@@ -34,6 +34,13 @@ const EnvSchema = z.object({
   // halves its latency with no measured loss in grounding or completeness.
   AI_ANALYSIS_THINKING: z.enum(THINKING_LEVELS).optional(),
   AI_INTERPRETATION_THINKING: z.enum(THINKING_LEVELS).default("low"),
+  /**
+   * Paid content (detailed readings, Mahakundli, couple readings, paid reader
+   * questions) can use a stronger model with deeper thinking; free content
+   * stays on the cheaper model. Unset = same model as interpretation.
+   */
+  AI_PREMIUM_MODEL: optionalString,
+  AI_PREMIUM_THINKING: z.enum(THINKING_LEVELS).default("high"),
 
   // Payments
   PAYMENT_PROVIDER: z.enum(["stripe", "razorpay", "mock", "none"]).default("none"),

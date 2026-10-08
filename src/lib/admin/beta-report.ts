@@ -76,12 +76,16 @@ export async function getBetaReport(limit = 200): Promise<BetaReportRow[]> {
     orderBy: { createdAt: "asc" },
     select: { readingId: true, properties: true },
   });
-  const stages = new Map<string, { analysis?: StageProps; interpretation?: StageProps }>();
+  const stages = new Map<
+    string,
+    { analysis?: StageProps; interpretation?: StageProps; detailed?: StageProps }
+  >();
   for (const e of events) {
     const props = (e.properties ?? {}) as StageProps;
     const entry = stages.get(e.readingId!) ?? {};
     if (props.stage === "analysis") entry.analysis = props;
     if (props.stage === "interpretation") entry.interpretation = props;
+    if (props.stage === "detailed") entry.detailed = props;
     stages.set(e.readingId!, entry);
   }
 
@@ -94,12 +98,16 @@ export async function getBetaReport(limit = 200): Promise<BetaReportRow[]> {
     const selectedHand = r.hand === "LEFT" ? "left" : "right";
     const s1 = stages.get(r.id)?.analysis;
     const s2 = stages.get(r.id)?.interpretation;
-    const inputTokens = sum(num(s1?.input_tok), num(s2?.input_tok));
+    // Written only for unlocked readings, after purchase.
+    const s3 = stages.get(r.id)?.detailed;
+    const inputTokens = sum(num(s1?.input_tok), num(s2?.input_tok), num(s3?.input_tok));
     const outputTokens = sum(
       num(s1?.output_tok),
       num(s1?.thinking_tok),
       num(s2?.output_tok),
       num(s2?.thinking_tok),
+      num(s3?.output_tok),
+      num(s3?.thinking_tok),
     );
 
     let estimatedCostInr: number | null = null;

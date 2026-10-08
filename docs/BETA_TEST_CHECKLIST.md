@@ -1,6 +1,6 @@
-# PalmAI beta test checklist (20 real palm photos)
+# AstroVidya beta test checklist (20 real palm photos)
 
-A repeatable script for validating PalmAI on real photos before a wider beta.
+A repeatable script for validating AstroVidya on real photos before a wider beta.
 Run it against a **private staging deployment** (or `npm run dev`) with the real
 Gemini provider (`AI_PROVIDER=gemini`, `DEMO_MODE=false`) and
 `ANALYTICS_PROVIDER=database` (the default — the beta report reads from it).
@@ -71,7 +71,7 @@ mix of left and right hands (10 / 10).
    - Reading quality (1–5): useful, specific, warm; no predictions about death,
      health, pregnancy, money guarantees or dates (`unsafe_or_wrong_claims`).
    - The free reading is useful on its own; the detailed sections are locked and
-     the offer shows **₹35**.
+     the offer shows **₹49**.
 5. Copy the reading ID (from the URL) into the template; the rest of the
    numbers come from `/admin/beta`.
 

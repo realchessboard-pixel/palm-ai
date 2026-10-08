@@ -30,8 +30,40 @@ export default function TermsPage() {
       </p>
       <h2>Purchases</h2>
       <p>
-        Full reports are one-time digital purchases tied to a single reading. Refunds are handled
-        according to applicable consumer law; contact {siteConfig.supportEmail}.
+        All purchases are one-time digital purchases; nothing renews automatically. A detailed
+        reading or couple reading unlocks that one reading. A family pack adds reading credits (one
+        credit unlocks one detailed reading) that do not expire. A gift code adds one reading credit
+        to the account that redeems it and is valid for a year. Membership unlocks the detailed
+        reading of every reading on your account for one year from purchase (renewing early extends
+        it).
+      </p>
+      <p>
+        The AstroVidya wallet is a closed-loop balance: it can only be spent on AstroVidya, and it
+        cannot be withdrawn, refunded as cash or transferred. Top-up bonuses are added when the
+        payment is confirmed. Referral rewards are reading credits, limited per month, for friends
+        who join through your link and complete a reading.
+      </p>
+      <p>
+        Refunds are handled according to applicable consumer law; contact {siteConfig.supportEmail}.
+      </p>
+      <h2>Astrology</h2>
+      <p>
+        Kundli, Kundli Milan, panchang and rashifal are calculated with standard astronomical
+        methods (Lahiri ayanamsa) and described in the Jyotish tradition for reflection and cultural
+        interest. They are not predictions, and Guna Milan does not decide whether a relationship or
+        marriage is right. A free Kundli is calculated in your browser; your birth details are
+        stored only if you ask for the full Kundli reading.
+      </p>
+      <h2>Ask a Reader</h2>
+      <p>
+        AstroVidya&apos;s readers are AI characters with their own style. They are not real people,
+        and their portraits are illustrations. Questions you buy belong to that conversation and
+        don&apos;t expire. A question is only used when an answer is delivered.
+      </p>
+      <h2>Couple readings</h2>
+      <p>
+        Only upload your partner&apos;s palm with their agreement. Their photo is used for your
+        couple reading only, is never used for training, and is deleted with your readings.
       </p>
       <h2>Acceptable use</h2>
       <p>

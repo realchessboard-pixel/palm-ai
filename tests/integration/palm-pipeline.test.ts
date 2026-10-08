@@ -14,7 +14,7 @@ import { sampleAnalysis } from "@/lib/palmistry/sample-analysis";
 import { resetIdempotencyCache } from "@/lib/pipeline/idempotency";
 import type { ReadingView } from "@/lib/readings/view";
 import type { MemoryStorage } from "@/lib/storage/memory";
-import { ScriptedProvider } from "../helpers/ai";
+import { ScriptedProvider, teaserJson } from "../helpers/ai";
 import { hasTestDatabase, resetDatabase } from "../helpers/db";
 import { CookieJar, json, makeRequest, params } from "../helpers/http";
 import { palmLikeImage } from "../helpers/images";
@@ -90,22 +90,22 @@ describe.skipIf(!hasTestDatabase)("palm analysis pipeline", () => {
     expect(body.status).toBe("COMPLETE");
     expect(body.premium).toBe(false);
     expect(body.analysisConfidence).toBeCloseTo(0.79);
-    // Free tier: only personality + career sections, summaries only.
-    expect(body.interpretation!.sections.map((s) => s.id).sort()).toEqual([
-      "career",
-      "personality",
-    ]);
-    expect(body.interpretation!.sections.every((s) => s.details === null)).toBe(true);
-    expect(body.interpretation!.lines.map((l) => l.line).sort()).toEqual(["head", "heart", "life"]);
+    // Free tier: the whole main reading; the detailed reading stays on the server.
+    const narrative = body.interpretation!.narrative!;
+    expect(narrative.headline).toBeTruthy();
+    expect(narrative.introduction.split("\n\n").length).toBeGreaterThanOrEqual(2);
+    expect(narrative.thinking?.text).toBeTruthy();
+    expect(narrative.strengths.length).toBeGreaterThanOrEqual(3);
+    expect(body.interpretation!.sections).toEqual([]);
+    expect(body.interpretation!.lines).toEqual([]);
     expect(body.interpretation!.mounts).toEqual([]);
+    expect(body.interpretation!.fingers).toBeNull();
     expect(body.locked?.sections).toEqual(
       expect.arrayContaining(["relationships", "money", "strengths"]),
     );
-    // Premium text must not be present anywhere in the free payload.
-    const premiumText = composeRuleBasedReading(sampleAnalysis("right")).sections.find(
-      (s) => s.id === "money",
-    )!.summary;
-    expect(JSON.stringify(body)).not.toContain(premiumText);
+    // Premium section titles and structures are not present anywhere in the free payload.
+    expect(JSON.stringify(body)).not.toContain("Money & Success");
+    expect(body.hand).toBe("right");
 
     const image = await getImage(
       makeRequest(`/api/readings/${readingId}/image`, { jar }),
@@ -314,10 +314,14 @@ describe.skipIf(!hasTestDatabase)("palm analysis pipeline", () => {
     it("uses a real (non-mock) provider for interpretation and grounds its output", async () => {
       const analysis = sampleAnalysis();
       analysis.lines.fate = "insufficient_visibility";
-      const written = composeRuleBasedReading(sampleAnalysis());
+      const written = composeRuleBasedReading(analysis);
       // The model mentions the fate line even though it wasn't observed.
-      written.sections[0].summary += " Your fate line shows a strong career direction.";
-      const provider = new ScriptedProvider([JSON.stringify(analysis), JSON.stringify(written)]);
+      written.narrative!.introduction += " Your Bhagya Rekha, the fate line, runs deep.";
+      written.narrative!.thinking!.text += " Your fate line shows a strong career direction.";
+      const provider = new ScriptedProvider([
+        JSON.stringify(analysis),
+        teaserJson(written.narrative!),
+      ]);
       setAiProvider(provider);
 
       const jar = new CookieJar();
@@ -345,7 +349,7 @@ describe.skipIf(!hasTestDatabase)("palm analysis pipeline", () => {
       const analysis = { ...sampleAnalysis("right"), hand: "left" as const, handConfidence: 0.95 };
       const provider = new ScriptedProvider([
         JSON.stringify(analysis),
-        JSON.stringify(composeRuleBasedReading(sampleAnalysis("right"))),
+        teaserJson(composeRuleBasedReading(sampleAnalysis("right")).narrative!),
       ]);
       setAiProvider(provider);
 
@@ -370,7 +374,7 @@ describe.skipIf(!hasTestDatabase)("palm analysis pipeline", () => {
       expect(provider.requests).toHaveLength(2);
 
       // Stage 2 was told the user's hand, not the model's guess.
-      expect(provider.requests[1].prompt).toContain("HAND: the user's RIGHT hand");
+      expect(provider.requests[1].prompt).toContain("HAND: the visitor's RIGHT hand");
       expect(provider.requests[1].prompt).not.toContain('"hand":"left"');
 
       const view = await getReading(
@@ -404,7 +408,7 @@ describe.skipIf(!hasTestDatabase)("palm analysis pipeline", () => {
       expect(reading.errorCode).toBe("AI_INVALID_RESPONSE");
 
       setAiProvider(
-        new ScriptedProvider([JSON.stringify(composeRuleBasedReading(sampleAnalysis()))]),
+        new ScriptedProvider([teaserJson(composeRuleBasedReading(sampleAnalysis()).narrative!)]),
       );
       const retried = await interpret(
         makeRequest("/api/palm/interpret", { json: { readingId }, jar }),
@@ -416,7 +420,7 @@ describe.skipIf(!hasTestDatabase)("palm analysis pipeline", () => {
     it("uses the default thinking level for vision and low thinking for the interpretation", async () => {
       const provider = new ScriptedProvider([
         JSON.stringify(sampleAnalysis()),
-        JSON.stringify(composeRuleBasedReading(sampleAnalysis())),
+        teaserJson(composeRuleBasedReading(sampleAnalysis()).narrative!),
       ]);
       setAiProvider(provider);
       const jar = new CookieJar();

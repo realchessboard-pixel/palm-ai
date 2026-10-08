@@ -65,6 +65,12 @@ export const RATE_LIMITS = {
   interpret: { max: 20, windowMs: 60 * 60 * 1000 },
   auth: { max: 10, windowMs: 15 * 60 * 1000 },
   checkout: { max: 20, windowMs: 60 * 60 * 1000 },
+  // Each new language for a reading is one AI translation; cached afterwards.
+  translate: { max: 30, windowMs: 60 * 60 * 1000 },
+  // Questions to AI readers (each is paid or the one free question).
+  // Each new Mahakundli writes one small free answer.
+  kundli: { max: 6, windowMs: 60 * 60 * 1000 },
+  reader: { max: 40, windowMs: 60 * 60 * 1000 },
   events: { max: 120, windowMs: 60 * 1000 },
   general: { max: 120, windowMs: 60 * 1000 },
 } as const;

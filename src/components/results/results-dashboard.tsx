@@ -4,13 +4,21 @@ import { AdSlot, type AdMode } from "@/components/ads/ad-slot";
 import { ButtonLink } from "@/components/ui/button";
 import { Disclaimer } from "@/components/ui/disclaimer";
 import { Alert, Card } from "@/components/ui/misc";
-import { lineLabel, mountLabel } from "@/lib/palmistry/features";
+import { lineTitle, mountTitle, readingMessages } from "@/lib/i18n/reading-messages";
+import { narrativeFor } from "@/lib/readings/narrative-view";
 import type { ReadingView } from "@/lib/readings/view";
+import { PRODUCTS, formatInr } from "@/lib/monetization/price";
 import { SECTION_IDS } from "@/lib/schemas/palm-interpretation";
-import { ConfidenceMeter } from "./confidence-meter";
+import { AnalysisDetails } from "./analysis-details";
+import { DetailedPending } from "./detailed-pending";
 import { InterpretationPending } from "./interpretation-pending";
+import { LanguageSelector } from "./language-selector";
 import { PremiumPanel } from "./premium-panel";
-import { BasedOn, Paragraphs, SectionCard } from "./section-card";
+import { ReadingNarrativeView } from "./reading-narrative";
+import { Prose, SectionCard } from "./section-card";
+import { ShareAndCouple } from "./share-and-couple";
+import { AskReaderCard } from "@/components/readers/ask-reader-card";
+import { TranslationLoader } from "./translation-loader";
 import { Visualization } from "./visualization";
 
 export interface ResultsDashboardProps {
@@ -24,6 +32,12 @@ export interface ResultsDashboardProps {
   interpretationPending?: boolean;
   /** Ads for free readings: "off" (default) or a development placeholder. */
   adMode?: AdMode;
+  /** Signed-in visitors' reading credits and wallet balance. */
+  balances?: { readingCredits: number; walletPaise: number } | null;
+  /** Link for sharing AstroVidya (with the visitor's referral code when signed in). */
+  shareUrl?: string;
+  /** Shown next to the share button for signed-in visitors. */
+  referralNote?: string | null;
 }
 
 export function ResultsDashboard({
@@ -34,25 +48,41 @@ export function ResultsDashboard({
   sample = false,
   interpretationPending = false,
   adMode = "off",
+  balances = null,
+  shareUrl,
+  referralNote = null,
 }: ResultsDashboardProps) {
+  const lang = reading.language;
+  const t = readingMessages(lang);
   const interpretation = reading.interpretation;
-  const date = new Date(reading.createdAt).toLocaleDateString("en", { dateStyle: "long" });
+  const date = new Date(reading.createdAt).toLocaleDateString(lang, { dateStyle: "long" });
+  const main = interpretation ? narrativeFor(interpretation) : null;
   const sections = interpretation
-    ? [...interpretation.sections].sort(
-        (a, b) => SECTION_IDS.indexOf(a.id) - SECTION_IDS.indexOf(b.id),
-      )
+    ? interpretation.sections
+        .filter((s) => !main?.usedSections.includes(s.id))
+        .sort((a, b) => SECTION_IDS.indexOf(a.id) - SECTION_IDS.indexOf(b.id))
     : [];
+  const hasDetailed =
+    interpretation !== null &&
+    (sections.length > 0 ||
+      interpretation.lines.length > 0 ||
+      interpretation.mounts.length > 0 ||
+      interpretation.fingers !== null ||
+      interpretation.markings !== null);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-10 px-4 pt-8 pb-20 sm:px-6 sm:pt-12">
+    <div className="mx-auto max-w-5xl space-y-12 px-4 pt-8 pb-20 sm:px-6 sm:pt-12">
       <header className="space-y-6">
-        <div>
-          <p className="text-xs font-semibold tracking-[0.2em] text-gold-300 uppercase">{date}</p>
-          <h1 className="mt-2 text-4xl text-parchment sm:text-5xl">Your Palm Reading</h1>
-          <p className="mt-2 text-mist">
-            {reading.hand === "left" ? "Left" : "Right"} hand analyzed
-            {reading.premium ? " · Detailed reading" : " · Basic reading"}
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div lang={lang}>
+            <p className="text-xs font-semibold tracking-[0.2em] text-gold-300 uppercase">{date}</p>
+            <h1 className="mt-2 text-4xl text-parchment sm:text-5xl">{t.yourPalmReading}</h1>
+            <p className="mt-2 text-mist">
+              {reading.hand === "left" ? t.leftHand : t.rightHand} ·{" "}
+              {reading.premium ? t.detailedReading : t.basicReading}
+            </p>
+          </div>
+          {!sample && interpretation ? <LanguageSelector value={lang} label={t.language} /> : null}
         </div>
         {sample ? (
           <Alert tone="info" title="Sample reading">
@@ -66,35 +96,35 @@ export function ResultsDashboard({
             no AI provider is configured on this server.
           </Alert>
         ) : null}
-        {reading.handCheck?.strongMismatch && !sample ? (
-          <Alert tone="warning" title="Please confirm your photo">
-            You selected your {reading.hand} hand, but the photo may show a{" "}
-            {reading.handCheck.detected} hand (photos from front cameras are often mirrored). This
-            reading uses your selection — your {reading.hand} hand. If you uploaded the other hand
-            by mistake,{" "}
-            <Link href="/read" className="underline underline-offset-2">
-              start a new reading
-            </Link>
-            .
-          </Alert>
+        {reading.translationPending && !interpretationPending ? (
+          <TranslationLoader readingId={reading.id} language={lang} messages={t} />
         ) : null}
-        <div className="grid gap-6 lg:grid-cols-[auto_1fr] lg:items-center">
-          <ConfidenceMeter value={reading.analysisConfidence} />
-          {interpretationPending ? (
-            <InterpretationPending readingId={reading.id} />
-          ) : interpretation ? (
-            <div className="glass rounded-3xl p-6">
-              <h2 className="text-2xl text-gold-200">{interpretation.overview.headline}</h2>
-              <p className="mt-2 leading-relaxed text-parchment/85">
-                {interpretation.overview.summary}
-              </p>
-            </div>
-          ) : null}
-        </div>
       </header>
 
-      <Card as="section" className="space-y-6">
-        <h2 className="text-2xl">Palm visualization</h2>
+      {interpretationPending ? (
+        <InterpretationPending readingId={reading.id} />
+      ) : main ? (
+        <ReadingNarrativeView narrative={main.narrative} messages={t} lang={lang} />
+      ) : null}
+
+      {!sample && !interpretationPending && !reading.isPartner && main ? (
+        <AskReaderCard readingId={reading.id} />
+      ) : null}
+
+      {!sample && !interpretationPending && !reading.isPartner && main && shareUrl ? (
+        <ShareAndCouple
+          readingId={reading.id}
+          headline={main.narrative.headline}
+          shareUrl={shareUrl}
+          couplePriceLabel={formatInr(PRODUCTS.COUPLE_COMPATIBILITY.priceInr)}
+          referralNote={referralNote}
+        />
+      ) : null}
+
+      <Card as="section" className="space-y-6" aria-labelledby="palm-map-title">
+        <h2 id="palm-map-title" lang={lang} className="text-2xl">
+          {t.palmMap}
+        </h2>
         <Visualization
           readingId={reading.id}
           hand={reading.hand}
@@ -103,109 +133,81 @@ export function ResultsDashboard({
         />
       </Card>
 
-      {reading.features.length > 0 ? (
-        <section aria-labelledby="findings-title">
-          <h2 id="findings-title" className="text-2xl">
-            Major findings
+      {reading.detailedPending && !sample ? <DetailedPending readingId={reading.id} /> : null}
+
+      {hasDetailed && interpretation ? (
+        <section lang={lang} aria-labelledby="detailed-title" className="space-y-8">
+          <h2 id="detailed-title" className="text-3xl">
+            {t.detailedTitle}
           </h2>
-          <p className="mt-1 text-sm text-mist">
-            Features the AI could see, with its confidence in each observation.
-          </p>
-          <ul className="mt-4 flex flex-wrap gap-2">
-            {reading.features.slice(0, 12).map((f) => (
-              <li
-                key={f.key}
-                className="rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-2 text-sm"
-              >
-                <span className="text-parchment">{f.label}</span>
-                <span className="ml-2 text-xs text-mist">{Math.round(f.confidence * 100)}%</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
 
-      {interpretation && interpretation.lines.length > 0 ? (
-        <section aria-labelledby="lines-title" className="space-y-4">
-          <h2 id="lines-title" className="text-2xl">
-            Your major lines
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            {interpretation.lines.map((line) => (
-              <article
-                key={line.line}
-                className="card rounded-3xl p-6"
-                aria-labelledby={`line-${line.line}`}
-              >
-                <h3 id={`line-${line.line}`} className="text-xl text-gold-200">
-                  Your {lineLabel(line.line)}
-                </h3>
-                <p className="mt-3 leading-relaxed text-parchment/90">{line.summary}</p>
-                {line.details ? (
-                  <div className="mt-3 text-sm">
-                    <Paragraphs text={line.details} />
-                  </div>
-                ) : null}
-                <div className="mt-4">
-                  <BasedOn keys={line.basedOn} />
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {sections.length > 0 ? (
-        <section aria-label="Reading" className="space-y-4">
-          {sections.map((section) => (
-            <SectionCard key={section.id} section={section} />
-          ))}
-        </section>
-      ) : null}
-
-      {interpretation && interpretation.mounts.length > 0 ? (
-        <section aria-labelledby="mounts-title" className="space-y-4">
-          <h2 id="mounts-title" className="text-2xl">
-            Palm mounts
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            {interpretation.mounts.map((mount) => (
-              <article key={mount.mount} className="card rounded-3xl p-6">
-                <h3 className="text-lg text-gold-200">{mountLabel(mount.mount)}</h3>
-                <p className="mt-2 leading-relaxed text-parchment/90">{mount.summary}</p>
-                <p className="mt-2 text-sm leading-relaxed text-mist">{mount.details}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {interpretation?.fingers || interpretation?.markings ? (
-        <section className="grid gap-4 md:grid-cols-2" aria-label="Fingers and markings">
-          {interpretation.fingers ? (
-            <Card as="article">
-              <h2 className="text-xl text-gold-200">Fingers &amp; thumb</h2>
-              <p className="mt-3 leading-relaxed text-parchment/90">
-                {interpretation.fingers.summary}
-              </p>
-              <div className="mt-3 text-sm">
-                <Paragraphs text={interpretation.fingers.details} />
-              </div>
-              <div className="mt-4">
-                <BasedOn keys={interpretation.fingers.basedOn} />
-              </div>
-            </Card>
+          {sections.length > 0 ? (
+            <div className="space-y-4">
+              {sections.map((section) => (
+                <SectionCard key={section.id} section={section} lang={lang} />
+              ))}
+            </div>
           ) : null}
-          {interpretation.markings ? (
-            <Card as="article">
-              <h2 className="text-xl text-gold-200">Markings</h2>
-              <p className="mt-3 leading-relaxed text-parchment/90">
-                {interpretation.markings.summary}
-              </p>
-              <div className="mt-3 text-sm">
-                <Paragraphs text={interpretation.markings.details} />
+
+          {interpretation.lines.length > 0 ? (
+            <section aria-labelledby="lines-title" className="space-y-4">
+              <h3 id="lines-title" className="text-2xl">
+                {t.linesTitle}
+              </h3>
+              <div className="grid gap-4 md:grid-cols-2">
+                {interpretation.lines.map((line) => (
+                  <article key={line.line} className="card rounded-3xl p-6">
+                    <h4 className="text-xl text-gold-200">{lineTitle(lang, line.line)}</h4>
+                    <Prose text={line.summary} className="mt-3" />
+                    {line.details ? (
+                      <Prose text={line.details} className="mt-3 text-base text-parchment/75" />
+                    ) : null}
+                  </article>
+                ))}
               </div>
-            </Card>
+            </section>
+          ) : null}
+
+          {interpretation.mounts.length > 0 ? (
+            <section aria-labelledby="mounts-title" className="space-y-4">
+              <h3 id="mounts-title" className="text-2xl">
+                {t.mountsTitle}
+              </h3>
+              <div className="grid gap-4 md:grid-cols-2">
+                {interpretation.mounts.map((mount) => (
+                  <article key={mount.mount} className="card rounded-3xl p-6">
+                    <h4 className="text-lg text-gold-200">{mountTitle(lang, mount.mount)}</h4>
+                    <Prose text={mount.summary} className="mt-2" />
+                    <Prose text={mount.details} className="mt-2 text-base text-parchment/75" />
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {interpretation.fingers || interpretation.markings ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {interpretation.fingers ? (
+                <Card as="article">
+                  <h3 className="text-xl text-gold-200">{t.fingersTitle}</h3>
+                  <Prose text={interpretation.fingers.summary} className="mt-3" />
+                  <Prose
+                    text={interpretation.fingers.details}
+                    className="mt-3 text-base text-parchment/75"
+                  />
+                </Card>
+              ) : null}
+              {interpretation.markings ? (
+                <Card as="article">
+                  <h3 className="text-xl text-gold-200">{t.markingsTitle}</h3>
+                  <Prose text={interpretation.markings.summary} className="mt-3" />
+                  <Prose
+                    text={interpretation.markings.details}
+                    className="mt-3 text-base text-parchment/75"
+                  />
+                </Card>
+              ) : null}
+            </div>
           ) : null}
         </section>
       ) : null}
@@ -220,9 +222,15 @@ export function ResultsDashboard({
             priceLabel={priceLabel}
             paymentsEnabled={paymentsEnabled}
             paymentState={reading.paymentState}
+            balances={balances}
+            teaser={Boolean(
+              main && !main.narrative.caring && main.narrative.strengths.length === 0,
+            )}
           />
         </>
       ) : null}
+
+      <AnalysisDetails reading={reading} messages={t} />
 
       {sample ? (
         <div className="text-center">
@@ -232,7 +240,7 @@ export function ResultsDashboard({
         </div>
       ) : (
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          {reading.premium && !interpretationPending ? (
+          {reading.premium && !interpretationPending && !reading.detailedPending ? (
             <ButtonLink
               href={`/api/readings/${reading.id}/report`}
               prefetch={false}
@@ -266,7 +274,14 @@ export function ResultsDashboard({
         </Alert>
       ) : null}
 
-      <Disclaimer />
+      <div className="space-y-3">
+        {lang !== "en" ? (
+          <p lang={lang} className="text-sm leading-relaxed text-mist">
+            {t.traditionNote}
+          </p>
+        ) : null}
+        <Disclaimer />
+      </div>
     </div>
   );
 }

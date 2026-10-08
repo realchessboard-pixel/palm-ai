@@ -2,7 +2,15 @@
  * Provider-agnostic contract for vision-capable language models. Pipelines
  * only depend on this interface, never on a specific vendor SDK.
  */
-export type AiTask = "palm_analysis" | "palm_interpretation";
+export type AiTask =
+  | "palm_analysis"
+  | "palm_interpretation"
+  | "palm_detailed_reading"
+  | "palm_compatibility"
+  | "reader_answer"
+  | "daily_horoscope"
+  | "kundli_report"
+  | "reading_translation";
 
 export interface AiImage {
   data: Buffer;

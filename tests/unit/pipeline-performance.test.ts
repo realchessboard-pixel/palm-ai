@@ -114,7 +114,6 @@ describe("prompts", () => {
       hand: "right",
       available: availableFeatures(analysis),
       rules: matchRules(analysis),
-      sections: ["personality"],
     });
     const observed = prompt.slice(
       prompt.indexOf("OBSERVED PALM FEATURES"),
@@ -169,5 +168,30 @@ describe("duplicate request protection", () => {
     await runOnce(null, id, async () => plain++);
     await runOnce(null, id, async () => plain++);
     expect(plain).toBe(3);
+  });
+});
+
+describe("forgiving photo handling", () => {
+  it("reads a visible palm even when the model calls the photo less than ideal", async () => {
+    const { rejectionReason } = await import("@/lib/pipeline/analyze");
+    const analysis = sampleAnalysis("right");
+    analysis.imageQuality = { ...analysis.imageQuality, usable: false, issues: ["glare"] };
+    expect(rejectionReason(analysis)).toBeNull();
+    // But a photo with no palm at all is still turned away (nothing to read).
+    analysis.imageQuality = { ...analysis.imageQuality, palmVisible: false };
+    expect(rejectionReason(analysis)).not.toBeNull();
+  });
+});
+
+describe("transient error detection", () => {
+  it("retries hiccups but never bad photos or security refusals", async () => {
+    const { ApiClientError, isTransientError } = await import("@/lib/api-client");
+    expect(isTransientError(new ApiClientError("x", "AI_TIMEOUT", 504))).toBe(true);
+    expect(isTransientError(new ApiClientError("x", "NETWORK_ERROR", 0))).toBe(true);
+    expect(isTransientError(new ApiClientError("x", "INTERNAL_ERROR", 500))).toBe(true);
+    expect(isTransientError(new ApiClientError("x", "IMAGE_QUALITY", 422))).toBe(false);
+    expect(isTransientError(new ApiClientError("x", "CSRF_REJECTED", 403))).toBe(false);
+    expect(isTransientError(new ApiClientError("x", "RATE_LIMITED", 429))).toBe(false);
+    expect(isTransientError(new ApiClientError("x", "AI_NOT_CONFIGURED", 503))).toBe(false);
   });
 });

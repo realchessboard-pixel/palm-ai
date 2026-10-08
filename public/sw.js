@@ -1,5 +1,5 @@
 /*
- * PalmAI service worker.
+ * AstroVidya service worker.
  * - Precaches the offline page and icons.
  * - Network-first for page navigations, falling back to /offline.
  * - Cache-first for immutable build assets (/_next/static) and icons.

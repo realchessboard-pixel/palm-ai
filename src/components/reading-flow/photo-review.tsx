@@ -16,12 +16,15 @@ export function PhotoReview({
   onRetake,
   onUse,
   busy,
+  partner = false,
 }: {
   previewUrl: string;
   issues: QualityIssue[];
   onRetake: () => void;
   onUse: (choices: ReviewChoices) => void;
   busy?: boolean;
+  /** The partner's palm for a couple reading: their agreement is confirmed instead. */
+  partner?: boolean;
 }) {
   const [consent, setConsent] = useState(false);
   const [trainingOptIn, setTrainingOptIn] = useState(false);
@@ -57,7 +60,7 @@ export function PhotoReview({
             ))}
           </ul>
           <p className="mt-2 text-xs opacity-80">
-            You can still continue — our AI will make the final call on what it can see.
+            You can still continue — we will make the final call on what it can see.
           </p>
         </Alert>
       ) : null}
@@ -81,8 +84,9 @@ export function PhotoReview({
               className="mt-0.5 size-5 shrink-0 accent-gold-400"
             />
             <span className="leading-relaxed text-parchment/90">
-              This is my hand (or I have permission), and I understand the reading is for
-              entertainment and reflection. I agree to the{" "}
+              {partner
+                ? "My partner has agreed to have their palm read for our couple reading, and we understand it is for entertainment and reflection. I agree to the "
+                : "This is my hand (or I have permission), and I understand the reading is for entertainment and reflection. I agree to the "}
               <Link
                 href="/terms"
                 className="text-gold-300 underline underline-offset-2"
@@ -106,18 +110,20 @@ export function PhotoReview({
               Please confirm to continue.
             </p>
           ) : null}
-          <label className="flex cursor-pointer items-start gap-3">
-            <input
-              type="checkbox"
-              checked={trainingOptIn}
-              onChange={(e) => setTrainingOptIn(e.target.checked)}
-              className="mt-0.5 size-5 shrink-0 accent-gold-400"
-            />
-            <span className="leading-relaxed text-mist">
-              Optional: allow this photo to be used to improve palm analysis. Off by default — your
-              photo is never used for training without this.
-            </span>
-          </label>
+          {partner ? null : (
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={trainingOptIn}
+                onChange={(e) => setTrainingOptIn(e.target.checked)}
+                className="mt-0.5 size-5 shrink-0 accent-gold-400"
+              />
+              <span className="leading-relaxed text-mist">
+                Optional: allow this photo to be used to improve palm analysis. Off by default —
+                your photo is never used for training without this.
+              </span>
+            </label>
+          )}
         </div>
       ) : null}
 

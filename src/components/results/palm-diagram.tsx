@@ -40,7 +40,7 @@ export function PalmDiagram({
         aria-label={`Diagram of a ${hand} palm highlighting the lines that were detected`}
       >
         <g transform={mirror ? "translate(300 0) scale(-1 1)" : undefined}>
-          <path d={`${PALM_OUTLINE} Z`} fill="rgb(255 255 255 / 0.035)" />
+          <path d={`${PALM_OUTLINE} Z`} fill="rgb(42 30 23 / 0.035)" />
           <path
             d={PALM_OUTLINE}
             fill="none"

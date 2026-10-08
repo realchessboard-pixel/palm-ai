@@ -10,7 +10,7 @@ export default function GlobalError({
   return (
     <html lang="en">
       <body
-        style={{ background: "#07060c", color: "#f5efe4", fontFamily: "system-ui, sans-serif" }}
+        style={{ background: "#f4ecdd", color: "#2a1e17", fontFamily: "system-ui, sans-serif" }}
       >
         <main style={{ maxWidth: 420, margin: "20vh auto", padding: 16, textAlign: "center" }}>
           <h1 style={{ fontSize: 28 }}>Something went wrong</h1>

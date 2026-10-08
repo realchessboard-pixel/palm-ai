@@ -8,6 +8,7 @@ import { getEnv } from "@/lib/config/env";
 import { db } from "@/lib/db";
 import { AppError, isAppError } from "@/lib/http/errors";
 import { logger } from "@/lib/logger";
+import { qualifyReferral } from "@/lib/growth/referrals";
 import { trackFunnelEvent } from "@/lib/monetization/funnel";
 import { PipelineTimer, stageMetrics, usageCounts } from "@/lib/perf/timing";
 import { availableFeatures } from "@/lib/palmistry/features";
@@ -15,8 +16,11 @@ import { composeRuleBasedReading, matchRules } from "@/lib/palmistry/interpretat
 import { getOwnedReading, parseStoredAnalysis } from "@/lib/readings/service";
 import type { PalmAnalysis } from "@/lib/schemas/palm-analysis";
 import {
+  GeneratedTeaserSchema,
+  teaserToNarrative,
   INTERPRETATION_SCHEMA_VERSION,
   PalmInterpretationSchema,
+  toStoredInterpretation,
   type PalmInterpretation,
 } from "@/lib/schemas/palm-interpretation";
 import {
@@ -37,47 +41,55 @@ export function finalizeInterpretation(
 ): { interpretation: PalmInterpretation; removed: number } {
   const grounded = groundInterpretation(raw, analysis);
   const safe = sanitizeInterpretation(grounded.interpretation);
-  const parsed = PalmInterpretationSchema.safeParse(safe.interpretation);
+  const parsed = PalmInterpretationSchema.safeParse({
+    ...safe.interpretation,
+    ...(raw.detailedPending ? { detailedPending: true } : {}),
+  });
   if (!parsed.success) {
     throw new AppError("AI_INVALID_RESPONSE", { internal: parsed.error });
   }
   return { interpretation: parsed.data, removed: grounded.removed + safe.removed };
 }
 
+/** The free reading: only the main reading is written now (see detailed.ts for the rest). */
 async function generateWithModel(analysis: PalmAnalysis, hand: "left" | "right") {
   const env = getEnv();
   const provider = getAiProvider();
   const rules = matchRules(analysis);
   const available = availableFeatures(analysis);
-  const sections = composeRuleBasedReading(analysis).sections.map((s) => s.id);
 
   const result = await generateStructured({
     provider,
     task: "palm_interpretation",
     model: interpretationModel(provider),
     system: INTERPRETATION_SYSTEM_PROMPT,
-    prompt: buildInterpretationPrompt({ analysis, hand, available, rules, sections }),
-    schema: PalmInterpretationSchema,
-    maxTokens: 12000,
+    prompt: buildInterpretationPrompt({ analysis, hand, available, rules }),
+    schema: GeneratedTeaserSchema,
+    maxTokens: 1800,
     timeoutMs: env.AI_TIMEOUT_MS,
     maxAttempts: env.AI_MAX_ATTEMPTS,
-    thinking: env.AI_INTERPRETATION_THINKING,
+    // Low thinking: the free teaser is short, and every free reading should cost little.
+    thinking: "low",
     check: (value) => {
-      const grounded = groundInterpretation(value, analysis);
+      const grounded = groundInterpretation(
+        toStoredInterpretation(teaserToNarrative(value)),
+        analysis,
+      );
       const problems: string[] = [];
       if (grounded.invalidCitations > 3) {
         problems.push(
           `You cited or wrote about features that are not in AVAILABLE FEATURES. Only use: ${[...available.keys()].join(", ")}`,
         );
       }
-      if (grounded.interpretation.sections.length === 0) {
-        problems.push("No section cited valid features in basedOn.");
+      const story = grounded.interpretation.narrative;
+      if (!story || !story.thinking) {
+        problems.push('"thinking" must cite AVAILABLE FEATURES in basedOn.');
       }
       return problems;
     },
   });
   return {
-    raw: result.data,
+    raw: toStoredInterpretation(teaserToNarrative(result.data)),
     provider: provider.name,
     model: result.model,
     attempts: result.attempts,
@@ -224,6 +236,7 @@ async function runInterpretation(
         }),
       ]),
     );
+    if (!reading.isDemo) await qualifyReferral(reading.userId);
     return { readingId, status: "COMPLETE" };
   } catch (error) {
     const code = isAppError(error) ? error.code : "INTERNAL_ERROR";

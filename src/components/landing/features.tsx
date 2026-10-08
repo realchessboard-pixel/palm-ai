@@ -6,16 +6,16 @@ const features = [
     body: "Heart, head, life and fate lines — their length, curvature, depth, breaks and forks, where visible.",
   },
   {
-    title: "Mounts & hand shape",
-    body: "The seven traditional mounts, your palm's proportions and the classic elemental hand types.",
+    title: "Parvats & hand shape",
+    body: "The seven parvats (mounts) and their planets — Guru, Shani, Surya, Budha, Shukra, Chandra and Mangal — with your hand's shape.",
   },
   {
-    title: "Honest confidence scores",
-    body: "We show how confident the image analysis is — never a fake “accuracy” for the reading itself.",
+    title: "Rooted in Indian tradition",
+    body: "Read through Hasta Samudrika Shastra and explained like a thoughtful palm reader would — in ten languages.",
   },
   {
-    title: "Grounded interpretations",
-    body: "Each insight lists the observed features it draws on. Nothing is invented about lines that weren't seen.",
+    title: "Grounded, never invented",
+    body: "Only what can actually be seen in your photo is interpreted. Nothing is made up about lines that weren't visible.",
   },
   {
     title: "Private by design",

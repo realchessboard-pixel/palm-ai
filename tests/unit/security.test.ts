@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
 import { composeRuleBasedReading } from "@/lib/palmistry/interpretation";
 import { sampleAnalysis } from "@/lib/palmistry/sample-analysis";
+import { SECTION_IDS } from "@/lib/schemas/palm-interpretation";
 import { projectInterpretation } from "@/lib/readings/projection";
 import { isSameOriginRequest } from "@/lib/security/same-origin";
 import { proxy } from "@/proxy";
@@ -73,8 +74,30 @@ describe("proxy", () => {
 describe("entitlement projection", () => {
   const full = composeRuleBasedReading(sampleAnalysis());
 
-  it("free projection contains only free sections, without details", () => {
+  it("free projection carries the main reading and locks the whole detailed reading", () => {
     const { interpretation, locked } = projectInterpretation(full, false);
+    expect(interpretation.narrative).toEqual(full.narrative);
+    expect(interpretation.sections).toEqual([]);
+    expect(interpretation.lines).toEqual([]);
+    expect(interpretation.mounts).toEqual([]);
+    expect(interpretation.fingers).toBeNull();
+    expect(interpretation.markings).toBeNull();
+    expect(locked?.sections).toEqual(
+      full.sections
+        .map((s) => s.id)
+        .sort((a, b) => SECTION_IDS.indexOf(a) - SECTION_IDS.indexOf(b)),
+    );
+    expect(locked?.lines).toEqual(full.lines.map((l) => l.line));
+    expect(locked?.mountCount).toBe(full.mounts.length);
+    const payload = JSON.stringify(interpretation);
+    for (const s of full.sections) expect(payload).not.toContain(`"title":"${s.title}"`);
+  });
+
+  it("readings written before the main reading existed keep their original free split", () => {
+    const { narrative: _ignored, ...legacy } = full;
+    void _ignored;
+    const { interpretation, locked } = projectInterpretation(legacy, false);
+    expect(interpretation.narrative).toBeNull();
     expect(interpretation.sections.map((s) => s.id).sort()).toEqual(["career", "personality"]);
     expect(interpretation.sections.every((s) => s.details === null && s.points.length === 0)).toBe(
       true,

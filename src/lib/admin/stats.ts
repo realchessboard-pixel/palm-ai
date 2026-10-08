@@ -1,4 +1,5 @@
 import "server-only";
+import type { ProductKind } from "@prisma/client";
 import type { AnalyticsEventName } from "@/lib/analytics/events";
 import { db } from "@/lib/db";
 import { computeEconomics, type Economics } from "@/lib/monetization/economics";
@@ -15,11 +16,26 @@ export interface AdminStats {
   rejectedPhotos30d: number;
   /** Verified real payments only — mock/test payments are never counted as revenue. */
   revenue: { currency: string; amount: number }[];
+  /** Real revenue split by what was bought (wallet top-ups count when paid in, not when spent). */
+  revenueByProduct: { product: ProductKind; currency: string; amount: number; count: number }[];
   /** Paid mock (sandbox) payments, shown separately. */
   testPayments: number;
   /** Detailed-reading funnel: distinct real (non-demo) readings reaching each step. */
   funnel: Record<FunnelStep, number>;
   economics: Economics;
+  growth: {
+    /** Unspent wallet money we owe in readings (closed-loop liability), in paise. */
+    walletLiabilityPaise: number;
+    unusedReadingCredits: number;
+    activeMemberships: number;
+    giftsSold: number;
+    giftsRedeemed: number;
+    referralsJoined: number;
+    referralsQualified: number;
+    coupleReadings: number;
+    coupleReadingsUnlocked: number;
+    shares30d: number;
+  };
   readingsLast7Days: { day: string; count: number }[];
   recentActivity: { id: string; name: string; createdAt: string; signedIn: boolean }[];
 }
@@ -72,8 +88,8 @@ export async function getAdminStats(): Promise<AdminStats> {
     db.usageEvent.count({ where: { name: "analysis_failed", createdAt: { gte: since30 } } }),
     db.usageEvent.count({ where: { name: "image_rejected", createdAt: { gte: since30 } } }),
     db.payment.groupBy({
-      by: ["currency"],
-      where: { status: "PAID", provider: { not: "MOCK" } },
+      by: ["currency", "product"],
+      where: { status: "PAID", provider: { notIn: ["MOCK", "WALLET"] } },
       _sum: { amount: true },
       _count: { _all: true },
     }),
@@ -85,6 +101,30 @@ export async function getAdminStats(): Promise<AdminStats> {
     db.reading.findMany({ where: { createdAt: { gte: since7 } }, select: { createdAt: true } }),
   ]);
 
+  const [
+    balances,
+    activeMemberships,
+    giftsSold,
+    giftsRedeemed,
+    referralsJoined,
+    referralsQualified,
+    coupleReadings,
+    coupleReadingsUnlocked,
+    shares30d,
+  ] = await Promise.all([
+    db.user.aggregate({ _sum: { walletBalance: true, readingCredits: true } }),
+    db.entitlement.count({
+      where: { type: "PREMIUM_SUBSCRIPTION", revokedAt: null, expiresAt: { gt: new Date() } },
+    }),
+    db.giftCode.count(),
+    db.giftCode.count({ where: { redeemedAt: { not: null } } }),
+    db.referral.count(),
+    db.referral.count({ where: { qualifiedAt: { not: null } } }),
+    db.compatibility.count(),
+    db.entitlement.count({ where: { type: "COMPATIBILITY", revokedAt: null } }),
+    db.usageEvent.count({ where: { name: "share_clicked", createdAt: { gte: since30 } } }),
+  ]);
+
   const [testPayments, ...funnelCounts] = await Promise.all([
     db.payment.count({ where: { status: "PAID", provider: "MOCK" } }),
     ...FUNNEL_STEPS.map(funnelCount),
@@ -92,7 +132,13 @@ export async function getAdminStats(): Promise<AdminStats> {
   const funnel = Object.fromEntries(
     FUNNEL_STEPS.map((step, i) => [step, funnelCounts[i]!]),
   ) as Record<FunnelStep, number>;
-  const realPurchases = revenue.reduce((n, r) => n + r._count._all, 0);
+  const realPurchases = revenue
+    .filter((r) => r.product === "DETAILED_READING")
+    .reduce((n, r) => n + r._count._all, 0);
+  const byCurrency = new Map<string, number>();
+  for (const r of revenue) {
+    byCurrency.set(r.currency, (byCurrency.get(r.currency) ?? 0) + (r._sum.amount ?? 0));
+  }
 
   const premiumReadings = premiumGroups.length;
   const byDay = new Map<string, number>();
@@ -112,7 +158,15 @@ export async function getAdminStats(): Promise<AdminStats> {
     conversionRate: completedReadings ? premiumReadings / completedReadings : 0,
     aiErrors30d,
     rejectedPhotos30d,
-    revenue: revenue.map((r) => ({ currency: r.currency, amount: r._sum.amount ?? 0 })),
+    revenue: [...byCurrency].map(([currency, amount]) => ({ currency, amount })),
+    revenueByProduct: revenue
+      .map((r) => ({
+        product: r.product,
+        currency: r.currency,
+        amount: r._sum.amount ?? 0,
+        count: r._count._all,
+      }))
+      .sort((a, b) => b.amount - a.amount),
     testPayments,
     funnel,
     economics: computeEconomics({
@@ -120,6 +174,18 @@ export async function getAdminStats(): Promise<AdminStats> {
       basicReadings: funnel.basic_reading_completed,
       extendedPurchases: realPurchases,
     }),
+    growth: {
+      walletLiabilityPaise: balances._sum.walletBalance ?? 0,
+      unusedReadingCredits: balances._sum.readingCredits ?? 0,
+      activeMemberships,
+      giftsSold,
+      giftsRedeemed,
+      referralsJoined,
+      referralsQualified,
+      coupleReadings,
+      coupleReadingsUnlocked,
+      shares30d,
+    },
     readingsLast7Days: [...byDay].map(([day, count]) => ({ day, count })),
     recentActivity: recent.map((e) => ({
       id: e.id,

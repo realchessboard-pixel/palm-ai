@@ -9,9 +9,9 @@ const base =
   "inline-flex items-center justify-center gap-2 rounded-full font-medium transition-all duration-200 select-none disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2";
 
 const variants: Record<Variant, string> = {
-  primary:
-    "bg-gradient-to-b from-gold-300 to-gold-500 text-night-950 shadow-[0_8px_30px_-8px_rgb(229_180_94/0.55)] hover:from-gold-200 hover:to-gold-400 active:scale-[0.98]",
-  secondary: "glass text-parchment hover:bg-white/10 hover:border-white/20 active:scale-[0.98]",
+  primary: "bg-gold-400 text-[#fbf6ec] font-semibold hover:bg-gold-500 active:translate-y-px",
+  secondary:
+    "border border-parchment/25 bg-transparent text-parchment hover:bg-parchment/5 active:translate-y-px",
   ghost: "text-mist hover:text-parchment hover:bg-white/5",
   danger:
     "border border-red-400/40 bg-red-500/10 text-red-200 hover:bg-red-500/20 active:scale-[0.98]",

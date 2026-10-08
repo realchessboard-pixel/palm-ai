@@ -13,6 +13,8 @@ const ALWAYS_BLOCKED: RegExp[] = [
   /\b(criminal\w*|crimes?|prison|jail|arrest\w*|convict\w*|lawsuits?)\b/i,
   /\b(lottery|jackpot|millionaire|get rich)\b/i,
   /\b(divorce|widow\w*|affair)\b/i,
+  // Fear-based astrology and paid remedies have no place in a reading.
+  /\b(dosh(?:a|as)?|sade ?sati|manglik|kaal ?sarp\w*|remed(?:y|ies)|gemstones?|amulets?|talismans?)\b/i,
   /\bat (?:the )?age (?:of )?\d{1,3}\b/i,
   /\b(?:by|in|before|after) (?:the year )?(?:19|20)\d{2}\b/i,
   /\b(?:when you are|by the time you(?:'re| are)|in your) \d{1,2}s?\b/i,
@@ -96,8 +98,32 @@ export function sanitizeInterpretation(input: PalmInterpretation): {
     return s ? { ...n, summary: s, details: clean(n.details) || s } : null;
   };
 
+  const passage = <P extends { text: string }>(p: P | null): P | null => {
+    if (!p) return null;
+    const text = clean(p.text);
+    return text ? { ...p, text } : null;
+  };
+  const n = input.narrative;
+  const story = n
+    ? {
+        headline: clean(n.headline) || headline,
+        introduction:
+          clean(n.introduction) ||
+          "Here is how traditional palmistry reads the features we could see — for reflection, not prediction.",
+        thinking: passage(n.thinking),
+        caring: passage(n.caring),
+        strengths: n.strengths.flatMap((s) => {
+          const kept = passage(s);
+          return kept ? [kept] : [];
+        }),
+        career: passage(n.career),
+        insight: passage(n.insight),
+      }
+    : undefined;
+
   return {
     interpretation: {
+      ...(story ? { narrative: story } : {}),
       overview: { headline, summary },
       sections,
       lines,

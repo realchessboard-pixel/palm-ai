@@ -11,6 +11,14 @@ if (!hasTestDatabase) {
 }
 
 const TABLES = [
+  "DailyHoroscope",
+  "KundliProfile",
+  "ReaderMessage",
+  "ReaderChat",
+  "LedgerEntry",
+  "GiftCode",
+  "Referral",
+  "Compatibility",
   "ProcessedWebhookEvent",
   "UsageEvent",
   "Entitlement",

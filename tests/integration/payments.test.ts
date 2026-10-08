@@ -199,13 +199,13 @@ describe.skipIf(!hasTestDatabase)("payments and entitlements", () => {
       expect(url).toBe("https://api.stripe.com/v1/checkout/sessions");
       expect((init.headers as Record<string, string>).Authorization).toBe("Bearer sk_test_x");
       const form = new URLSearchParams(String(init.body));
-      expect(form.get("line_items[0][price_data][unit_amount]")).toBe("3500");
+      expect(form.get("line_items[0][price_data][unit_amount]")).toBe("4900");
       expect(form.get("metadata[readingId]")).toBe(readingId);
 
       const session = {
         id: "cs_test_123",
         payment_status: "paid",
-        amount_total: 3500,
+        amount_total: 4900,
         currency: "inr",
       };
       const hook = await stripeWebhook(
@@ -235,7 +235,7 @@ describe.skipIf(!hasTestDatabase)("payments and entitlements", () => {
           object: {
             id: "cs_test_123",
             payment_status: "paid",
-            amount_total: 3500,
+            amount_total: 4900,
             currency: "inr",
           },
         },
@@ -301,7 +301,7 @@ describe.skipIf(!hasTestDatabase)("payments and entitlements", () => {
 
     async function startOrder(jar: CookieJar, readingId: string) {
       vi.spyOn(globalThis, "fetch").mockResolvedValue(
-        new Response(JSON.stringify({ id: "order_ABC", amount: 3500, currency: "INR" })),
+        new Response(JSON.stringify({ id: "order_ABC", amount: 4900, currency: "INR" })),
       );
       const res = await checkout(
         makeRequest("/api/payments/checkout", { json: { readingId }, jar }),
@@ -339,7 +339,7 @@ describe.skipIf(!hasTestDatabase)("payments and entitlements", () => {
             id: "pay_1",
             order_id: "order_ABC",
             status: "captured",
-            amount: 3500,
+            amount: 4900,
             currency: "INR",
           }),
         ),
@@ -363,7 +363,7 @@ describe.skipIf(!hasTestDatabase)("payments and entitlements", () => {
         event: "payment.captured",
         payload: {
           payment: {
-            entity: { id: "pay_9", order_id: "order_ABC", amount: 3500, currency: "INR" },
+            entity: { id: "pay_9", order_id: "order_ABC", amount: 4900, currency: "INR" },
           },
         },
       });

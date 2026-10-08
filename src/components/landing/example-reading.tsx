@@ -7,42 +7,40 @@ export function ExampleReading() {
       <SectionHeading
         id="example-title"
         eyebrow="Example reading"
-        title="What a reading looks like"
-        description="An illustrative excerpt — your reading is built from the features detected in your own photo."
+        title="What a reading feels like"
+        description="An illustrative excerpt — your reading is written from the features seen in your own palm."
       />
       <figure className="card mx-auto mt-12 max-w-3xl overflow-hidden rounded-3xl">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 px-6 py-4 sm:px-8">
-          <p className="text-sm text-mist">
-            Right hand · <span className="text-parchment">Image analysis confidence: 84%</span>
-          </p>
+          <p className="text-sm text-mist">Right hand · Basic reading</p>
           <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-mist">Sample</span>
         </div>
-        <div className="space-y-6 px-6 py-7 sm:px-8">
+        <div className="space-y-7 px-6 py-7 sm:px-8">
+          <h3 className="text-2xl leading-snug text-gold-200 sm:text-3xl">
+            A thoughtful mind with a quietly independent nature
+          </h3>
           <div>
-            <h3 className="text-2xl text-gold-200">Your Head Line</h3>
-            <p className="mt-2 leading-relaxed text-parchment/90">
-              Traditional palmistry associates a long head line with a gentle downward curve with
-              imagination balanced by practical thinking — someone who enjoys turning ideas over
-              before acting on them.
-            </p>
+            <h4 className="text-xl text-parchment">The way you think</h4>
+            <div className="reading-prose mt-2 text-parchment/90">
+              <p>
+                Your Head Line, the Mastishka Rekha, is one of the clearer features of your palm.
+                Traditionally, a long line with a gentle downward curve is read as imagination held
+                in balance by practical sense — someone who enjoys turning an idea over before
+                acting on it.
+              </p>
+            </div>
           </div>
           <div>
-            <h3 className="text-2xl text-gold-200">Love &amp; Relationships</h3>
-            <p className="mt-2 leading-relaxed text-parchment/90">
-              A heart line that curves up toward the index finger is traditionally read as warmth
-              and openness in relationships, paired with high ideals about the people you let close.
-            </p>
+            <h4 className="text-xl text-parchment">Something interesting about you</h4>
+            <div className="reading-prose mt-2 text-parchment/90">
+              <p>
+                There is an interesting balance in this palm. A full Shukra Parvat speaks of warmth
+                and affection, while your heart line suggests you take your time before becoming
+                truly close to someone. Traditionally, this is read as a heart that is generous but
+                chooses carefully.
+              </p>
+            </div>
           </div>
-          <figcaption className="flex flex-wrap gap-2 text-xs text-mist">
-            <span className="text-mist-dim">Based on:</span>
-            {["Head line · long, moderate curve", "Heart line · curved", "Mount of Jupiter"].map(
-              (tag) => (
-                <span key={tag} className="rounded-full border border-white/10 px-2.5 py-1">
-                  {tag}
-                </span>
-              ),
-            )}
-          </figcaption>
         </div>
       </figure>
       <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">

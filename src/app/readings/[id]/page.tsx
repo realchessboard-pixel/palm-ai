@@ -7,10 +7,14 @@ import { Alert } from "@/components/ui/misc";
 import { getActor } from "@/lib/auth/actor";
 import { isAppError } from "@/lib/http/errors";
 import { extendedReadingPrice, paymentsEnabled } from "@/lib/payments/pricing";
+import { getEnv } from "@/lib/config/env";
+import { REFERRALS_PER_CREDIT, ensureReferralCode } from "@/lib/growth/referrals";
+import { getAccountBalances } from "@/lib/monetization/account";
 import { adMode } from "@/lib/monetization/ads";
 import { cancelPendingCheckout, confirmStripeReturn } from "@/lib/payments/service";
 import { getReadingView } from "@/lib/readings/service";
 import type { ReadingView } from "@/lib/readings/view";
+import { parseLanguage } from "@/lib/i18n/languages";
 import { IdSchema } from "@/lib/schemas/api";
 
 export const metadata: Metadata = {
@@ -24,10 +28,11 @@ export default async function ReadingPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ checkout?: string; session_id?: string }>;
+  searchParams: Promise<{ checkout?: string; session_id?: string; lang?: string }>;
 }) {
   const { id } = await params;
-  const { checkout, session_id: sessionId } = await searchParams;
+  const { checkout, session_id: sessionId, lang } = await searchParams;
+  const language = parseLanguage(lang);
   if (!IdSchema.safeParse(id).success) notFound();
   const actor = await getActor();
 
@@ -43,7 +48,7 @@ export default async function ReadingPage({
 
   let reading;
   try {
-    reading = await getReadingView(id, actor);
+    reading = await getReadingView(id, actor, { language });
   } catch (error) {
     if (isAppError(error) && error.code === "NOT_FOUND") notFound();
     throw error;
@@ -60,6 +65,10 @@ export default async function ReadingPage({
     return <ReadingStatusPanel reading={reading} />;
   }
 
+  const balances = actor.user && reading.locked ? await getAccountBalances(actor.user.id) : null;
+  const appUrl = getEnv().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  const referralCode = actor.user ? await ensureReferralCode(actor.user.id) : null;
+
   return (
     <>
       {interpretationPending ? null : (
@@ -73,6 +82,13 @@ export default async function ReadingPage({
         signedIn={Boolean(actor.user)}
         interpretationPending={interpretationPending}
         adMode={adMode()}
+        balances={balances}
+        shareUrl={referralCode ? `${appUrl}/?ref=${referralCode}` : `${appUrl}/`}
+        referralNote={
+          referralCode
+            ? `When ${REFERRALS_PER_CREDIT} friends join through your link and read their palm, you get a free detailed reading.`
+            : null
+        }
       />
     </>
   );

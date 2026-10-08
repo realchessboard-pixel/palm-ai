@@ -13,7 +13,8 @@ export function SiteFooter() {
             <span className="font-display text-xl">{siteConfig.name}</span>
           </div>
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-mist">
-            An AI-assisted exploration of traditional palmistry. {siteConfig.disclaimer}
+            Mahakundli, palm reading, Kundli and rashifal in the Indian tradition.{" "}
+            {siteConfig.disclaimer}
           </p>
         </div>
         <nav aria-label="Product">
@@ -21,17 +22,42 @@ export function SiteFooter() {
           <ul className="mt-3 space-y-2 text-sm text-mist">
             <li>
               <Link className="hover:text-parchment" href="/read">
-                Start a reading
+                Palm reading
               </Link>
             </li>
             <li>
-              <Link className="hover:text-parchment" href="/#how-it-works">
-                How it works
+              <Link className="hover:text-parchment" href="/horoscope">
+                Aaj ka Rashifal
               </Link>
             </li>
             <li>
-              <Link className="hover:text-parchment" href="/#faq">
-                FAQ
+              <Link className="hover:text-parchment" href="/kundli">
+                Free Kundli
+              </Link>
+            </li>
+            <li>
+              <Link className="hover:text-parchment" href="/kundli-milan">
+                Kundli Milan
+              </Link>
+            </li>
+            <li>
+              <Link className="hover:text-parchment" href="/panchang">
+                Panchang
+              </Link>
+            </li>
+            <li>
+              <Link className="hover:text-parchment" href="/readers">
+                Ask a reader
+              </Link>
+            </li>
+            <li>
+              <Link className="hover:text-parchment" href="/compatibility">
+                Couple reading
+              </Link>
+            </li>
+            <li>
+              <Link className="hover:text-parchment" href="/pricing">
+                Pricing
               </Link>
             </li>
             <li>
@@ -44,6 +70,11 @@ export function SiteFooter() {
         <nav aria-label="Legal">
           <h2 className="font-sans text-sm font-semibold text-parchment">Trust</h2>
           <ul className="mt-3 space-y-2 text-sm text-mist">
+            <li>
+              <Link className="hover:text-parchment" href="/how-readings-work">
+                How readings are made
+              </Link>
+            </li>
             <li>
               <Link className="hover:text-parchment" href="/privacy">
                 Privacy policy

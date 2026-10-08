@@ -2,7 +2,8 @@ export type PaymentProviderName = "STRIPE" | "RAZORPAY" | "MOCK";
 
 export interface CheckoutInput {
   paymentId: string;
-  readingId: string;
+  /** Set for reading purchases (sent to the provider as metadata). */
+  readingId?: string;
   amount: number;
   currency: string;
   successUrl: string;

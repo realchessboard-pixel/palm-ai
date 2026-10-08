@@ -74,9 +74,8 @@ describe("hand-side policy", () => {
       hand: "right",
       available: availableFeatures(analysis),
       rules: matchRules(analysis),
-      sections: ["personality"],
     });
-    expect(prompt).toContain("HAND: the user's RIGHT hand");
+    expect(prompt).toContain("HAND: the visitor's RIGHT hand");
     expect(prompt).toContain('"hand":"right"');
     expect(prompt).not.toContain('"hand":"left"');
     expect(prompt).not.toContain("handConfidence");

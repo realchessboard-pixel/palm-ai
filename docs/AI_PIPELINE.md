@@ -1,6 +1,6 @@
 # AI Pipeline
 
-PalmAI never asks a model to "tell my future". The pipeline separates **observation** from **interpretation**, validates every model output against strict schemas, and mechanically filters anything that is ungrounded or unsafe before it is stored.
+AstroVidya never asks a model to "tell my future". The pipeline separates **observation** from **interpretation**, validates every model output against strict schemas, and mechanically filters anything that is ungrounded or unsafe before it is stored.
 
 ```
 photo ──▶ Stage 1: vision extraction ──▶ PalmAnalysis (strict JSON, confidences)

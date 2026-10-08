@@ -49,6 +49,19 @@ export async function apiFetch<T>(input: string, init: RequestInit = {}): Promis
   return body as T;
 }
 
+/**
+ * Failures worth retrying automatically: lost connections, server errors and
+ * AI hiccups. Not user errors (bad photo, validation) or security refusals.
+ */
+export function isTransientError(error: unknown): boolean {
+  if (!(error instanceof ApiClientError)) return true;
+  // A missing server setting won't fix itself: show its real message instead.
+  if (["AI_NOT_CONFIGURED", "PAYMENT_NOT_CONFIGURED"].includes(error.code)) return false;
+  if (["AI_TIMEOUT", "AI_UNAVAILABLE", "AI_INVALID_RESPONSE", "NETWORK_ERROR"].includes(error.code))
+    return true;
+  return error.status === 0 || error.status >= 500;
+}
+
 export function postJson<T>(url: string, data: unknown): Promise<T> {
   return apiFetch<T>(url, {
     method: "POST",

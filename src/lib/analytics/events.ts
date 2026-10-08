@@ -27,6 +27,13 @@ export const ANALYTICS_EVENTS = [
   "extended_reading_unlocked",
   // Server-only: per-stage AI timing, retries and token counts (beta report).
   "ai_stage_completed",
+  // Growth: sharing, gifts, credits, wallet, referrals and compatibility.
+  "share_clicked",
+  "gift_redeemed",
+  "credit_used",
+  "wallet_payment",
+  "referral_qualified",
+  "compatibility_created",
 ] as const;
 
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];

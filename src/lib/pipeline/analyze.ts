@@ -33,6 +33,8 @@ export interface AnalyzeInput {
   trainingOptIn: boolean;
   userId: string | null;
   guestKeyHash: string | null;
+  /** A partner's palm for a couple reading (analysis only; not listed as the user's own). */
+  role?: "self" | "partner";
   /** Optional development timing collector. */
   timer?: PipelineTimer;
 }
@@ -69,14 +71,13 @@ const ISSUE_MESSAGES: Record<string, string> = {
  */
 export function rejectionReason(analysis: PalmAnalysis): string | null {
   const quality = analysis.imageQuality;
-  const firstIssue = quality.issues.map((i) => ISSUE_MESSAGES[i]).find(Boolean);
   if (!quality.palmVisible || quality.palmVisibilityConfidence < MIN_PALM_VISIBILITY) {
     return quality.issues.includes("back_of_hand")
       ? ISSUE_MESSAGES.back_of_hand
       : "We couldn't clearly find a palm in this photo. Please place your entire palm inside the frame.";
   }
-  if (!quality.usable)
-    return firstIssue ?? "This photo isn't clear enough to read. Please try another one.";
+  // A visible palm with readable features goes ahead even if the photo isn't ideal:
+  // lower-confidence features are worded more softly rather than refused.
   const linesSeen = LINE_NAMES.filter((n) => isObservedLine(analysis.lines[n])).length;
   if (linesSeen === 0 || availableFeatures(analysis).size < MIN_FEATURES) {
     return "We couldn't make out enough of your palm lines. Try bright, even light and hold the camera directly above your palm.";
@@ -158,6 +159,7 @@ async function runAnalysis(input: AnalyzeInput, timer: PipelineTimer): Promise<A
           imageHeight: processed.height,
           qualityScore: processed.qualityScore,
           trainingOptIn: input.trainingOptIn,
+          role: input.role === "partner" ? "PARTNER" : "SELF",
           isDemo: provider.isMock,
           aiProvider: provider.name,
         },

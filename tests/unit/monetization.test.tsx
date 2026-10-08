@@ -29,14 +29,14 @@ const LOCKED = {
 };
 
 describe("price", () => {
-  it("is ₹35, stored in paise for providers", () => {
-    expect(EXTENDED_READING_PRICE_INR).toBe(35);
-    expect(EXTENDED_READING_PRICE_MINOR).toBe(3500);
+  it("is ₹49, stored in paise for providers", () => {
+    expect(EXTENDED_READING_PRICE_INR).toBe(49);
+    expect(EXTENDED_READING_PRICE_MINOR).toBe(4900);
     expect(formatInr(35)).toBe("₹35");
     expect(formatInr(35.5)).toBe("₹35.50");
   });
 
-  it("is defined in one place only (no hardcoded ₹35 elsewhere in the app)", () => {
+  it("is defined in one place only (no hardcoded ₹49 elsewhere in the app)", () => {
     const files: string[] = [];
     const walk = (dir: string) => {
       for (const name of readdirSync(dir)) {
@@ -49,7 +49,7 @@ describe("price", () => {
     const offenders = files.filter(
       (f) =>
         !f.endsWith(join("monetization", "price.ts")) &&
-        /₹\s?35\b|(price|amount)\w*\s*[:=]\s*(35|3500)\b/i.test(readFileSync(f, "utf8")),
+        /₹\s?49\b|(price|amount)\w*\s*[:=]\s*(49|4900)\b/i.test(readFileSync(f, "utf8")),
     );
     expect(offenders).toEqual([]);
   });

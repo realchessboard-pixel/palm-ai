@@ -3,15 +3,15 @@ import { siteConfig } from "@/lib/config/site";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: `${siteConfig.name} — AI Palm Reading`,
+    name: `${siteConfig.name} — Kundli & Palm Reading`,
     short_name: siteConfig.name,
     description: siteConfig.description,
     start_url: "/?source=pwa",
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#07060c",
-    theme_color: "#07060c",
+    background_color: "#f4ecdd",
+    theme_color: "#f4ecdd",
     categories: ["entertainment", "lifestyle"],
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },

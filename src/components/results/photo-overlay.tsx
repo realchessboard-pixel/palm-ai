@@ -85,7 +85,7 @@ export function PhotoOverlay({
         </div>
       ) : (
         <p className="text-center text-xs text-mist-dim">
-          The AI wasn&apos;t confident enough about exact line positions to mark them on your photo.
+          We weren&apos;t confident enough about exact line positions to mark them on your photo.
         </p>
       )}
     </div>

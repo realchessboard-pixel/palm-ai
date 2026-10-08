@@ -8,6 +8,7 @@ import { POST as mockComplete } from "@/app/api/payments/mock/complete/route";
 import { POST as razorpayVerify } from "@/app/api/payments/razorpay/verify/route";
 import { POST as signup } from "@/app/api/auth/signup/route";
 import { GET as getReading } from "@/app/api/readings/[id]/route";
+import { POST as writeDetailed } from "@/app/api/readings/[id]/detailed/route";
 import { GET as getReport } from "@/app/api/readings/[id]/report/route";
 import { setAiProvider } from "@/lib/ai";
 import { resetEnvCache } from "@/lib/config/env";
@@ -19,7 +20,7 @@ import { hmacSha256Hex } from "@/lib/payments/signatures";
 import { extendedReadingPrice } from "@/lib/payments/pricing";
 import { confirmStripeReturn } from "@/lib/payments/service";
 import type { ReadingView } from "@/lib/readings/view";
-import { ScriptedProvider } from "../helpers/ai";
+import { ScriptedProvider, teaserJson } from "../helpers/ai";
 import { hasTestDatabase, resetDatabase } from "../helpers/db";
 import { CookieJar, json, makeRequest, params } from "../helpers/http";
 import { palmLikeImage } from "../helpers/images";
@@ -91,6 +92,9 @@ async function reportStatus(readingId: string, jar: CookieJar) {
   ).status;
 }
 
+/** How a string appears inside a JSON response body. */
+const asJson = (text: string) => JSON.stringify(text).slice(1, -1);
+
 /** Text that only the detailed reading contains (mount readings and in-depth details). */
 async function premiumOnlyText(readingId: string): Promise<string[]> {
   const stored = await db.palmInterpretation.findUniqueOrThrow({ where: { readingId } });
@@ -106,7 +110,7 @@ async function premiumOnlyText(readingId: string): Promise<string[]> {
   return texts;
 }
 
-describe.skipIf(!hasTestDatabase)("₹35 detailed reading", () => {
+describe.skipIf(!hasTestDatabase)("₹49 detailed reading", () => {
   beforeEach(async () => {
     await resetDatabase();
     setAiProvider(undefined);
@@ -114,6 +118,7 @@ describe.skipIf(!hasTestDatabase)("₹35 detailed reading", () => {
   });
   afterEach(() => {
     vi.restoreAllMocks();
+    delete process.env.AI_MAX_ATTEMPTS;
     setAiProvider(undefined);
     setEnv({ PAYMENT_PROVIDER: "mock", NODE_ENV: "test", DEMO_MODE: "false" });
   });
@@ -128,9 +133,13 @@ describe.skipIf(!hasTestDatabase)("₹35 detailed reading", () => {
     expect(reading.premium).toBe(false);
     expect(reading.paymentState).toBe("UNPAID");
     expect(reading.interpretation!.overview.summary.length).toBeGreaterThan(20);
-    const free = reading.interpretation!.sections.map((s) => s.id);
-    expect(free).toEqual(expect.arrayContaining(["personality", "career"]));
-    expect(reading.interpretation!.lines.length).toBeGreaterThan(0);
+    // The whole main reading is free: thinking, caring, strengths, career and an insight.
+    const narrative = reading.interpretation!.narrative!;
+    expect(narrative.thinking?.text).toBeTruthy();
+    expect(narrative.caring?.text).toBeTruthy();
+    expect(narrative.strengths.length).toBeGreaterThanOrEqual(3);
+    expect(narrative.insight?.text).toBeTruthy();
+    expect(reading.hand).toBe("right");
     expect(reading.features.length).toBeGreaterThan(0);
     expect(await db.payment.count()).toBe(0);
     expect(await db.reading.findUniqueOrThrow({ where: { id: readingId } })).toMatchObject({
@@ -145,20 +154,21 @@ describe.skipIf(!hasTestDatabase)("₹35 detailed reading", () => {
     expect(body.reading.locked).not.toBeNull();
     expect(body.reading.interpretation!.mounts).toEqual([]);
     expect(body.reading.interpretation!.sections.every((s) => !s.details)).toBe(true);
-    for (const secret of await premiumOnlyText(readingId)) expect(text).not.toContain(secret);
+    for (const secret of await premiumOnlyText(readingId))
+      expect(text).not.toContain(asJson(secret));
     expect(await reportStatus(readingId, jar)).toBe(403);
   });
 
-  it("prices the detailed reading at ₹35 from the central config, and checkout starts at ₹35 INR (tests 4, 5)", async () => {
-    expect(EXTENDED_READING_PRICE_INR).toBe(35);
-    expect(extendedReadingPrice()).toEqual({ amount: 3500, currency: "inr", label: "₹35" });
+  it("prices the detailed reading at ₹49 from the central config, and checkout starts at ₹49 INR (tests 4, 5)", async () => {
+    expect(EXTENDED_READING_PRICE_INR).toBe(49);
+    expect(extendedReadingPrice()).toEqual({ amount: 4900, currency: "inr", label: "₹49" });
 
     const jar = new CookieJar();
     const readingId = await completedReading(jar);
     await startMockCheckout(jar, readingId);
     expect(await db.payment.findFirstOrThrow()).toMatchObject({
       readingId,
-      amount: 3500,
+      amount: 4900,
       currency: "inr",
       status: "PENDING",
     });
@@ -176,7 +186,7 @@ describe.skipIf(!hasTestDatabase)("₹35 detailed reading", () => {
       );
     await checkout(makeRequest("/api/payments/checkout", { json: { readingId }, jar }), ctx);
     const form = new URLSearchParams(String(fetchMock.mock.calls[0][1]!.body));
-    expect(form.get("line_items[0][price_data][unit_amount]")).toBe("3500");
+    expect(form.get("line_items[0][price_data][unit_amount]")).toBe("4900");
     expect(form.get("line_items[0][price_data][currency]")).toBe("inr");
   });
 
@@ -188,7 +198,8 @@ describe.skipIf(!hasTestDatabase)("₹35 detailed reading", () => {
 
     const { body, text } = await view(readingId, jar);
     expect(body.reading).toMatchObject({ premium: false, paymentState: "PAYMENT_FAILED" });
-    for (const secret of await premiumOnlyText(readingId)) expect(text).not.toContain(secret);
+    for (const secret of await premiumOnlyText(readingId))
+      expect(text).not.toContain(asJson(secret));
     expect(await reportStatus(readingId, jar)).toBe(403);
     // A finished checkout can't be flipped to success afterwards.
     expect((await settle(jar, paymentId, "success")).status).toBe(409);
@@ -219,25 +230,90 @@ describe.skipIf(!hasTestDatabase)("₹35 detailed reading", () => {
     expect((await view(readingId, jar)).body.reading.premium).toBe(false);
   });
 
-  it("a verified payment unlocks the full detailed reading, with no extra AI call (tests 8, 13)", async () => {
+  it("the detailed reading is written only after a verified payment (tests 8, 13)", async () => {
+    const full = composeRuleBasedReading(sampleAnalysis("right"));
+    const { overview: _o, narrative, ...detailed } = full;
+    void _o;
     const provider = new ScriptedProvider([
       JSON.stringify(sampleAnalysis("right")),
-      JSON.stringify(composeRuleBasedReading(sampleAnalysis("right"))),
+      teaserJson(narrative!),
+      JSON.stringify(detailed),
     ]);
     setAiProvider(provider);
     const jar = new CookieJar();
     const readingId = await completedReading(jar);
+    const detailedRequest = () =>
+      writeDetailed(
+        makeRequest(`/api/readings/${readingId}/detailed`, { json: {}, jar }),
+        params({ id: readingId }),
+      );
+
+    // The free reading pays for the main reading only.
+    const stored = await db.palmInterpretation.findUniqueOrThrow({ where: { readingId } });
+    expect(stored.data).toMatchObject({ detailedPending: true, sections: [], mounts: [] });
+    expect((await view(readingId, jar)).body.reading.locked?.sections.length).toBeGreaterThan(0);
+    // Nobody can make the server write (and pay for) the detailed reading before buying it.
+    expect((await detailedRequest()).status).toBe(403);
+    expect(provider.requests).toHaveLength(2);
+
     const paymentId = await startMockCheckout(jar, readingId);
     expect((await settle(jar, paymentId, "success")).status).toBe(200);
+    const unlocked = await view(readingId, jar);
+    expect(unlocked.body.reading).toMatchObject({ premium: true, detailedPending: true });
+    expect(await reportStatus(readingId, jar)).toBe(409);
 
+    expect((await detailedRequest()).status).toBe(200);
     const { body, text } = await view(readingId, jar);
     expect(body.reading).toMatchObject({ premium: true, paymentState: "PAYMENT_SUCCESS" });
+    expect(body.reading.detailedPending).toBe(false);
     expect(body.reading.locked).toBeNull();
     expect(body.reading.interpretation!.mounts.length).toBeGreaterThan(0);
-    for (const secret of await premiumOnlyText(readingId)) expect(text).toContain(secret);
+    expect(body.reading.interpretation!.narrative!.headline).toBe(narrative!.headline);
+    for (const secret of await premiumOnlyText(readingId)) expect(text).toContain(asJson(secret));
     expect(await reportStatus(readingId, jar)).toBe(200);
-    // Unlocking reuses the stored reading: still exactly one vision + one interpretation call.
-    expect(provider.requests.map((r) => r.task)).toEqual(["palm_analysis", "palm_interpretation"]);
+
+    // Written once: asking again (refresh, second tab) costs nothing more.
+    expect((await detailedRequest()).status).toBe(200);
+    expect(provider.requests.map((r) => r.task)).toEqual([
+      "palm_analysis",
+      "palm_interpretation",
+      "palm_detailed_reading",
+    ]);
+  });
+
+  it("a failed detailed write can be retried, and is never charged twice", async () => {
+    const full = composeRuleBasedReading(sampleAnalysis("right"));
+    const { overview: _o, narrative, ...detailed } = full;
+    void _o;
+    const provider = new ScriptedProvider([
+      JSON.stringify(sampleAnalysis("right")),
+      teaserJson(narrative!),
+      "not json",
+      "still not json",
+      "nope",
+      JSON.stringify(detailed),
+    ]);
+    setAiProvider(provider);
+    setEnv({ AI_MAX_ATTEMPTS: "1" });
+    const jar = new CookieJar();
+    const readingId = await completedReading(jar);
+    await settle(jar, await startMockCheckout(jar, readingId), "success");
+    const write = () =>
+      writeDetailed(
+        makeRequest(`/api/readings/${readingId}/detailed`, { json: {}, jar }),
+        params({ id: readingId }),
+      );
+
+    expect((await write()).status).toBeGreaterThanOrEqual(500);
+    const stored = await db.palmInterpretation.findUniqueOrThrow({ where: { readingId } });
+    // The claim is released, so a retry may run.
+    expect(stored.data).toMatchObject({ detailedPending: true });
+    expect(stored.data).not.toHaveProperty("detailedClaimedAt");
+    provider.requests.length = 0;
+    let status = 0;
+    for (let i = 0; i < 4 && status !== 200; i++) status = (await write()).status;
+    expect(status).toBe(200);
+    expect((await view(readingId, jar)).body.reading.detailedPending).toBe(false);
   });
 
   it("Reading A's payment can never unlock Reading B (test 9)", async () => {
@@ -260,7 +336,7 @@ describe.skipIf(!hasTestDatabase)("₹35 detailed reading", () => {
     // the server-side payment record, not from the request).
     setEnv({ PAYMENT_PROVIDER: "razorpay" });
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ id: "order_B", amount: 3500, currency: "INR" })),
+      new Response(JSON.stringify({ id: "order_B", amount: 4900, currency: "INR" })),
     );
     await checkout(
       makeRequest("/api/payments/checkout", { json: { readingId: readingB }, jar }),
@@ -312,7 +388,7 @@ describe.skipIf(!hasTestDatabase)("₹35 detailed reading", () => {
     expect(await db.entitlement.count()).toBe(0);
   });
 
-  it("signed-in users follow the same free → ₹35 flow", async () => {
+  it("signed-in users follow the same free → ₹49 flow", async () => {
     const jar = new CookieJar();
     const res = await signup(
       makeRequest("/api/auth/signup", {
@@ -328,20 +404,21 @@ describe.skipIf(!hasTestDatabase)("₹35 detailed reading", () => {
     expect(await db.payment.findFirstOrThrow()).toMatchObject({ userId: expect.any(String) });
   });
 
-  it("keeps the selected hand through purchase (test 12)", async () => {
+  it("reads the right hand through purchase, whatever the model guesses (test 12)", async () => {
     setAiProvider(
       new ScriptedProvider([
-        JSON.stringify({ ...sampleAnalysis("left"), hand: "right", handConfidence: 0.95 }),
-        JSON.stringify(composeRuleBasedReading(sampleAnalysis("left"))),
+        JSON.stringify({ ...sampleAnalysis("right"), hand: "left", handConfidence: 0.95 }),
+        teaserJson(composeRuleBasedReading(sampleAnalysis("right")).narrative!),
       ]),
     );
     const jar = new CookieJar();
+    // Even an old client still sending "left" gets a right-hand reading.
     const readingId = await completedReading(jar, "left");
     await settle(jar, await startMockCheckout(jar, readingId), "success");
     const { reading } = (await view(readingId, jar)).body;
     expect(reading.premium).toBe(true);
-    expect(reading.hand).toBe("left");
-    expect(reading.handCheck).toMatchObject({ canonical: "left", detected: "right" });
+    expect(reading.hand).toBe("right");
+    expect(reading.handCheck).toMatchObject({ canonical: "right", detected: "left" });
   });
 
   it("records the funnel with price, provider, model and demo flag — and no personal data", async () => {
@@ -385,7 +462,7 @@ describe.skipIf(!hasTestDatabase)("₹35 detailed reading", () => {
     const unlocked = events.find((e) => e.name === "extended_reading_unlocked")!;
     expect(unlocked.properties).toMatchObject({
       reading_id: readingId,
-      price_inr: 35,
+      price_inr: 49,
       currency: "INR",
       ai_provider: "mock",
       model: expect.any(String),

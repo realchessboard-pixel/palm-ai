@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, Spinner } from "@/components/ui/misc";
 import { track } from "@/lib/analytics/client";
-import { ApiClientError, apiFetch } from "@/lib/api-client";
+import { ApiClientError, apiFetch, isTransientError, postJson } from "@/lib/api-client";
 import {
   ImageInputError,
   prepareImage,
@@ -15,18 +15,19 @@ import {
 import { hasBlockingIssue } from "@/lib/image/quality";
 import { AnalysisProgress, type PipelinePhase } from "./analysis-progress";
 import { CameraCapture } from "./camera-capture";
-import { HandSelector, type Hand } from "./hand-selector";
 import { PhotoReview, type ReviewChoices } from "./photo-review";
 import { PhotoSource } from "./photo-source";
 
 type Step =
-  | { kind: "hand" }
   | { kind: "source"; error?: string }
   | { kind: "camera" }
   | { kind: "checking" }
   | { kind: "review"; image: PreparedImage }
   | { kind: "processing"; phase: PipelinePhase }
   | { kind: "failed"; message: string; canRetry: boolean };
+
+const AUTO_RETRIES = 2;
+const RETRY_DELAYS_MS = [1500, 4000];
 
 interface Submission {
   image: PreparedImage;
@@ -40,20 +41,36 @@ interface AnalyzeResponse {
   status: string;
 }
 
+/** AstroVidya reads the right hand only, following the traditional reading of the right palm. */
+const HAND = "right" as const;
+
+const PARTNER_TITLES: Record<Step["kind"], string> = {
+  source: "Now your partner's right palm",
+  camera: "Place your partner's right palm in the frame",
+  checking: "Checking the photo",
+  review: "Review the photo",
+  processing: "Reading your partner's palm",
+  failed: "Let's give it another go",
+};
+
 const STEP_TITLES: Record<Step["kind"], string> = {
-  hand: "Which hand would you like read?",
-  source: "Add a photo of your palm",
-  camera: "Position your palm",
+  source: "Show us your right palm",
+  camera: "Place your right palm in the frame",
   checking: "Checking your photo",
   review: "Review your photo",
   processing: "Reading your palm",
-  failed: "Something went wrong",
+  failed: "Let's give it another go",
 };
 
-export function ReadingFlow() {
+/**
+ * The reading flow. With `partnerFor` (the visitor's own reading id) it reads
+ * the partner's palm for a couple reading instead: analysis only, with the
+ * partner's agreement confirmed, then on to the couple reading page.
+ */
+export function ReadingFlow({ partnerFor }: { partnerFor?: string } = {}) {
+  const titles = partnerFor ? PARTNER_TITLES : STEP_TITLES;
   const router = useRouter();
-  const [hand, setHand] = useState<Hand | null>(null);
-  const [step, setStep] = useState<Step>({ kind: "hand" });
+  const [step, setStep] = useState<Step>({ kind: "source" });
   const headingRef = useRef<HTMLHeadingElement>(null);
   const submission = useRef<Submission | null>(null);
   const inFlight = useRef(false);
@@ -65,8 +82,8 @@ export function ReadingFlow() {
   }, [step.kind]);
 
   useEffect(() => {
-    track("start_reading");
-  }, []);
+    if (!partnerFor) track("start_reading");
+  }, [partnerFor]);
 
   useEffect(() => {
     return () => {
@@ -94,7 +111,7 @@ export function ReadingFlow() {
   }
 
   async function analyze(image: PreparedImage, choices: ReviewChoices, retry = false) {
-    if (!hand || inFlight.current) return;
+    if (inFlight.current) return;
     inFlight.current = true;
     const previous = submission.current;
     const current: Submission = {
@@ -105,24 +122,46 @@ export function ReadingFlow() {
     };
     submission.current = current;
     setStep({ kind: "processing", phase: "preparing" });
-    track("image_uploaded", { hand });
+    track("image_uploaded", { hand: HAND });
 
     const form = new FormData();
     form.set("image", image.blob, "palm.jpg");
-    form.set("hand", hand);
+    form.set("hand", HAND);
     form.set("consent", "true");
-    form.set("trainingOptIn", String(choices.trainingOptIn));
+    form.set("trainingOptIn", String(!partnerFor && choices.trainingOptIn));
+    if (partnerFor) {
+      form.set("role", "partner");
+      form.set("partnerConsent", "true");
+    }
     if (current.requestId) form.set("requestId", current.requestId);
 
     try {
       setStep({ kind: "processing", phase: "analyzing" });
-      const result = await apiFetch<AnalyzeResponse>("/api/palm/analyze", {
-        method: "POST",
-        body: form,
-      });
-      // The results page shows the palm map right away and writes the interpretation there.
+      // Temporary hiccups are retried quietly (same request id, so never a duplicate reading).
+      let result: AnalyzeResponse | undefined;
+      for (let attempt = 0; ; attempt++) {
+        try {
+          result = await apiFetch<AnalyzeResponse>("/api/palm/analyze", {
+            method: "POST",
+            body: form,
+          });
+          break;
+        } catch (error) {
+          if (attempt >= AUTO_RETRIES || !isTransientError(error)) throw error;
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]));
+        }
+      }
       setStep({ kind: "processing", phase: "analyzed" });
-      router.push(`/readings/${result.readingId}`);
+      if (partnerFor) {
+        const { compatibilityId } = await postJson<{ compatibilityId: string }>(
+          "/api/compatibility",
+          { readingId: partnerFor, partnerReadingId: result!.readingId },
+        );
+        router.push(`/compatibility/${compatibilityId}`);
+        return;
+      }
+      // The results page shows the palm map right away and writes the interpretation there.
+      router.push(`/readings/${result!.readingId}`);
     } catch (error) {
       inFlight.current = false;
       if (
@@ -135,22 +174,21 @@ export function ReadingFlow() {
       setStep({
         kind: "failed",
         message:
-          error instanceof ApiClientError
+          error instanceof ApiClientError && !isTransientError(error)
             ? error.message
-            : "We couldn't analyze this palm right now. Please try again.",
+            : "Our palm reader is very busy right now. Your photo is ready — tap “Try again” and we'll pick up where we left off.",
         canRetry: true,
       });
     }
   }
 
   const stepNumber = {
-    hand: 1,
-    source: 2,
-    camera: 2,
-    checking: 2,
-    review: 3,
-    processing: 4,
-    failed: 4,
+    source: 1,
+    camera: 1,
+    checking: 1,
+    review: 2,
+    processing: 3,
+    failed: 3,
   }[step.kind];
 
   return (
@@ -158,15 +196,13 @@ export function ReadingFlow() {
       {step.kind !== "processing" ? (
         <div className="mb-6 flex items-center justify-between gap-3">
           <p className="text-xs font-semibold tracking-[0.2em] text-gold-300 uppercase">
-            Step {stepNumber} of 4
+            Step {stepNumber} of 3
           </p>
-          {step.kind !== "hand" && step.kind !== "failed" ? (
+          {step.kind === "review" || step.kind === "camera" ? (
             <button
               type="button"
               className="min-h-11 rounded-full px-3 text-sm text-mist hover:text-parchment"
-              onClick={() =>
-                setStep(step.kind === "review" ? { kind: "source" } : { kind: "hand" })
-              }
+              onClick={() => setStep({ kind: "source" })}
             >
               ← Back
             </button>
@@ -183,33 +219,24 @@ export function ReadingFlow() {
             : "mb-6 text-3xl text-parchment outline-none sm:text-4xl"
         }
       >
-        {STEP_TITLES[step.kind]}
+        {titles[step.kind]}
       </h1>
-
-      {step.kind === "hand" ? (
-        <div className="space-y-6">
-          <HandSelector value={hand} onChange={setHand} />
-          <Button
-            size="lg"
-            className="w-full"
-            disabled={!hand}
-            onClick={() => setStep({ kind: "source" })}
-          >
-            Continue
-          </Button>
-        </div>
-      ) : null}
 
       {step.kind === "source" ? (
         <div className="space-y-4">
+          <p className="-mt-2 text-mist">
+            {partnerFor
+              ? "Ask your partner to hold their right hand inside the frame — palm facing the camera, fingers relaxed and slightly apart. Only read their palm with their agreement."
+              : "Place your right hand clearly inside the frame — palm facing the camera, fingers relaxed and slightly apart."}
+          </p>
           {step.error ? <Alert tone="error">{step.error}</Alert> : null}
           <PhotoSource onFile={handleSource} onOpenCamera={() => setStep({ kind: "camera" })} />
         </div>
       ) : null}
 
-      {step.kind === "camera" && hand ? (
+      {step.kind === "camera" ? (
         <CameraCapture
-          hand={hand}
+          hand={HAND}
           onCapture={handleSource}
           onCancel={() => setStep({ kind: "source" })}
         />
@@ -228,6 +255,7 @@ export function ReadingFlow() {
           issues={step.image.issues}
           onRetake={() => setStep({ kind: "source" })}
           onUse={(choices) => analyze(step.image, choices)}
+          partner={Boolean(partnerFor)}
         />
       ) : null}
 

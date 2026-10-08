@@ -1,9 +1,11 @@
 import { availableFeatures, featureLabel } from "@/lib/palmistry/features";
+import { composeRuleBasedReading } from "@/lib/palmistry/interpretation";
 import { INSUFFICIENT, LINE_NAMES, type PalmAnalysis } from "@/lib/schemas/palm-analysis";
+import { DEFAULT_LANGUAGE, type Language } from "@/lib/i18n/languages";
 import type { PaymentState } from "@/lib/payments/states";
 import type { PalmInterpretation } from "@/lib/schemas/palm-interpretation";
 import { assessHandSide } from "./hand-side";
-import { projectInterpretation } from "./projection";
+import { projectInterpretation, type LockedContent } from "./projection";
 import type { LineObservationView, ReadingStatusView, ReadingView } from "./view";
 
 /** Minimum model confidence before we draw approximate line positions on a photo. */
@@ -18,6 +20,8 @@ export interface ReadingRecordLike {
   imageKey: string | null;
   analysisConfidence: number | null;
   rejectionReason: string | null;
+  /** PARTNER: a partner's palm for a couple reading. */
+  role?: "SELF" | "PARTNER";
 }
 
 export function lineObservations(analysis: PalmAnalysis): LineObservationView[] {
@@ -61,9 +65,18 @@ export function buildReadingView(input: {
   interpretation: PalmInterpretation | null;
   premium: boolean;
   paymentState?: PaymentState;
+  language?: Language;
+  translationPending?: boolean;
 }): ReadingView {
   const { reading, analysis, interpretation, premium } = input;
   const projected = interpretation ? projectInterpretation(interpretation, premium) : null;
+  const detailedPending = interpretation?.detailedPending === true;
+  // Before purchase the detailed reading isn't written yet: describe what it will cover
+  // from the observed features instead.
+  const locked =
+    projected?.locked && detailedPending && analysis
+      ? plannedDetailedContent(analysis)
+      : (projected?.locked ?? null);
   const features = analysis
     ? [...availableFeatures(analysis).entries()]
         .map(([key, confidence]) => ({ key, label: featureLabel(key, analysis), confidence }))
@@ -84,13 +97,31 @@ export function buildReadingView(input: {
     analysisConfidence: reading.analysisConfidence,
     rejectionReason: reading.rejectionReason,
     premium,
+    language: input.language ?? DEFAULT_LANGUAGE,
+    translationPending: input.translationPending ?? false,
+    detailedPending: premium && detailedPending,
+    isPartner: reading.role === "PARTNER",
     // An entitlement (from a verified payment) is what unlocks; show it as paid even if the
     // latest checkout attempt was abandoned.
     paymentState: premium ? "PAYMENT_SUCCESS" : unlockedStateGuard(input.paymentState),
     lines: analysis ? lineObservations(analysis) : [],
     features,
     interpretation: projected?.interpretation ?? null,
-    locked: projected?.locked ?? null,
+    locked,
+  };
+}
+
+/** What the detailed reading will contain for this palm (same plan the writer follows). */
+export function plannedDetailedContent(analysis: PalmAnalysis): LockedContent {
+  const available = availableFeatures(analysis);
+  const has = (prefix: string) => [...available.keys()].some((k) => k.startsWith(prefix));
+  return {
+    sections: composeRuleBasedReading(analysis).sections.map((s) => s.id),
+    lines: LINE_NAMES.filter((l) => available.has(`lines.${l}`)),
+    mountCount: [...available.keys()].filter((k) => k.startsWith("mounts.")).length,
+    fingers: has("fingers"),
+    markings: has("markings."),
+    detailedSections: [],
   };
 }
 

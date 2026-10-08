@@ -1,5 +1,4 @@
 import { ButtonLink } from "@/components/ui/button";
-import { Badge } from "@/components/ui/misc";
 import { PalmIllustration } from "@/components/palm/palm-illustration";
 
 export function Hero() {
@@ -11,21 +10,17 @@ export function Hero() {
       />
       <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 pt-12 pb-20 sm:px-6 md:grid-cols-[1.1fr_0.9fr] md:pt-20 md:pb-28">
         <div className="animate-fade-up text-center md:text-left">
-          <Badge>
-            <svg viewBox="0 0 16 16" className="size-3.5" aria-hidden="true">
-              <path d="M8 1l1.6 4.4L14 7l-4.4 1.6L8 13l-1.6-4.4L2 7l4.4-1.6z" fill="currentColor" />
-            </svg>
-            AI-powered palmistry
-          </Badge>
+          <p className="eyebrow">Palm · Kundli · Rashifal · in your language</p>
           <h1
             id="hero-title"
             className="mt-6 text-[2.6rem] leading-[1.05] font-medium text-parchment sm:text-6xl lg:text-7xl"
           >
-            Discover What Your <span className="text-gold-gradient italic">Palm</span> Reveals
+            Your <span className="text-gold-gradient italic">palm</span> and your stars, read the
+            Indian way
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-mist md:mx-0">
-            Upload a clear photo of your palm and explore a personalized palmistry reading powered
-            by AI.
+            A warm palm reading from a photo of your hand, your free Kundli and Kundli Milan,
+            today&apos;s rashifal and panchang — and readers to answer your questions.
           </p>
           <div className="mt-9 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center md:justify-start">
             <ButtonLink href="/read" size="lg">
@@ -41,16 +36,16 @@ export function Hero() {
                 />
               </svg>
             </ButtonLink>
-            <ButtonLink href="#how-it-works" variant="secondary" size="lg">
-              How It Works
+            <ButtonLink href="/kundli" variant="secondary" size="lg">
+              Free Kundli
             </ButtonLink>
           </div>
           <p className="mt-6 text-xs text-mist-dim">
-            Free basic reading · Your photo stays private · For entertainment &amp; reflection
+            Free to start · Your photo stays private · For reflection, not prediction
           </p>
         </div>
         <div className="relative mx-auto w-full max-w-[22rem] md:max-w-md">
-          <PalmIllustration className="h-auto w-full animate-float drop-shadow-[0_30px_60px_rgba(124,105,232,0.25)]" />
+          <PalmIllustration className="h-auto w-full" />
         </div>
       </div>
     </section>

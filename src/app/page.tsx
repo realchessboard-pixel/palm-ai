@@ -1,10 +1,7 @@
 import { headers } from "next/headers";
 import { TrackOnMount } from "@/components/analytics/track-on-mount";
-import { ExampleReading } from "@/components/landing/example-reading";
 import { Faq, FAQ_ITEMS } from "@/components/landing/faq";
-import { Features } from "@/components/landing/features";
-import { Hero } from "@/components/landing/hero";
-import { HowItWorks } from "@/components/landing/how-it-works";
+import { HomeFunnel } from "@/components/landing/home-funnel";
 import { PrivacySection } from "@/components/landing/privacy-section";
 import { ButtonLink } from "@/components/ui/button";
 import { Disclaimer } from "@/components/ui/disclaimer";
@@ -53,22 +50,25 @@ export default async function LandingPage() {
         dangerouslySetInnerHTML={{ __html: jsonLd }}
       />
       <TrackOnMount event="landing_page_view" />
-      <Hero />
-      <div className="gold-hairline mx-auto max-w-4xl" aria-hidden="true" />
-      <HowItWorks />
-      <Features />
-      <ExampleReading />
+      <HomeFunnel />
       <PrivacySection />
       <Faq />
       <section aria-labelledby="cta-title" className="px-4 pt-8 pb-24 sm:px-6">
         <div className="mx-auto max-w-3xl text-center">
           <h2 id="cta-title" className="text-3xl sm:text-5xl">
-            Ready to look a little closer?
+            Start with one free answer
           </h2>
-          <p className="mt-4 text-mist">It takes about a minute. Your first reading is free.</p>
-          <ButtonLink href="/read" size="lg" className="mt-8">
-            Read My Palm
-          </ButtonLink>
+          <p className="mt-4 text-mist">
+            Four birth details or one photo of your palm. Pay only if you want the full report.
+          </p>
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <ButtonLink href="/mahakundli" size="lg">
+              Get my first answer free
+            </ButtonLink>
+            <ButtonLink href="/read" size="lg" variant="secondary">
+              Read my palm
+            </ButtonLink>
+          </div>
           <Disclaimer className="mt-12 text-left" />
         </div>
       </section>

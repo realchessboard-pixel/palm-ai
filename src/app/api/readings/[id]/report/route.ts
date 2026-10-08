@@ -24,6 +24,11 @@ export const GET = withErrorHandling<Context>(
         message: "The downloadable report is part of the full reading.",
       });
     }
+    if (reading.detailedPending) {
+      throw new AppError("CONFLICT", {
+        message: "Your detailed reading is still being written. Please try again in a moment.",
+      });
+    }
     const pdf = await renderReadingPdf(reading);
     await trackServerEvent("report_downloaded", { userId: actor.user?.id, readingId: id });
     const date = reading.createdAt.slice(0, 10);

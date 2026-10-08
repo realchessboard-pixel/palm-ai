@@ -12,7 +12,9 @@ import {
   type PalmInterpretation,
 } from "@/lib/schemas/palm-interpretation";
 import { getStorage } from "@/lib/storage";
+import { DEFAULT_LANGUAGE, type Language } from "@/lib/i18n/languages";
 import { buildReadingView } from "./build-view";
+import { localizeInterpretation } from "./translation-cache";
 import type { ReadingListItem, ReadingView } from "./view";
 
 /**
@@ -44,26 +46,39 @@ export function parseStoredInterpretation(data: unknown): PalmInterpretation | n
   return parsed.success ? parsed.data : null;
 }
 
-export async function getReadingView(id: string, actor: Actor): Promise<ReadingView> {
+export async function getReadingView(
+  id: string,
+  actor: Actor,
+  options: { language?: Language } = {},
+): Promise<ReadingView> {
+  const language = options.language ?? DEFAULT_LANGUAGE;
   const reading = await getOwnedReading(id, actor);
   const [premium, paymentState] = await Promise.all([
     hasPremiumAccess({ readingId: reading.id, ownerUserId: reading.userId }),
     readingPaymentState(reading.id),
   ]);
+  const stored = reading.interpretation
+    ? parseStoredInterpretation(reading.interpretation.data)
+    : null;
+  // Cached translations are applied before the entitlement projection, so a
+  // translation never exposes more than the English view would.
+  const localized = stored
+    ? localizeInterpretation(stored, reading.interpretation!.data, language, premium)
+    : null;
   return buildReadingView({
     paymentState,
     reading,
     analysis: reading.analysis ? parseStoredAnalysis(reading.analysis.data) : null,
-    interpretation: reading.interpretation
-      ? parseStoredInterpretation(reading.interpretation.data)
-      : null,
+    interpretation: localized?.interpretation ?? null,
     premium,
+    language,
+    translationPending: (localized?.missing ?? 0) > 0,
   });
 }
 
 export async function listReadingsForUser(userId: string): Promise<ReadingListItem[]> {
   const readings = await db.reading.findMany({
-    where: { userId },
+    where: { userId, role: "SELF" },
     orderBy: { createdAt: "desc" },
     take: 100,
     include: {
@@ -118,6 +133,20 @@ export async function claimGuestReadings(
   const result = await db.reading.updateMany({
     where: { guestKeyHash, userId: null },
     data: { userId },
+  });
+  await db.kundliProfile.updateMany({
+    where: { guestKeyHash, userId: null },
+    data: { userId, guestKeyHash: null },
+  });
+  // Chats with readers started as a guest move to the account too.
+  await db.readerChat.updateMany({
+    where: { guestKeyHash, userId: null },
+    data: { userId, guestKeyHash: null },
+  });
+  // Couple readings started as a guest move to the account too.
+  await db.compatibility.updateMany({
+    where: { guestKeyHash, userId: null },
+    data: { userId, guestKeyHash: null },
   });
   return result.count;
 }

@@ -1,7 +1,8 @@
 import "server-only";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { siteConfig } from "@/lib/config/site";
-import { featureLabel, lineLabel, mountLabel } from "@/lib/palmistry/features";
+import { lineTitle, mountTitle } from "@/lib/i18n/reading-messages";
+import { narrativeFor } from "@/lib/readings/narrative-view";
 import type { ReadingView } from "@/lib/readings/view";
 import { SECTION_IDS } from "@/lib/schemas/palm-interpretation";
 
@@ -135,50 +136,70 @@ export async function renderReadingPdf(reading: ReadingView): Promise<Uint8Array
     serif: await doc.embedFont(StandardFonts.TimesRoman),
   });
 
+  const { narrative, usedSections } = narrativeFor(interpretation);
   w.text("Your Palm Reading", { size: 26, font: "serif", gap: 2 });
   const date = new Date(reading.createdAt).toLocaleDateString("en", { dateStyle: "long" });
-  const confidence =
-    reading.analysisConfidence === null
-      ? "n/a"
-      : `${Math.round(reading.analysisConfidence * 100)}%`;
-  w.text(
-    `${date} - ${reading.hand === "left" ? "Left" : "Right"} hand - Image analysis confidence: ${confidence}`,
-    {
-      color: MUTED,
-    },
-  );
+  w.text(`${date} - ${reading.hand === "left" ? "Left" : "Right"} hand - Detailed reading`, {
+    color: MUTED,
+  });
   if (reading.isDemo) w.text("Demo reading generated from sample palm features.", { color: MUTED });
   w.rule();
-  w.text(interpretation.overview.headline, { size: 16, font: "serif" });
-  w.text(interpretation.overview.summary);
+  w.text(narrative.headline, { size: 17, font: "serif", gap: 8 });
+  w.text(narrative.introduction);
 
-  if (interpretation.lines.length) {
-    w.heading("Your major lines");
-    for (const line of interpretation.lines) {
-      w.text(lineLabel(line.line), { font: "bold", gap: 2 });
-      w.text(line.summary, { gap: 2 });
-      if (line.details) w.text(line.details, { color: MUTED });
+  const parts: [string, string | undefined][] = [
+    ["The way you think", narrative.thinking?.text],
+    ["The way you care", narrative.caring?.text],
+  ];
+  for (const [title, text] of parts) {
+    if (!text) continue;
+    w.heading(title);
+    w.text(text);
+  }
+  if (narrative.strengths.length) {
+    w.heading("Your natural strengths");
+    for (const strength of narrative.strengths) {
+      w.text(strength.name, { font: "bold", gap: 1 });
+      w.text(strength.text, { gap: 4 });
     }
   }
+  if (narrative.career) {
+    w.heading("Your career nature");
+    w.text(narrative.career.text);
+  }
+  if (narrative.insight) {
+    w.heading("Something interesting about you");
+    w.text(narrative.insight.title, { font: "bold", gap: 2 });
+    w.text(narrative.insight.text);
+  }
 
-  const sections = [...interpretation.sections].sort(
-    (a, b) => SECTION_IDS.indexOf(a.id) - SECTION_IDS.indexOf(b.id),
-  );
+  const sections = interpretation.sections
+    .filter((s) => !usedSections.includes(s.id))
+    .sort((a, b) => SECTION_IDS.indexOf(a.id) - SECTION_IDS.indexOf(b.id));
+  if (sections.length || interpretation.lines.length) {
+    w.rule();
+    w.text("Your detailed reading", { size: 18, font: "serif", gap: 4 });
+  }
   for (const section of sections) {
     w.heading(section.title);
     w.text(section.summary, { font: "bold", gap: 3 });
     if (section.details) w.text(section.details);
     for (const point of section.points) w.text(`- ${point}`, { gap: 1 });
-    w.text(`Based on: ${section.basedOn.map((k) => featureLabel(k)).join(", ")}`, {
-      size: 8.5,
-      color: MUTED,
-    });
+  }
+
+  if (interpretation.lines.length) {
+    w.heading("Your major lines");
+    for (const line of interpretation.lines) {
+      w.text(lineTitle("en", line.line), { font: "bold", gap: 2 });
+      w.text(line.summary, { gap: 2 });
+      if (line.details) w.text(line.details, { color: MUTED });
+    }
   }
 
   if (interpretation.mounts.length) {
-    w.heading("Palm mounts");
+    w.heading("The parvats (mounts) of your palm");
     for (const mount of interpretation.mounts) {
-      w.text(mountLabel(mount.mount), { font: "bold", gap: 2 });
+      w.text(mountTitle("en", mount.mount), { font: "bold", gap: 2 });
       w.text(`${mount.summary} ${mount.details}`);
     }
   }
@@ -188,12 +209,16 @@ export async function renderReadingPdf(reading: ReadingView): Promise<Uint8Array
     w.text(interpretation.fingers.details, { color: MUTED });
   }
   if (interpretation.markings) {
-    w.heading("Markings");
+    w.heading("Special markings");
     w.text(interpretation.markings.summary);
     w.text(interpretation.markings.details, { color: MUTED });
   }
 
   w.rule();
+  w.text(
+    "This reading follows traditional Indian palmistry (Hasta Samudrika Shastra). It is a cultural tradition offered for reflection and enjoyment - not a scientific prediction.",
+    { size: 8.5, color: MUTED, gap: 3 },
+  );
   w.text(
     `${siteConfig.disclaimer} Readings never include medical, lifespan, pregnancy, legal or guaranteed financial claims.`,
     { size: 8.5, color: MUTED },
