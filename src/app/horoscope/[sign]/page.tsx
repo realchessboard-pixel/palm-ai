@@ -5,6 +5,7 @@ import { LanguageSelector } from "@/components/results/language-selector";
 import { RASHIS, SIGN_SLUGS } from "@/lib/astro/constants";
 import { getHoroscope, todayIst } from "@/lib/horoscope/service";
 import { parseLanguage } from "@/lib/i18n/languages";
+import { MahakundliCta } from "@/components/astro/mahakundli-cta";
 import { SignGrid } from "@/components/astro/sign-grid";
 import { READER_TIERS, formatInr } from "@/lib/monetization/price";
 
@@ -75,6 +76,7 @@ export default async function SignPage({
           <strong>{h.luckyNumber}</strong>
         </p>
       </article>
+      <MahakundliCta lead={`This rashifal is the same for every ${r.name}. Yours isn't.`} />
       <div className="grid gap-4 md:grid-cols-3">
         <Link href="/readers" className="paper-card block p-5">
           <p className="eyebrow">

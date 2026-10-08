@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { MahakundliCta } from "@/components/astro/mahakundli-cta";
 import { computePanchang } from "@/lib/astro/chart";
 import { RASHIS } from "@/lib/astro/constants";
 import { DEFAULT_PLACE_ID, PLACES, findPlace } from "@/lib/astro/places";
@@ -89,6 +90,9 @@ export default async function PanchangPage({
         Values at sunrise in {place.name} (IST), Lahiri ayanamsa. Rahu Kaal is traditionally avoided
         for new beginnings. For festivals and muhurat, also follow your family&apos;s panchang.
       </p>
+      <div className="mt-10">
+        <MahakundliCta lead="Today's panchang is for everyone. Your chart is only yours." />
+      </div>
       <div className="mt-10 grid gap-4 sm:grid-cols-2">
         <Link href="/horoscope" className="paper-card block p-5">
           <p className="text-lg">Today&apos;s rashifal →</p>

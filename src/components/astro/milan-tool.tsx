@@ -8,6 +8,7 @@ import { computeChart } from "@/lib/astro/chart";
 import { NAKSHATRAS, RASHIS } from "@/lib/astro/constants";
 import { gunaMilan, milanSummary, type MilanResult } from "@/lib/astro/milan";
 import { BirthFields, emptyBirth, parseBirth } from "./birth-form";
+import { MahakundliCta } from "./mahakundli-cta";
 
 interface Person {
   name: string;
@@ -123,6 +124,7 @@ export function MilanTool({ couplePriceLabel }: { couplePriceLabel: string }) {
             North Indian method; some tables (e.g. Yoni) are simplified and traditions differ. Guna
             Milan is one traditional lens — it doesn&apos;t decide a relationship.
           </p>
+          <MahakundliCta lead="Guna Milan compares two Moon signs. Marriage is in the whole chart." />
           <div className="grid gap-4 md:grid-cols-2">
             <div className="paper-card p-6">
               <h3 className="text-xl">Read your palms together</h3>
