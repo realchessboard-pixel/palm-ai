@@ -61,7 +61,7 @@ const EN: ReadingMessages = {
     "How clearly each feature could be seen in your photo — not how certain any interpretation is.",
   imageClarity: "Overall image clarity",
   handNote:
-    "Our image check thought this photo might show a left hand. PalmAI reads the right palm — if you photographed your left hand, you can start a new reading with your right.",
+    "Our image check thought this photo might show a left hand. AstroVidya reads the right palm — if you photographed your left hand, you can start a new reading with your right.",
   traditionNote:
     "This reading follows traditional Indian palmistry (Hasta Samudrika Shastra). It is a cultural tradition offered for reflection and enjoyment — not a scientific prediction.",
   translating: "Translating your reading…",
@@ -104,7 +104,7 @@ const MESSAGES: Record<Language, ReadingMessages> = {
       "तस्वीर में हर विशेषता कितनी स्पष्ट दिखी — यह किसी फलादेश की निश्चितता नहीं दर्शाता।",
     imageClarity: "तस्वीर की स्पष्टता",
     handNote:
-      "हमारी जाँच को लगा कि यह तस्वीर शायद बाएँ हाथ की है। PalmAI दाईं हथेली पढ़ता है — यदि आपने बायाँ हाथ लिया था, तो दाईं हथेली से नया फलादेश शुरू करें।",
+      "हमारी जाँच को लगा कि यह तस्वीर शायद बाएँ हाथ की है। AstroVidya दाईं हथेली पढ़ता है — यदि आपने बायाँ हाथ लिया था, तो दाईं हथेली से नया फलादेश शुरू करें।",
     traditionNote:
       "यह फलादेश पारंपरिक भारतीय हस्तरेखा शास्त्र (हस्त सामुद्रिक शास्त्र) के अनुसार है। यह एक सांस्कृतिक परंपरा है, जो चिंतन और आनंद के लिए प्रस्तुत है — कोई वैज्ञानिक भविष्यवाणी नहीं।",
     translating: "आपका फलादेश हिन्दी में तैयार हो रहा है…",
@@ -149,7 +149,7 @@ const MESSAGES: Record<Language, ReadingMessages> = {
       "Wie deutlich jedes Merkmal auf deinem Foto zu erkennen war – keine Aussage darüber, wie sicher eine Deutung ist.",
     imageClarity: "Bildklarheit insgesamt",
     handNote:
-      "Unsere Bildprüfung hielt dieses Foto möglicherweise für eine linke Hand. PalmAI liest die rechte Handfläche – falls du die linke Hand fotografiert hast, starte eine neue Lesung mit der rechten.",
+      "Unsere Bildprüfung hielt dieses Foto möglicherweise für eine linke Hand. AstroVidya liest die rechte Handfläche – falls du die linke Hand fotografiert hast, starte eine neue Lesung mit der rechten.",
     traditionNote:
       "Diese Lesung folgt der traditionellen indischen Handlesekunst (Hasta Samudrika Shastra). Sie ist eine kulturelle Tradition zur Reflexion und Freude – keine wissenschaftliche Vorhersage.",
     translating: "Deine Lesung wird übersetzt …",
@@ -189,7 +189,7 @@ const MESSAGES: Record<Language, ReadingMessages> = {
       "Qué tan claramente se veía cada rasgo en tu foto; no indica cuán segura es una interpretación.",
     imageClarity: "Claridad general de la imagen",
     handNote:
-      "Nuestra revisión de la imagen pensó que esta foto podría mostrar una mano izquierda. PalmAI lee la palma derecha: si fotografiaste la izquierda, puedes empezar una nueva lectura con la derecha.",
+      "Nuestra revisión de la imagen pensó que esta foto podría mostrar una mano izquierda. AstroVidya lee la palma derecha: si fotografiaste la izquierda, puedes empezar una nueva lectura con la derecha.",
     traditionNote:
       "Esta lectura sigue la quiromancia tradicional india (Hasta Samudrika Shastra). Es una tradición cultural, ofrecida para la reflexión y el disfrute, no una predicción científica.",
     translating: "Traduciendo tu lectura…",
@@ -234,7 +234,7 @@ const MESSAGES: Record<Language, ReadingMessages> = {
       "La netteté de chaque trait sur votre photo — et non le degré de certitude d’une interprétation.",
     imageClarity: "Netteté globale de l’image",
     handNote:
-      "Notre vérification a estimé que cette photo pourrait montrer une main gauche. PalmAI lit la paume droite : si vous avez photographié la gauche, vous pouvez commencer une nouvelle lecture avec la droite.",
+      "Notre vérification a estimé que cette photo pourrait montrer une main gauche. AstroVidya lit la paume droite : si vous avez photographié la gauche, vous pouvez commencer une nouvelle lecture avec la droite.",
     traditionNote:
       "Cette lecture suit la chiromancie indienne traditionnelle (Hasta Samudrika Shastra). C’est une tradition culturelle, proposée pour la réflexion et le plaisir — et non une prédiction scientifique.",
     translating: "Traduction de votre lecture…",
@@ -279,7 +279,7 @@ const MESSAGES: Record<Language, ReadingMessages> = {
       "O quão nitidamente cada traço aparecia na sua foto — não o quanto uma interpretação é certa.",
     imageClarity: "Nitidez geral da imagem",
     handNote:
-      "Nossa verificação achou que esta foto pode mostrar a mão esquerda. O PalmAI lê a palma direita: se você fotografou a esquerda, pode começar uma nova leitura com a direita.",
+      "Nossa verificação achou que esta foto pode mostrar a mão esquerda. O AstroVidya lê a palma direita: se você fotografou a esquerda, pode começar uma nova leitura com a direita.",
     traditionNote:
       "Esta leitura segue a quiromancia tradicional indiana (Hasta Samudrika Shastra). É uma tradição cultural, oferecida para reflexão e prazer — não uma previsão científica.",
     translating: "Traduzindo sua leitura…",
@@ -324,7 +324,7 @@ const MESSAGES: Record<Language, ReadingMessages> = {
       "Quanto chiaramente ogni tratto si vedeva nella tua foto — non quanto sia certa un’interpretazione.",
     imageClarity: "Nitidezza complessiva dell’immagine",
     handNote:
-      "Il nostro controllo ha ritenuto che questa foto potesse mostrare una mano sinistra. PalmAI legge il palmo destro: se hai fotografato la sinistra, puoi iniziare una nuova lettura con la destra.",
+      "Il nostro controllo ha ritenuto che questa foto potesse mostrare una mano sinistra. AstroVidya legge il palmo destro: se hai fotografato la sinistra, puoi iniziare una nuova lettura con la destra.",
     traditionNote:
       "Questa lettura segue la chiromanzia tradizionale indiana (Hasta Samudrika Shastra). È una tradizione culturale, offerta per la riflessione e il piacere — non una previsione scientifica.",
     translating: "Traduzione della tua lettura…",
@@ -369,7 +369,7 @@ const MESSAGES: Record<Language, ReadingMessages> = {
       "Seberapa jelas setiap ciri terlihat di fotomu — bukan seberapa pasti sebuah tafsiran.",
     imageClarity: "Kejernihan gambar secara keseluruhan",
     handNote:
-      "Pemeriksaan gambar kami mengira foto ini mungkin menunjukkan tangan kiri. PalmAI membaca telapak tangan kanan — jika kamu memotret tangan kiri, kamu bisa memulai pembacaan baru dengan tangan kanan.",
+      "Pemeriksaan gambar kami mengira foto ini mungkin menunjukkan tangan kiri. AstroVidya membaca telapak tangan kanan — jika kamu memotret tangan kiri, kamu bisa memulai pembacaan baru dengan tangan kanan.",
     traditionNote:
       "Pembacaan ini mengikuti ilmu rajah tangan tradisional India (Hasta Samudrika Shastra). Ini adalah tradisi budaya untuk refleksi dan kesenangan — bukan ramalan ilmiah.",
     translating: "Menerjemahkan pembacaanmu…",
@@ -414,7 +414,7 @@ const MESSAGES: Record<Language, ReadingMessages> = {
       "写真で各特徴がどれだけはっきり見えたかを示すもので、解釈の確かさではありません。",
     imageClarity: "画像全体の鮮明さ",
     handNote:
-      "画像チェックでは、この写真は左手かもしれないと判断されました。PalmAIは右手のひらを読みます。左手を撮影した場合は、右手で新しい鑑定を始めてください。",
+      "画像チェックでは、この写真は左手かもしれないと判断されました。AstroVidyaは右手のひらを読みます。左手を撮影した場合は、右手で新しい鑑定を始めてください。",
     traditionNote:
       "この鑑定は伝統的なインド手相学（ハスタ・サームドリカ・シャーストラ）に基づいています。内省と楽しみのための文化的な伝統であり、科学的な予言ではありません。",
     translating: "鑑定を翻訳しています…",
@@ -454,7 +454,7 @@ const MESSAGES: Record<Language, ReadingMessages> = {
       "사진에서 각 특징이 얼마나 선명하게 보였는지를 나타내며, 해석의 확실성을 뜻하지 않습니다.",
     imageClarity: "전체 이미지 선명도",
     handNote:
-      "이미지 확인 결과 이 사진이 왼손일 수도 있습니다. PalmAI는 오른손 손바닥을 읽습니다. 왼손을 촬영했다면 오른손으로 새 풀이를 시작해 보세요.",
+      "이미지 확인 결과 이 사진이 왼손일 수도 있습니다. AstroVidya는 오른손 손바닥을 읽습니다. 왼손을 촬영했다면 오른손으로 새 풀이를 시작해 보세요.",
     traditionNote:
       "이 풀이는 전통 인도 수상학(하스타 사무드리카 샤스트라)을 따릅니다. 성찰과 즐거움을 위한 문화적 전통이며, 과학적 예언이 아닙니다.",
     translating: "풀이를 번역하는 중…",

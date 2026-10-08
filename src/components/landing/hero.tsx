@@ -41,8 +41,7 @@ export function Hero() {
             </ButtonLink>
           </div>
           <p className="mt-6 text-xs text-mist-dim">
-            Free main reading · Written by AI from your photo · Your photo stays private · For
-            reflection, not prediction
+            Free to start · Your photo stays private · For reflection, not prediction
           </p>
         </div>
         <div className="relative mx-auto w-full max-w-[22rem] md:max-w-md">

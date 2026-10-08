@@ -52,7 +52,7 @@ export const HandSchema = z.enum(["left", "right"]);
 export const AnalyzeFieldsSchema = z
   .object({
     /**
-     * PalmAI reads the right hand only. The field is still accepted (older
+     * AstroVidya reads the right hand only. The field is still accepted (older
      * clients send it) but every new reading is stored as the right hand.
      */
     hand: HandSchema.optional().transform(() => "right" as const),

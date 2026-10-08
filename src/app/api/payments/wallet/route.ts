@@ -6,7 +6,7 @@ import { OrderSchema } from "@/lib/monetization/orders";
 import { payWithWallet } from "@/lib/payments/service";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 
-/** Buy a catalogue product with the signed-in user's PalmAI wallet balance. */
+/** Buy a catalogue product with the signed-in user's AstroVidya wallet balance. */
 export const POST = withErrorHandling("payments.wallet", async (request: NextRequest) => {
   const actor = await getActorFromRequest(request);
   if (actor.user) await enforceRateLimit("checkout", `user:${actor.user.id}`);

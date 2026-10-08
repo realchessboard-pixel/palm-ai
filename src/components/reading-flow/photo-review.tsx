@@ -60,7 +60,7 @@ export function PhotoReview({
             ))}
           </ul>
           <p className="mt-2 text-xs opacity-80">
-            You can still continue — our AI will make the final call on what it can see.
+            You can still continue — we will make the final call on what it can see.
           </p>
         </Alert>
       ) : null}

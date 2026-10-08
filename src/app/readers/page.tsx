@@ -12,7 +12,7 @@ import { IdSchema } from "@/lib/schemas/api";
 export const metadata: Metadata = {
   title: "Ask a palm reader",
   description:
-    "Ask PalmAI's readers about your own palm — each with their own style and focus, in Hindi, English and more. AI readers, clearly labelled.",
+    "Ask AstroVidya's readers about your own palm and chart — each with their own style, in Hindi, English and more.",
 };
 
 export default async function ReadersPage({
@@ -86,7 +86,9 @@ export default async function ReadersPage({
                 <div>
                   <h2 className="text-2xl leading-tight">{r.name}</h2>
                   <p className="mt-1 text-sm text-mist">{r.title}</p>
-                  <span className="tag mt-2">AI reader</span>
+                  <Link href="/how-readings-work" className="tag mt-2">
+                    AI
+                  </Link>
                 </div>
               </div>
               <p className="mt-4 flex-1 leading-relaxed">{r.about}</p>

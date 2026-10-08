@@ -23,7 +23,7 @@ export interface KnowledgeSource {
 export const KNOWLEDGE_SOURCES = [
   {
     id: "palmai-curated",
-    title: "PalmAI curated summaries of traditional palmistry interpretations",
+    title: "AstroVidya curated summaries of traditional palmistry interpretations",
     kind: "curated-summary",
     verified: false,
     note: "Paraphrased summaries of interpretations widely taught in Indian (Hasta Samudrika) and shared palmistry traditions. Not quotations; no specific book, author or verse is cited.",

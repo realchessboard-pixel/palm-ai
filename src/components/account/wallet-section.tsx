@@ -48,7 +48,7 @@ export function WalletSection({
         </dl>
         <p className="text-sm text-mist">
           A reading credit unlocks one detailed reading — open any of your readings and choose “Use
-          1 reading credit”. Wallet money can be spent on anything on PalmAI. It can&apos;t be
+          1 reading credit”. Wallet money can be spent on anything on AstroVidya. It can&apos;t be
           withdrawn or transferred.
         </p>
 
@@ -121,7 +121,7 @@ export function WalletSection({
                   <WhatsAppShare
                     context="gift"
                     label="Send on WhatsApp"
-                    text="I've gifted you a detailed palm reading on PalmAI 🎁 Open this link and redeem it:"
+                    text="I've gifted you a detailed palm reading on AstroVidya 🎁 Open this link and redeem it:"
                     url={`${appUrl}/gift/${g.code}`}
                   />
                 )}

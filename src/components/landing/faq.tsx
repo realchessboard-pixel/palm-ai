@@ -2,12 +2,12 @@ import { SectionHeading } from "@/components/ui/misc";
 
 export const FAQ_ITEMS = [
   {
-    q: "Is an AI palm reading accurate?",
-    a: "Palmistry is a cultural tradition, not a science, so no palm reading — human or AI — can accurately predict your future. What we measure is how confidently the AI could see features in your photo. The reading itself is for entertainment and reflection.",
+    q: "Is a palm reading accurate?",
+    a: "Palmistry is a cultural tradition, not a science, so no palm reading — can accurately predict your future. What we measure is how confidently the AI could see features in your photo. The reading itself is for entertainment and reflection.",
   },
   {
-    q: "Which hand does PalmAI read?",
-    a: "Your right hand. PalmAI follows the traditional practice of reading the right palm, so just show us your right palm — there's no need to choose.",
+    q: "Which hand does AstroVidya read?",
+    a: "Your right hand. AstroVidya follows the traditional practice of reading the right palm, so just show us your right palm — there's no need to choose.",
   },
   {
     q: "How do I take a good palm photo?",

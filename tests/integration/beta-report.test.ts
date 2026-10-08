@@ -57,7 +57,7 @@ describe.skipIf(!hasTestDatabase)("internal beta report", () => {
   });
 
   it("records hands, confidence, stage timings, retries, model and cost per reading", async () => {
-    // PalmAI reads the right hand; the model says LEFT (0.9) and needs one retry in stage 1.
+    // AstroVidya reads the right hand; the model says LEFT (0.9) and needs one retry in stage 1.
     setAiProvider(
       new ScriptedProvider(
         [

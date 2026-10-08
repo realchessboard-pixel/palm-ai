@@ -38,10 +38,10 @@ export default function TermsPage() {
         it).
       </p>
       <p>
-        The PalmAI wallet is a closed-loop balance: it can only be spent on PalmAI, and it cannot be
-        withdrawn, refunded as cash or transferred. Top-up bonuses are added when the payment is
-        confirmed. Referral rewards are reading credits, limited per month, for friends who join
-        through your link and complete a reading.
+        The AstroVidya wallet is a closed-loop balance: it can only be spent on AstroVidya, and it
+        cannot be withdrawn, refunded as cash or transferred. Top-up bonuses are added when the
+        payment is confirmed. Referral rewards are reading credits, limited per month, for friends
+        who join through your link and complete a reading.
       </p>
       <p>
         Refunds are handled according to applicable consumer law; contact {siteConfig.supportEmail}.
@@ -56,8 +56,8 @@ export default function TermsPage() {
       </p>
       <h2>Ask a Reader</h2>
       <p>
-        PalmAI&apos;s readers are AI characters with their own style. They are not real people, and
-        their portraits are illustrations. Questions you buy belong to that conversation and
+        AstroVidya&apos;s readers are AI characters with their own style. They are not real people,
+        and their portraits are illustrations. Questions you buy belong to that conversation and
         don&apos;t expire. A question is only used when an answer is delivered.
       </p>
       <h2>Couple readings</h2>

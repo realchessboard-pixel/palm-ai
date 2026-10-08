@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/lib/auth/actor";
 
 export const metadata: Metadata = {
   title: "A palm reading for you",
-  description: "Someone has gifted you a detailed palm reading on PalmAI.",
+  description: "Someone has gifted you a detailed palm reading on AstroVidya.",
   robots: { index: false, follow: false },
 };
 

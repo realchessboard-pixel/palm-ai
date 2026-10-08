@@ -149,7 +149,7 @@ export async function startOrderCheckout(order: Order, actor: Actor): Promise<Ch
 }
 
 /**
- * Pay for a product from the PalmAI wallet. The balance is debited only if it
+ * Pay for a product from the AstroVidya wallet. The balance is debited only if it
  * covers the price, in the same transaction that delivers the product.
  */
 export async function payWithWallet(

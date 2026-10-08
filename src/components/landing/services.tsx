@@ -215,7 +215,7 @@ function TileCard({ tile, free }: { tile: Tile; free: boolean }) {
   );
 }
 
-/** Everything PalmAI offers, on the home page: free tools first, then paid services. */
+/** Everything AstroVidya offers, on the home page: free tools first, then paid services. */
 export function Services() {
   return (
     <div className="mx-auto max-w-6xl space-y-14 px-4 py-14 sm:px-6">

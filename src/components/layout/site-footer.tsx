@@ -13,7 +13,7 @@ export function SiteFooter() {
             <span className="font-display text-xl">{siteConfig.name}</span>
           </div>
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-mist">
-            Palm reading, Kundli and rashifal in the Indian tradition, written with the help of AI.{" "}
+            Mahakundli, palm reading, Kundli and rashifal in the Indian tradition.{" "}
             {siteConfig.disclaimer}
           </p>
         </div>
@@ -70,6 +70,11 @@ export function SiteFooter() {
         <nav aria-label="Legal">
           <h2 className="font-sans text-sm font-semibold text-parchment">Trust</h2>
           <ul className="mt-3 space-y-2 text-sm text-mist">
+            <li>
+              <Link className="hover:text-parchment" href="/how-readings-work">
+                How readings are made
+              </Link>
+            </li>
             <li>
               <Link className="hover:text-parchment" href="/privacy">
                 Privacy policy

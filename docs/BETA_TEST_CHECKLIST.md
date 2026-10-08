@@ -1,6 +1,6 @@
-# PalmAI beta test checklist (20 real palm photos)
+# AstroVidya beta test checklist (20 real palm photos)
 
-A repeatable script for validating PalmAI on real photos before a wider beta.
+A repeatable script for validating AstroVidya on real photos before a wider beta.
 Run it against a **private staging deployment** (or `npm run dev`) with the real
 Gemini provider (`AI_PROVIDER=gemini`, `DEMO_MODE=false`) and
 `ANALYTICS_PROVIDER=database` (the default — the beta report reads from it).

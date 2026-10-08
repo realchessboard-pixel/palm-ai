@@ -102,14 +102,14 @@ export default async function PricingPage() {
 
       <section className="space-y-3" aria-labelledby="wallet-title">
         <h2 id="wallet-title" className="text-3xl">
-          PalmAI wallet
+          AstroVidya wallet
         </h2>
         <p className="text-mist">
           Add money once and spend it on any reading — with a little extra on us:{" "}
           {WALLET_TOPUPS.map(
             (t) => `pay ${formatInr(t.payInr)}, get ${formatInr(t.creditInr)}`,
           ).join(" · ")}
-          . Wallet money is for PalmAI only; it can&apos;t be withdrawn or transferred.{" "}
+          . Wallet money is for AstroVidya only; it can&apos;t be withdrawn or transferred.{" "}
           <Link href="/account" className="text-gold-300 underline underline-offset-2">
             Go to your wallet
           </Link>
@@ -118,9 +118,9 @@ export default async function PricingPage() {
 
       <section className="space-y-3 text-sm text-mist" aria-label="Notes">
         <p>
-          Palm reading on PalmAI is traditional palmistry offered for reflection and entertainment.
-          It does not predict events and is not advice about health, money, relationships or the
-          law.
+          Palm reading on AstroVidya is traditional palmistry offered for reflection and
+          entertainment. It does not predict events and is not advice about health, money,
+          relationships or the law.
         </p>
         <p>
           Prices include GST, except where shown as “+ GST” (the total is shown before you pay).

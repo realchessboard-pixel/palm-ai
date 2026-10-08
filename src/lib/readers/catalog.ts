@@ -1,7 +1,7 @@
 import type { ReaderTier } from "@/lib/monetization/price";
 
 /**
- * PalmAI's readers. Each is an AI persona with its own voice and focus — and
+ * AstroVidya's readers. Each is an AI persona with its own voice and focus — and
  * is always presented as an AI reader. Names and portraits are illustrative
  * characters, never real people, and nothing on the site claims otherwise.
  */

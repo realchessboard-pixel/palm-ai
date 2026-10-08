@@ -26,7 +26,7 @@ const SCHEMA_JSON = JSON.stringify(z.toJSONSchema(PalmAnalysisSchema, { unrepres
 export function buildAnalysisPrompt(input: { hand: "left" | "right" }): string {
   const expected =
     input.hand === "right"
-      ? "PalmAI reads the RIGHT hand only, and the user was asked to photograph their RIGHT palm, so this image is expected to show the user's RIGHT hand."
+      ? "AstroVidya reads the RIGHT hand only, and the user was asked to photograph their RIGHT palm, so this image is expected to show the user's RIGHT hand."
       : "The user says this is a photo of their LEFT hand.";
   return `${expected} That is authoritative; "hand" is only your independent check. Report which hand you believe is shown, and set "handConfidence" honestly. Hand side is easy to misjudge: selfie cameras often mirror photos, and the thumb's side depends on whether the palm faces the camera. Use "unknown" or a low confidence when unsure.
 

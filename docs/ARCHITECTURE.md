@@ -1,6 +1,6 @@
 # Architecture
 
-PalmAI is a single Next.js 16 application. Server components render pages, route handlers under `src/app/api` expose a small JSON API, and `src/lib` holds framework-agnostic services. Each external dependency (AI, storage, payments, rate limiting, analytics, auth) sits behind a narrow interface, so it can be swapped without touching business logic.
+AstroVidya is a single Next.js 16 application. Server components render pages, route handlers under `src/app/api` expose a small JSON API, and `src/lib` holds framework-agnostic services. Each external dependency (AI, storage, payments, rate limiting, analytics, auth) sits behind a narrow interface, so it can be swapped without touching business logic.
 
 ## Layers
 

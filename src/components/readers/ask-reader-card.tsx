@@ -26,7 +26,7 @@ export function AskReaderCard({ readingId }: { readingId: string }) {
           </h2>
           <p className="mt-1 text-mist">
             Ask one of our readers — they&apos;ve seen this reading. Your first question is free,
-            then from {formatInr(from)}. Readers are AI characters, clearly labelled.
+            then from {formatInr(from)}.
           </p>
         </div>
         <Link href={`/readers?reading=${readingId}`} className="btn-primary shrink-0">

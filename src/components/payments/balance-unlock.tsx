@@ -10,7 +10,7 @@ import type { BuyOrder } from "./buy-button";
 
 /**
  * Use what the visitor already has instead of paying again: a reading credit
- * (from a family pack, gift or referrals) or their PalmAI wallet balance.
+ * (from a family pack, gift or referrals) or their AstroVidya wallet balance.
  */
 export function BalanceUnlock({
   order,

@@ -62,7 +62,7 @@ export default async function AccountPage() {
         <WhatsAppShare
           context="referral"
           label="Invite on WhatsApp"
-          text="I tried PalmAI — a warm palm reading in the Indian tradition, and the main reading is free ✋ Try yours:"
+          text="I tried AstroVidya — a warm palm reading in the Indian tradition, and the main reading is free ✋ Try yours:"
           url={`${appUrl}/?ref=${referrals.code}`}
         />
       </Card>

@@ -29,7 +29,7 @@ export function HowItWorks() {
         id="how-title"
         eyebrow="How it works"
         title="Three simple steps"
-        description="Observation first, interpretation second. We separate the two so the reading never describes lines the AI didn't actually see."
+        description="Observation first, interpretation second. We separate the two so the reading never describes lines that weren't actually seen."
       />
       <ol className="mx-auto mt-14 grid max-w-5xl gap-5 md:grid-cols-3">
         {steps.map((step, index) => (

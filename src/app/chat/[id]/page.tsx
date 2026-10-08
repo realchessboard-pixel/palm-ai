@@ -40,7 +40,10 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
         <div>
           <h1 className="text-3xl leading-tight">{reader.name}</h1>
           <p className="text-sm text-mist">
-            {reader.title} · <span className="tag">AI reader</span>
+            {reader.title} ·{" "}
+            <Link href="/how-readings-work" className="tag">
+              AI
+            </Link>
           </p>
         </div>
       </header>
@@ -78,8 +81,8 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
         paymentsEnabled={paymentsEnabled()}
       />
       <p className="mt-10 text-xs text-mist">
-        {reader.name} is an AI reader. Answers are traditional palmistry for reflection and
-        entertainment — not predictions or advice about health, money, relationships or the law.{" "}
+        Answers are traditional palmistry for reflection and entertainment — not predictions or
+        advice about health, money, relationships or the law.{" "}
         <Link href="/readers" className="link">
           All readers
         </Link>

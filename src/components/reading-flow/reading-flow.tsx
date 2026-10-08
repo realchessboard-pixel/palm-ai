@@ -41,7 +41,7 @@ interface AnalyzeResponse {
   status: string;
 }
 
-/** PalmAI reads the right hand only, following the traditional reading of the right palm. */
+/** AstroVidya reads the right hand only, following the traditional reading of the right palm. */
 const HAND = "right" as const;
 
 const PARTNER_TITLES: Record<Step["kind"], string> = {

@@ -34,7 +34,7 @@ export interface ResultsDashboardProps {
   adMode?: AdMode;
   /** Signed-in visitors' reading credits and wallet balance. */
   balances?: { readingCredits: number; walletPaise: number } | null;
-  /** Link for sharing PalmAI (with the visitor's referral code when signed in). */
+  /** Link for sharing AstroVidya (with the visitor's referral code when signed in). */
   shareUrl?: string;
   /** Shown next to the share button for signed-in visitors. */
   referralNote?: string | null;

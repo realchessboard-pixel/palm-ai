@@ -64,7 +64,7 @@ export const PRODUCTS: Record<CatalogProduct, ProductInfo> = {
   },
   MEMBERSHIP_YEAR: {
     priceInr: 299,
-    name: "PalmAI membership — 1 year",
+    name: "AstroVidya membership — 1 year",
     description:
       "For a year, every palm reading includes the detailed reading and PDF, and every Kundli includes the full Kundli reading.",
     requiresAccount: true,
@@ -79,7 +79,7 @@ export const GIFT_VALID_DAYS = 365;
 
 /**
  * Wallet top-ups with a bonus. The wallet is closed-loop: spendable only on
- * PalmAI, not refundable as cash and not transferable.
+ * AstroVidya, not refundable as cash and not transferable.
  */
 export const WALLET_TOPUPS = [
   { payInr: 100, creditInr: 110 },

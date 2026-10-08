@@ -160,7 +160,7 @@ export async function prepareOrder(order: Order, actor: Actor): Promise<Prepared
         product: order.product,
         amountPaise: toPaise(topup.payInr),
         userId: requireAccount(actor),
-        description: `PalmAI wallet: pay ${formatInr(topup.payInr)}, get ${formatInr(topup.creditInr)}`,
+        description: `AstroVidya wallet: pay ${formatInr(topup.payInr)}, get ${formatInr(topup.creditInr)}`,
         returnPath: "/account",
       };
     }

@@ -68,7 +68,7 @@ function noteFor(r: MatchedRule): string {
 
 interface PromptInput {
   analysis: PalmAnalysis;
-  /** The hand the reading is for (PalmAI reads the right hand). */
+  /** The hand the reading is for (AstroVidya reads the right hand). */
   hand: "left" | "right";
   available: Map<FeatureKey, number>;
   rules: MatchedRule[];

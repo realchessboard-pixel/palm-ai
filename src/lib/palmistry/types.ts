@@ -38,7 +38,7 @@ export interface PalmistryRule<Observation> {
    * reflection. Feeds the Challenges section.
    */
   shadow?: string;
-  /** Where this interpretation comes from; defaults to PalmAI's curated summaries. */
+  /** Where this interpretation comes from; defaults to AstroVidya's curated summaries. */
   source?: KnowledgeSourceId;
 }
 

@@ -2,7 +2,7 @@ import { WhatsAppShare } from "@/components/share/whatsapp-share";
 import { ButtonLink } from "@/components/ui/button";
 
 /**
- * After the reading: invite the visitor to share PalmAI on WhatsApp (only the
+ * After the reading: invite the visitor to share AstroVidya on WhatsApp (only the
  * headline they choose to send, never the reading itself) and to read their
  * palm together with their partner.
  */
@@ -31,7 +31,7 @@ export function ShareAndCouple({
         </p>
         <WhatsAppShare
           context="reading"
-          text={`My palm reading on PalmAI says: “${headline}” ✋ Read your palm free:`}
+          text={`My palm reading on AstroVidya says: “${headline}” ✋ Read your palm free:`}
           url={shareUrl}
         />
       </div>

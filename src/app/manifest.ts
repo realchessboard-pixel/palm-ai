@@ -3,7 +3,7 @@ import { siteConfig } from "@/lib/config/site";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: `${siteConfig.name} — AI Palm Reading`,
+    name: `${siteConfig.name} — Kundli & Palm Reading`,
     short_name: siteConfig.name,
     description: siteConfig.description,
     start_url: "/?source=pwa",

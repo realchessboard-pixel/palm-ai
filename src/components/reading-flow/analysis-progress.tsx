@@ -88,8 +88,8 @@ export function AnalysisProgress({ phase }: { phase: PipelinePhase }) {
         })}
       </ol>
       <p className="mt-6 text-xs leading-relaxed text-mist-dim">
-        The AI examines your photo in a single pass, so the first three steps finish together. Your
-        palm map appears as soon as they do, while your interpretation is written.
+        We examine your photo in a single pass, so the first three steps finish together. Your palm
+        map appears as soon as they do, while your interpretation is written.
       </p>
     </div>
   );

@@ -61,6 +61,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "yearly",
       priority: 0.3,
     },
+    {
+      url: `${siteConfig.url}/how-readings-work`,
+      lastModified: now,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
     { url: `${siteConfig.url}/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
     ...SIGN_SLUGS.map((sign) => ({
       url: `${siteConfig.url}/horoscope/${sign}`,

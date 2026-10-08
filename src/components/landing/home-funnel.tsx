@@ -163,7 +163,7 @@ export function HomeFunnel() {
           <h2 className="mt-1 text-3xl text-[#f3efe6]">Ask a Reader</h2>
           <p className="mt-2 flex-1 opacity-85">
             Ask about your own palm or chart. Readers with their own style reply in your language
-            within a minute. AI readers, clearly labelled.
+            within a minute.
           </p>
           <ul className="mt-3 flex flex-wrap gap-2 text-xs">
             <li className="rounded-full border border-white/30 px-3 py-1">First question free</li>

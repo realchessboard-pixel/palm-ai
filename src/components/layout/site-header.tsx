@@ -16,6 +16,7 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
     { href: "/panchang", label: "Panchang" },
     { href: "/readers", label: "Ask a reader" },
     { href: "/pricing", label: "Pricing" },
+    { href: "/how-readings-work", label: "About" },
     ...(user ? [{ href: "/readings", label: "Your readings" }] : []),
     ...(user?.isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
   ];
@@ -26,7 +27,7 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
         <Logo />
         <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
           {links
-            .filter((l) => l.href !== "/panchang")
+            .filter((l) => l.href !== "/panchang" && l.href !== "/how-readings-work")
             .map((link) => (
               <Link
                 key={link.href}

@@ -1,6 +1,6 @@
-# Razorpay setup (PalmAI products)
+# Razorpay setup (AstroVidya products)
 
-PalmAI uses Razorpay **Orders + Standard Checkout** with server-side verification.
+AstroVidya uses Razorpay **Orders + Standard Checkout** with server-side verification.
 No Razorpay credential is in the source code: everything comes from environment
 variables, and only the public **key id** is ever sent to the browser.
 

@@ -146,8 +146,8 @@ export default async function MahakundliReportPage({
               <div className="paper-card p-6 sm:p-8">{buy}</div>
               <p className="text-xs text-mist">
                 Includes your running dasha, life-area timing and the next 3 years of major
-                transits. Included with PalmAI membership. Traditional Jyotish for reflection — no
-                fear, no remedies to buy.
+                transits. Included with AstroVidya membership. Traditional Jyotish for reflection —
+                no fear, no remedies to buy.
               </p>
             </section>
           )}

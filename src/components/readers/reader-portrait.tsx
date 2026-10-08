@@ -2,7 +2,7 @@ import type { Reader } from "@/lib/readers/catalog";
 
 /**
  * A flat, paper-cut style illustration of a reader. Deliberately an
- * illustration — PalmAI's readers are AI characters, not photographs of people.
+ * illustration — AstroVidya's readers are AI characters, not photographs of people.
  */
 export function ReaderPortrait({
   reader,

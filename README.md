@@ -1,8 +1,8 @@
-# PalmAI
+# AstroVidya
 
 A mobile-first AI palmistry web app. Users photograph or upload their palm and receive a reading grounded in the features an AI vision model could actually see, interpreted through traditional palmistry.
 
-> **For entertainment, cultural and personal-reflection purposes only.** Palmistry isn't scientifically validated. PalmAI never makes medical, lifespan, pregnancy, criminality, legal or guaranteed-financial claims, and its confidence score measures **image analysis**, not the truth of any prediction.
+> **For entertainment, cultural and personal-reflection purposes only.** Palmistry isn't scientifically validated. AstroVidya never makes medical, lifespan, pregnancy, criminality, legal or guaranteed-financial claims, and its confidence score measures **image analysis**, not the truth of any prediction.
 
 ---
 
@@ -141,7 +141,7 @@ All variables are documented inline in [`.env.example`](.env.example) and valida
 | `DATABASE_URL`                                                                           | PostgreSQL connection string                                        |
 | `TEST_DATABASE_URL`                                                                      | Separate database for integration tests (**it gets truncated**)     |
 | `NEXT_PUBLIC_APP_URL`                                                                    | Canonical URL (metadata, sitemap, payment redirects, CSRF origin)   |
-| `NEXT_PUBLIC_APP_NAME`                                                                   | Product name (defaults to PalmAI)                                   |
+| `NEXT_PUBLIC_APP_NAME`                                                                   | Product name (defaults to AstroVidya)                               |
 | `AI_PROVIDER`                                                                            | `anthropic`, `openai`, `gemini` or `mock`                           |
 | `AI_API_KEY`, `AI_MODEL`, `AI_INTERPRETATION_MODEL`                                      | Credentials and models                                              |
 | `AI_TIMEOUT_MS`, `AI_MAX_ATTEMPTS`, `AI_EFFORT`                                          | Call limits and the Anthropic effort level                          |
@@ -213,7 +213,7 @@ taken from the request.
 | Family pack      | ₹149                                  | 4 reading credits (one credit unlocks one detailed reading; never expire)                   |
 | Gift a reading   | ₹49                                   | A gift code to share on WhatsApp (`/gift/CODE`), worth one credit, valid a year             |
 | Membership       | ₹299                                  | Every reading on the account includes the detailed reading for 365 days; no auto-renewal    |
-| Wallet top-up    | ₹100 → ₹110, ₹250 → ₹280, ₹500 → ₹575 | Closed-loop balance, spendable only on PalmAI                                               |
+| Wallet top-up    | ₹100 → ₹110, ₹250 → ₹280, ₹500 → ₹575 | Closed-loop balance, spendable only on AstroVidya                                           |
 
 - **Astrology (free):** `/horoscope` (daily rashifal for 12 Moon signs, one
   cached AI call per day and language, grounded in the Moon's transit house,

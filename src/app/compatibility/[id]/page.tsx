@@ -70,7 +70,7 @@ export default async function CompatibilityPage({
             <h2 className="text-xl text-gold-200">Know another couple who&apos;d enjoy this?</h2>
             <WhatsAppShare
               context="compatibility"
-              text="We read our palms together on PalmAI — two palms, read side by side. Try it with your partner:"
+              text="We read our palms together on AstroVidya — two palms, read side by side. Try it with your partner:"
               url={`${appUrl}/compatibility`}
             />
           </section>

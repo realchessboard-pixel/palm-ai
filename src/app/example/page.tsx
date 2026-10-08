@@ -7,7 +7,7 @@ import { buildReadingView } from "@/lib/readings/build-view";
 export const metadata: Metadata = {
   title: "Example Palm Reading",
   description:
-    "See an example AI palmistry reading: heart, head, life and fate lines, mounts, fingers and traditional palmistry highlights.",
+    "See an example palm reading: heart, head, life and fate lines, mounts, fingers and traditional palmistry highlights.",
   alternates: { canonical: "/example" },
 };
 
