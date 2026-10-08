@@ -12,6 +12,7 @@ if (!hasTestDatabase) {
 
 const TABLES = [
   "DailyHoroscope",
+  "MilanProfile",
   "KundliProfile",
   "ReaderMessage",
   "ReaderChat",

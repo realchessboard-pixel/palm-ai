@@ -142,3 +142,56 @@ describe.skipIf(!hasTestDatabase)("Kundli reading", () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe.skipIf(!hasTestDatabase)("detailed Kundli Milan", () => {
+  beforeEach(async () => {
+    await resetDatabase();
+    resetIdempotencyCache();
+    setAiProvider(undefined);
+    setEnv({ PAYMENT_PROVIDER: "mock", NODE_ENV: "test", DEMO_MODE: "false" });
+  });
+
+  it("shows only the score free; the koota table and report come after payment", async () => {
+    const { POST: createMilan } = await import("@/app/api/milan/route");
+    const { POST: milanReport } = await import("@/app/api/milan/[id]/report/route");
+    const { getMilanView } = await import("@/lib/kundli/milan-service");
+    const jar = new CookieJar();
+    const res = await createMilan(
+      makeRequest("/api/milan", {
+        json: { a: { name: "Ravi", birth }, b: { name: "Sita", birth: { ...birth, year: 1996 } } },
+        jar,
+      }),
+      ctx,
+    );
+    jar.absorb(res);
+    const { milanId } = await json<{ milanId: string }>(res);
+    const actor = () => getActorFromRequest(makeRequest("/", { jar }));
+
+    const free = await getMilanView(milanId, await actor());
+    expect(free.total).toBeGreaterThanOrEqual(0);
+    expect(free.kootas).toBeNull();
+    const report = () =>
+      milanReport(
+        makeRequest(`/api/milan/${milanId}/report`, { json: {}, jar }),
+        params({ id: milanId }),
+      );
+    expect((await report()).status).toBe(403);
+
+    const started = await checkout(
+      makeRequest("/api/payments/checkout", { json: { product: "MILAN_REPORT", milanId }, jar }),
+      ctx,
+    );
+    const paymentId = (await json<{ url: string }>(started)).url.split("/checkout/sandbox/")[1]!;
+    expect((await db.payment.findUniqueOrThrow({ where: { id: paymentId } })).amount).toBe(
+      PRODUCTS.MILAN_REPORT.priceInr * 100,
+    );
+    await mockComplete(
+      makeRequest("/api/payments/mock/complete", { json: { paymentId, outcome: "success" }, jar }),
+      ctx,
+    );
+    expect((await report()).status).toBe(200);
+    const paid = await getMilanView(milanId, await actor());
+    expect(paid.kootas).toHaveLength(8);
+    expect(paid.report!.sections.length).toBeGreaterThan(3);
+  });
+});

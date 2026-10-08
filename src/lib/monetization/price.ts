@@ -13,6 +13,7 @@ export const PRODUCT_KINDS = [
   "GIFT_READING",
   "MEMBERSHIP_YEAR",
   "KUNDLI_REPORT",
+  "MILAN_REPORT",
 ] as const;
 export type CatalogProduct = (typeof PRODUCT_KINDS)[number];
 
@@ -27,6 +28,15 @@ export interface ProductInfo {
 }
 
 export const PRODUCTS: Record<CatalogProduct, ProductInfo> = {
+  MILAN_REPORT: {
+    // ₹199 + 18% GST, shown as both before payment.
+    priceInr: 235,
+    baseInr: 199,
+    name: "Detailed Kundli Milan",
+    description:
+      "All 8 kootas explained for the two of you, both charts compared (Moon, 7th house, Venus), both running dashas and practical guidance.",
+    requiresAccount: false,
+  },
   KUNDLI_REPORT: {
     // ₹501 + 18% GST, shown as both before payment.
     priceInr: 591,

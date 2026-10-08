@@ -65,6 +65,7 @@ enum ProductKind {
   WALLET_TOPUP
   READER_QUESTIONS
   KUNDLI_REPORT
+  MILAN_REPORT
 }
 
 enum ReadingRole {
@@ -116,6 +117,7 @@ model User {
   compatibilities Compatibility[]
   readerChats     ReaderChat[]
   kundlis         KundliProfile[]
+  milans          MilanProfile[]
 }
 
 model Session {
@@ -215,6 +217,8 @@ model Payment {
   product           ProductKind     @default(DETAILED_READING)
   compatibilityId   String?
   compatibility     Compatibility?  @relation(fields: [compatibilityId], references: [id], onDelete: SetNull)
+  milanId           String?
+  milan             MilanProfile?   @relation(fields: [milanId], references: [id], onDelete: SetNull)
   kundliId          String?
   kundli            KundliProfile?  @relation(fields: [kundliId], references: [id], onDelete: SetNull)
   readerChatId      String?
@@ -423,6 +427,30 @@ model KundliProfile {
   chart        Json
   /// The one free Mahakundli answer: { area, text }.
   teaser       Json?
+  reportStatus KundliReportStatus @default(NONE)
+  report       Json?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  payments     Payment[]
+
+  @@index([userId])
+  @@index([guestKeyHash])
+}
+
+/// A saved Kundli Milan (two birth charts and their Guna Milan).
+model MilanProfile {
+  id           String             @id @default(cuid())
+  userId       String?
+  user         User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guestKeyHash String?
+  nameA        String
+  nameB        String
+  birthA       Json
+  birthB       Json
+  chartA       Json
+  chartB       Json
+  /// Guna Milan result (8 kootas, total out of 36).
+  result       Json
   reportStatus KundliReportStatus @default(NONE)
   report       Json?
   createdAt    DateTime           @default(now())

@@ -18,7 +18,12 @@ import {
   toPaise,
   walletTopup,
 } from "./price";
-import { getOwnedKundli, hasKundliAccess } from "@/lib/kundli/access";
+import {
+  getOwnedKundli,
+  getOwnedMilan,
+  hasKundliAccess,
+  hasMilanAccess,
+} from "@/lib/kundli/access";
 import { getOwnedReaderChat } from "@/lib/readers/access";
 import { getReader } from "@/lib/readers/catalog";
 import { getOwnedCompatibility, hasCompatibilityAccess } from "./compatibility-access";
@@ -31,6 +36,7 @@ export const OrderSchema = z.discriminatedUnion("product", [
   z.object({ product: z.literal("GIFT_READING") }),
   z.object({ product: z.literal("MEMBERSHIP_YEAR") }),
   z.object({ product: z.literal("KUNDLI_REPORT"), kundliId: IdSchema }),
+  z.object({ product: z.literal("MILAN_REPORT"), milanId: IdSchema }),
   z.object({
     product: z.literal("READER_QUESTIONS"),
     chatId: IdSchema,
@@ -51,6 +57,7 @@ export interface PreparedOrder {
   compatibilityId: string | null;
   readerChatId: string | null;
   kundliId: string | null;
+  milanId: string | null;
   /** Units bought (questions for a reader chat; 1 otherwise). */
   quantity: number;
   description: string;
@@ -76,6 +83,7 @@ export async function prepareOrder(order: Order, actor: Actor): Promise<Prepared
     compatibilityId: null,
     readerChatId: null,
     kundliId: null,
+    milanId: null,
     quantity: 1,
     alreadyOwned: false,
   };
@@ -134,6 +142,19 @@ export async function prepareOrder(order: Order, actor: Actor): Promise<Prepared
         description: PRODUCTS.KUNDLI_REPORT.name,
         returnPath: `/kundli/${kundli.id}`,
         alreadyOwned: await hasKundliAccess(kundli),
+      };
+    }
+    case "MILAN_REPORT": {
+      const milan = await getOwnedMilan(order.milanId, actor);
+      return {
+        ...base,
+        product: order.product,
+        amountPaise: toPaise(PRODUCTS.MILAN_REPORT.priceInr),
+        userId: milan.userId,
+        milanId: milan.id,
+        description: PRODUCTS.MILAN_REPORT.name,
+        returnPath: `/kundli-milan/${milan.id}`,
+        alreadyOwned: await hasMilanAccess(milan),
       };
     }
     case "READER_QUESTIONS": {
@@ -265,6 +286,7 @@ export async function grantOrder(tx: Prisma.TransactionClient, payment: Payment)
       });
       return;
     }
+    case "MILAN_REPORT":
     case "KUNDLI_REPORT":
       // Access comes from the PAID payment itself (see hasKundliAccess).
       return;
@@ -295,7 +317,10 @@ export async function grantOrder(tx: Prisma.TransactionClient, payment: Payment)
 
 /** Who may continue, settle or cancel a payment: the owner of what it buys. */
 export async function assertPaymentOwner(
-  payment: Pick<Payment, "readingId" | "compatibilityId" | "readerChatId" | "kundliId" | "userId">,
+  payment: Pick<
+    Payment,
+    "readingId" | "compatibilityId" | "readerChatId" | "kundliId" | "milanId" | "userId"
+  >,
   actor: Actor,
 ): Promise<void> {
   if (payment.readingId) {
@@ -306,17 +331,20 @@ export async function assertPaymentOwner(
     await getOwnedReaderChat(payment.readerChatId, actor);
   } else if (payment.kundliId) {
     await getOwnedKundli(payment.kundliId, actor);
+  } else if (payment.milanId) {
+    await getOwnedMilan(payment.milanId, actor);
   } else if (!payment.userId || actor.user?.id !== payment.userId) {
     throw new AppError("NOT_FOUND");
   }
 }
 
 export function returnPathFor(
-  payment: Pick<Payment, "readingId" | "compatibilityId" | "readerChatId" | "kundliId">,
+  payment: Pick<Payment, "readingId" | "compatibilityId" | "readerChatId" | "kundliId" | "milanId">,
 ): string {
   if (payment.readingId) return `/readings/${payment.readingId}`;
   if (payment.compatibilityId) return `/compatibility/${payment.compatibilityId}`;
   if (payment.readerChatId) return `/chat/${payment.readerChatId}`;
   if (payment.kundliId) return `/kundli/${payment.kundliId}`;
+  if (payment.milanId) return `/kundli-milan/${payment.milanId}`;
   return "/account";
 }

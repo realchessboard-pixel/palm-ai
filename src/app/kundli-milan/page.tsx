@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { MilanTool } from "@/components/astro/milan-tool";
-import { PRODUCTS, formatInr } from "@/lib/monetization/price";
 
 export const metadata: Metadata = {
   title: "Kundli Milan — free Guna Milan online",
@@ -16,10 +15,11 @@ export default function KundliMilanPage() {
         <h1 className="text-4xl sm:text-5xl">Match two Kundlis</h1>
         <p className="text-lg text-mist">
           Enter both birth details for the traditional Ashtakoota Guna Milan — all eight kootas,
-          explained, out of 36.
+          explained, out of 36. Your score is free; the detailed Milan explains every koota and both
+          charts.
         </p>
       </header>
-      <MilanTool couplePriceLabel={formatInr(PRODUCTS.COUPLE_COMPATIBILITY.priceInr)} />
+      <MilanTool />
     </div>
   );
 }
