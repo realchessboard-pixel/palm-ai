@@ -15,7 +15,7 @@ import { sampleAnalysis } from "@/lib/palmistry/sample-analysis";
 import { resetIdempotencyCache } from "@/lib/pipeline/idempotency";
 import { getReader } from "@/lib/readers/catalog";
 import { getReaderChatView } from "@/lib/readers/service";
-import { ScriptedProvider } from "../helpers/ai";
+import { ScriptedProvider, teaserJson } from "../helpers/ai";
 import { hasTestDatabase, resetDatabase } from "../helpers/db";
 import { CookieJar, json, makeRequest, params } from "../helpers/http";
 import { palmLikeImage } from "../helpers/images";
@@ -91,7 +91,7 @@ describe.skipIf(!hasTestDatabase)("Ask a Reader", () => {
     setEnv({ PAYMENT_PROVIDER: "mock", NODE_ENV: "test", DEMO_MODE: "false" });
     provider = new ScriptedProvider([
       JSON.stringify(sampleAnalysis("right")),
-      JSON.stringify({ narrative: composeRuleBasedReading(sampleAnalysis("right")).narrative }),
+      teaserJson(composeRuleBasedReading(sampleAnalysis("right")).narrative!),
     ]);
     setAiProvider(provider);
   });

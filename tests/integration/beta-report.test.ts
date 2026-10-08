@@ -8,7 +8,7 @@ import { setAiProvider } from "@/lib/ai";
 import { resetEnvCache } from "@/lib/config/env";
 import { composeRuleBasedReading } from "@/lib/palmistry/interpretation";
 import { sampleAnalysis } from "@/lib/palmistry/sample-analysis";
-import { ScriptedProvider } from "../helpers/ai";
+import { ScriptedProvider, teaserJson } from "../helpers/ai";
 import { hasTestDatabase, resetDatabase } from "../helpers/db";
 import { CookieJar, json, makeRequest } from "../helpers/http";
 import { palmLikeImage } from "../helpers/images";
@@ -63,7 +63,7 @@ describe.skipIf(!hasTestDatabase)("internal beta report", () => {
         [
           "not json",
           JSON.stringify({ ...sampleAnalysis("right"), hand: "left", handConfidence: 0.9 }),
-          JSON.stringify(composeRuleBasedReading(sampleAnalysis("right"))),
+          teaserJson(composeRuleBasedReading(sampleAnalysis("right")).narrative!),
         ],
         { inputTokens: 4600, imageTokens: 1064, outputTokens: 1300, thinkingTokens: 1000 },
       ),
@@ -106,7 +106,7 @@ describe.skipIf(!hasTestDatabase)("internal beta report", () => {
       new ScriptedProvider(
         [
           JSON.stringify(sampleAnalysis("right")),
-          JSON.stringify(composeRuleBasedReading(sampleAnalysis("right"))),
+          teaserJson(composeRuleBasedReading(sampleAnalysis("right")).narrative!),
         ],
         { inputTokens: 5000, outputTokens: 2000, thinkingTokens: 2000 },
       ),

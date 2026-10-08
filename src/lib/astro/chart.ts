@@ -347,3 +347,25 @@ export function moonRashiAt(date: Date): number {
 export function rashiName(i: number) {
   return RASHIS[((i % 12) + 12) % 12]!;
 }
+
+/** When Saturn, Jupiter and Rahu change sign over the coming years (sidereal). */
+export function upcomingTransits(
+  from: Date,
+  years = 3,
+): { planet: "Saturn" | "Jupiter" | "Rahu"; rashi: number; date: string }[] {
+  const out: { planet: "Saturn" | "Jupiter" | "Rahu"; rashi: number; date: string }[] = [];
+  const end = from.getTime() + years * YEAR_MS;
+  const lon = (p: "Saturn" | "Jupiter" | "Rahu", d: Date) =>
+    p === "Rahu" ? rahuLongitude(d) : siderealLongitude(p, d);
+  for (const planet of ["Saturn", "Jupiter", "Rahu"] as const) {
+    let prev = rashiOf(lon(planet, from));
+    for (let t = from.getTime() + 2 * DAY_MS; t <= end; t += 2 * DAY_MS) {
+      const r = rashiOf(lon(planet, new Date(t)));
+      if (r !== prev) {
+        out.push({ planet, rashi: r, date: new Date(t).toISOString().slice(0, 10) });
+        prev = r;
+      }
+    }
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}

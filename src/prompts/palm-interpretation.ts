@@ -1,11 +1,11 @@
 import { z } from "zod";
 import { featureLabel, type FeatureKey } from "@/lib/palmistry/features";
-import { COMBINATIONS, PARVATS, REKHAS, type NarrativePart } from "@/lib/palmistry/tradition";
+import { COMBINATIONS, PARVATS, REKHAS } from "@/lib/palmistry/tradition";
 import type { MatchedRule } from "@/lib/palmistry/types";
 import { LINE_NAMES, MOUNT_NAMES, type PalmAnalysis } from "@/lib/schemas/palm-analysis";
 import {
   GeneratedDetailedSchema,
-  GeneratedNarrativeSchema,
+  GeneratedTeaserSchema,
   SECTION_TITLES,
   type ReadingNarrative,
   type SectionId,
@@ -45,7 +45,7 @@ SAFETY
 Return valid JSON matching the supplied schema. Output only the JSON object.`;
 
 const NARRATIVE_SCHEMA_JSON = JSON.stringify(
-  z.toJSONSchema(GeneratedNarrativeSchema, { unrepresentable: "any" }),
+  z.toJSONSchema(GeneratedTeaserSchema, { unrepresentable: "any" }),
 );
 const DETAILED_SCHEMA_JSON = JSON.stringify(
   z.toJSONSchema(GeneratedDetailedSchema, { unrepresentable: "any" }),
@@ -65,12 +65,6 @@ function withoutPathPoints(lines: PalmAnalysis["lines"]) {
 function noteFor(r: MatchedRule): string {
   return `- (${r.features.join(", ")}; ${r.confidence < 0.6 ? "softer feature" : "clear feature"}) ${r.traditional} ${r.explanation}${r.shadow ? ` Gentle reflection: ${r.shadow}` : ""}`;
 }
-
-const PART_TITLES: Record<NarrativePart, string> = {
-  thinking: '"thinking" — The way you think',
-  caring: '"caring" — The way you care',
-  career: '"career" — Your career nature',
-};
 
 interface PromptInput {
   analysis: PalmAnalysis;
@@ -128,31 +122,19 @@ function allNotes(rules: MatchedRule[]): string {
   return rules.map((r) => `- [${r.category}] ${noteFor(r).slice(2)}`).join("\n");
 }
 
-/** The free reading: the main, human-style reading only. */
+/** The free reading: one short section, to keep the cost of a free reading low. */
 export function buildInterpretationPrompt(input: PromptInput): string {
-  // Group the traditional notes by the part of the reading they serve.
-  const plan = (Object.keys(COMBINATIONS) as NarrativePart[])
-    .map((part) => {
-      const keys = new Set<string>(COMBINATIONS[part].features);
-      const relevant = input.rules.filter((r) => r.features.some((f) => keys.has(f)));
-      return `${PART_TITLES[part]}\n${COMBINATIONS[part].guide}\n${relevant.length ? relevant.map(noteFor).join("\n") : "- (no relevant features were observed: set this to null)"}`;
-    })
-    .join("\n\n");
-
+  const keys = new Set<string>(COMBINATIONS.thinking.features);
+  const relevant = input.rules.filter((r) => r.features.some((f) => keys.has(f)));
   return `${observationContext(input)}
 
-PLAN FOR THE MAIN READING ("narrative")
-- "headline": one evocative, personal line drawn from this palm (not a prediction), e.g. "A thoughtful mind with a quietly independent nature" — but write your own.
-- "introduction": 2–3 short paragraphs separated by a blank line. Open as a reader who has just studied the palm: what stands out first, the overall character of the hand, and a sentence that this is traditional palmistry, offered for reflection.
+WRITE A SHORT FIRST READING (the rest of the reading is written later)
+- "headline": one evocative, personal line drawn from this palm (not a prediction).
+- "introduction": 2 short paragraphs separated by a blank line: what stands out first in this hand, and a sentence that this is traditional palmistry, offered for reflection. About 90 words.
+- "thinking": "The way you think" — ${COMBINATIONS.thinking.guide} About 110 words, citing AVAILABLE FEATURES in "basedOn".
 
-${plan}
-
-"strengths" — Your natural strengths: 4–6 strengths that genuinely follow from THIS palm's features (each a 1–3 word name and 1–2 sentences). Vary them; don't default to a stock list.
-
-"insight" — Something interesting about you: the most engaging part. Find a real tension or balance between two or more observations (logic and emotion, independence and loyalty, curiosity and discipline, ambition and patience…) and explain it warmly in one or two paragraphs. Give it a short title.
-
-TRADITIONAL NOTES (all matched interpretations — your source material):
-${allNotes(input.rules)}
+TRADITIONAL NOTES FOR THIS PART:
+${relevant.length ? relevant.map(noteFor).join("\n") : allNotes(input.rules)}
 
 JSON schema:
 ${NARRATIVE_SCHEMA_JSON}`;

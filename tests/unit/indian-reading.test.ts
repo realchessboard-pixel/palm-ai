@@ -150,8 +150,9 @@ describe("prompts", () => {
       /Never mention AI[\s\S]*confidence[\s\S]*percentages/,
     );
     expect(INTERPRETATION_SYSTEM_PROMPT).toMatch(/Combine observations/);
-    expect(prompt).toMatch(/"thinking" — The way you think/);
-    expect(prompt).toMatch(/"insight" — Something interesting about you/);
+    expect(prompt).toMatch(/"thinking": "The way you think"/);
+    // The free reading is one short section; the rest is written after purchase.
+    expect(prompt).not.toMatch(/"insight"/);
     expect(prompt).toContain("Guru Parvat (Mount of Jupiter), ruled by Guru (Jupiter)");
   });
 

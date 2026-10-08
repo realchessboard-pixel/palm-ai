@@ -421,6 +421,8 @@ model KundliProfile {
   /// Birth details as entered (date, time, place, coordinates, UTC offset).
   birth        Json
   chart        Json
+  /// The one free Mahakundli answer: { area, text }.
+  teaser       Json?
   reportStatus KundliReportStatus @default(NONE)
   report       Json?
   createdAt    DateTime           @default(now())

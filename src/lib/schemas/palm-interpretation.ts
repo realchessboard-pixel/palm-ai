@@ -169,6 +169,31 @@ export const GeneratedNarrativeSchema = z.object({
 });
 export type GeneratedNarrative = z.infer<typeof GeneratedNarrativeSchema>;
 
+/**
+ * The free reading: one section only (headline, a short introduction and
+ * "the way you think"), kept small so a visitor who doesn't buy costs little.
+ */
+export const GeneratedTeaserSchema = z.object({
+  headline: z.string().min(1).max(140),
+  introduction: z.string().min(1).max(1200),
+  thinking: PassageSchema,
+});
+export type GeneratedTeaser = z.infer<typeof GeneratedTeaserSchema>;
+
+export function teaserToNarrative(t: GeneratedTeaser): GeneratedNarrative {
+  return {
+    narrative: {
+      headline: t.headline,
+      introduction: t.introduction,
+      thinking: t.thinking,
+      caring: null,
+      strengths: [],
+      career: null,
+      insight: null,
+    },
+  } as GeneratedNarrative;
+}
+
 /** What the model writes once the detailed reading is unlocked. */
 export const GeneratedDetailedSchema = z
   .object({

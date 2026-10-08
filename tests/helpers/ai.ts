@@ -26,3 +26,16 @@ export class ScriptedProvider implements AiProvider {
     return { text, model: "test-model", usage: this.usage };
   }
 }
+
+/** What stage 2 (the free teaser) returns, built from a full sample narrative. */
+export function teaserJson(narrative: {
+  headline: string;
+  introduction: string;
+  thinking: { text: string; basedOn: string[] } | null;
+}): string {
+  return JSON.stringify({
+    headline: narrative.headline,
+    introduction: narrative.introduction.slice(0, 1200),
+    thinking: narrative.thinking,
+  });
+}

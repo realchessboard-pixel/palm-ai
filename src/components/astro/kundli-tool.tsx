@@ -238,12 +238,11 @@ function KundliUpsell({
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <div className="paper-card flex flex-col p-6 md:col-span-2">
-        <p className="eyebrow">Full Kundli reading · {reportPriceLabel}</p>
-        <h3 className="mt-1 text-2xl">What your chart says about you</h3>
+        <p className="eyebrow">Mahakundli · 17 life areas · {reportPriceLabel}</p>
+        <h3 className="mt-1 text-2xl">Marriage, career, money and 14 more answers</h3>
         <p className="mt-2 flex-1 text-mist">
-          A personal written reading of this chart: your Lagna and Moon nature, mind and emotions,
-          career and work style, relationships, strengths, and the themes of your current dasha.
-          Traditional and reflective — no fear, no remedies to buy.
+          Each life area answered separately from this chart, with your running dasha and the next 3
+          years of major transits. Your first answer is free.
         </p>
         <div className="mt-5">
           <Button
@@ -274,7 +273,7 @@ function KundliUpsell({
               }
             }}
           >
-            {busy ? "Saving your chart…" : `Get my Kundli reading — ${reportPriceLabel}`}
+            {busy ? "Reading your chart…" : "Get my first answer free"}
           </Button>
           {error ? (
             <Alert tone="error" className="mt-3">

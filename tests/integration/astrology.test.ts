@@ -127,7 +127,8 @@ describe.skipIf(!hasTestDatabase)("Kundli reading", () => {
     const actor = await getActorFromRequest(makeRequest("/", { jar }));
     const view = await getKundliView(id, actor);
     expect(view.unlocked).toBe(true);
-    expect(view.report!.sections.length).toBeGreaterThan(3);
+    expect(view.report!.areas.length).toBe(17);
+    expect(view.teaser?.area).toBe("career");
   });
 
   it("rejects impossible birth details", async () => {

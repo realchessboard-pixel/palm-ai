@@ -20,7 +20,7 @@ import { hmacSha256Hex } from "@/lib/payments/signatures";
 import { extendedReadingPrice } from "@/lib/payments/pricing";
 import { confirmStripeReturn } from "@/lib/payments/service";
 import type { ReadingView } from "@/lib/readings/view";
-import { ScriptedProvider } from "../helpers/ai";
+import { ScriptedProvider, teaserJson } from "../helpers/ai";
 import { hasTestDatabase, resetDatabase } from "../helpers/db";
 import { CookieJar, json, makeRequest, params } from "../helpers/http";
 import { palmLikeImage } from "../helpers/images";
@@ -236,7 +236,7 @@ describe.skipIf(!hasTestDatabase)("₹49 detailed reading", () => {
     void _o;
     const provider = new ScriptedProvider([
       JSON.stringify(sampleAnalysis("right")),
-      JSON.stringify({ narrative }),
+      teaserJson(narrative!),
       JSON.stringify(detailed),
     ]);
     setAiProvider(provider);
@@ -287,7 +287,7 @@ describe.skipIf(!hasTestDatabase)("₹49 detailed reading", () => {
     void _o;
     const provider = new ScriptedProvider([
       JSON.stringify(sampleAnalysis("right")),
-      JSON.stringify({ narrative }),
+      teaserJson(narrative!),
       "not json",
       "still not json",
       "nope",
@@ -408,7 +408,7 @@ describe.skipIf(!hasTestDatabase)("₹49 detailed reading", () => {
     setAiProvider(
       new ScriptedProvider([
         JSON.stringify({ ...sampleAnalysis("right"), hand: "left", handConfidence: 0.95 }),
-        JSON.stringify(composeRuleBasedReading(sampleAnalysis("right"))),
+        teaserJson(composeRuleBasedReading(sampleAnalysis("right")).narrative!),
       ]),
     );
     const jar = new CookieJar();

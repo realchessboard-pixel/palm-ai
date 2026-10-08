@@ -16,7 +16,8 @@ import { composeRuleBasedReading, matchRules } from "@/lib/palmistry/interpretat
 import { getOwnedReading, parseStoredAnalysis } from "@/lib/readings/service";
 import type { PalmAnalysis } from "@/lib/schemas/palm-analysis";
 import {
-  GeneratedNarrativeSchema,
+  GeneratedTeaserSchema,
+  teaserToNarrative,
   INTERPRETATION_SCHEMA_VERSION,
   PalmInterpretationSchema,
   toStoredInterpretation,
@@ -63,13 +64,17 @@ async function generateWithModel(analysis: PalmAnalysis, hand: "left" | "right")
     model: interpretationModel(provider),
     system: INTERPRETATION_SYSTEM_PROMPT,
     prompt: buildInterpretationPrompt({ analysis, hand, available, rules }),
-    schema: GeneratedNarrativeSchema,
-    maxTokens: 6000,
+    schema: GeneratedTeaserSchema,
+    maxTokens: 1800,
     timeoutMs: env.AI_TIMEOUT_MS,
     maxAttempts: env.AI_MAX_ATTEMPTS,
-    thinking: env.AI_INTERPRETATION_THINKING,
+    // Low thinking: the free teaser is short, and every free reading should cost little.
+    thinking: "low",
     check: (value) => {
-      const grounded = groundInterpretation(toStoredInterpretation(value), analysis);
+      const grounded = groundInterpretation(
+        toStoredInterpretation(teaserToNarrative(value)),
+        analysis,
+      );
       const problems: string[] = [];
       if (grounded.invalidCitations > 3) {
         problems.push(
@@ -77,16 +82,14 @@ async function generateWithModel(analysis: PalmAnalysis, hand: "left" | "right")
         );
       }
       const story = grounded.interpretation.narrative;
-      if (!story || (!story.thinking && !story.caring) || story.strengths.length === 0) {
-        problems.push(
-          'The main reading ("narrative") must include "thinking" or "caring" and at least three strengths, each citing AVAILABLE FEATURES in basedOn.',
-        );
+      if (!story || !story.thinking) {
+        problems.push('"thinking" must cite AVAILABLE FEATURES in basedOn.');
       }
       return problems;
     },
   });
   return {
-    raw: toStoredInterpretation(result.data),
+    raw: toStoredInterpretation(teaserToNarrative(result.data)),
     provider: provider.name,
     model: result.model,
     attempts: result.attempts,

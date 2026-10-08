@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { KundliTool } from "@/components/astro/kundli-tool";
-import { PRODUCTS, formatInr } from "@/lib/monetization/price";
+import { PRODUCTS, priceWithGst } from "@/lib/monetization/price";
 
 export const metadata: Metadata = {
   title: "Free Kundli — birth chart online",
@@ -20,7 +20,7 @@ export default function KundliPage() {
           Moon sign and nakshatra, and your Vimshottari dasha periods.
         </p>
       </header>
-      <KundliTool reportPriceLabel={formatInr(PRODUCTS.KUNDLI_REPORT.priceInr)} />
+      <KundliTool reportPriceLabel={priceWithGst(PRODUCTS.KUNDLI_REPORT).headline} />
       <p className="mt-12 text-xs text-mist">
         Sidereal positions with the Lahiri ayanamsa; whole-sign houses. Jyotish is a traditional
         system offered for reflection and cultural interest — not a prediction or advice.

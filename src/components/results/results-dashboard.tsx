@@ -223,6 +223,9 @@ export function ResultsDashboard({
             paymentsEnabled={paymentsEnabled}
             paymentState={reading.paymentState}
             balances={balances}
+            teaser={Boolean(
+              main && !main.narrative.caring && main.narrative.strengths.length === 0,
+            )}
           />
         </>
       ) : null}

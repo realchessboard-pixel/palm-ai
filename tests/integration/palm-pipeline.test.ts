@@ -14,7 +14,7 @@ import { sampleAnalysis } from "@/lib/palmistry/sample-analysis";
 import { resetIdempotencyCache } from "@/lib/pipeline/idempotency";
 import type { ReadingView } from "@/lib/readings/view";
 import type { MemoryStorage } from "@/lib/storage/memory";
-import { ScriptedProvider } from "../helpers/ai";
+import { ScriptedProvider, teaserJson } from "../helpers/ai";
 import { hasTestDatabase, resetDatabase } from "../helpers/db";
 import { CookieJar, json, makeRequest, params } from "../helpers/http";
 import { palmLikeImage } from "../helpers/images";
@@ -316,9 +316,12 @@ describe.skipIf(!hasTestDatabase)("palm analysis pipeline", () => {
       analysis.lines.fate = "insufficient_visibility";
       const written = composeRuleBasedReading(analysis);
       // The model mentions the fate line even though it wasn't observed.
-      written.sections[0].summary += " Your fate line shows a strong career direction.";
       written.narrative!.introduction += " Your Bhagya Rekha, the fate line, runs deep.";
-      const provider = new ScriptedProvider([JSON.stringify(analysis), JSON.stringify(written)]);
+      written.narrative!.thinking!.text += " Your fate line shows a strong career direction.";
+      const provider = new ScriptedProvider([
+        JSON.stringify(analysis),
+        teaserJson(written.narrative!),
+      ]);
       setAiProvider(provider);
 
       const jar = new CookieJar();
@@ -346,7 +349,7 @@ describe.skipIf(!hasTestDatabase)("palm analysis pipeline", () => {
       const analysis = { ...sampleAnalysis("right"), hand: "left" as const, handConfidence: 0.95 };
       const provider = new ScriptedProvider([
         JSON.stringify(analysis),
-        JSON.stringify(composeRuleBasedReading(sampleAnalysis("right"))),
+        teaserJson(composeRuleBasedReading(sampleAnalysis("right")).narrative!),
       ]);
       setAiProvider(provider);
 
@@ -405,7 +408,7 @@ describe.skipIf(!hasTestDatabase)("palm analysis pipeline", () => {
       expect(reading.errorCode).toBe("AI_INVALID_RESPONSE");
 
       setAiProvider(
-        new ScriptedProvider([JSON.stringify(composeRuleBasedReading(sampleAnalysis()))]),
+        new ScriptedProvider([teaserJson(composeRuleBasedReading(sampleAnalysis()).narrative!)]),
       );
       const retried = await interpret(
         makeRequest("/api/palm/interpret", { json: { readingId }, jar }),
@@ -417,7 +420,7 @@ describe.skipIf(!hasTestDatabase)("palm analysis pipeline", () => {
     it("uses the default thinking level for vision and low thinking for the interpretation", async () => {
       const provider = new ScriptedProvider([
         JSON.stringify(sampleAnalysis()),
-        JSON.stringify(composeRuleBasedReading(sampleAnalysis())),
+        teaserJson(composeRuleBasedReading(sampleAnalysis()).narrative!),
       ]);
       setAiProvider(provider);
       const jar = new CookieJar();

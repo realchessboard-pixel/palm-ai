@@ -3,12 +3,17 @@ import { z } from "zod";
 import { ensureGuestKey, getActorFromRequest } from "@/lib/auth/actor";
 import { withErrorHandling } from "@/lib/http/errors";
 import { parseJsonBody } from "@/lib/http/request";
+import { LIFE_AREA_IDS } from "@/lib/kundli/areas";
 import { BirthSchema, createKundli } from "@/lib/kundli/service";
 import { clientIp, enforceRateLimit } from "@/lib/security/rate-limit";
 
-const Body = z.object({ name: z.string().trim().max(60), birth: BirthSchema });
+const Body = z.object({
+  name: z.string().trim().max(60),
+  birth: BirthSchema,
+  area: z.enum(LIFE_AREA_IDS).default("career"),
+});
 
-/** Save a birth chart so its full reading can be bought and written. */
+/** Save a birth chart and write its one free Mahakundli answer. */
 export const POST = withErrorHandling("kundli.create", async (request: NextRequest) => {
   const actor = await getActorFromRequest(request);
   await enforceRateLimit(

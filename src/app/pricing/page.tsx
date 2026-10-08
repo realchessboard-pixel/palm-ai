@@ -4,7 +4,7 @@ import { BuyButton } from "@/components/payments/buy-button";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/misc";
 import { getCurrentUser } from "@/lib/auth/actor";
-import { PRODUCTS, WALLET_TOPUPS, formatInr } from "@/lib/monetization/price";
+import { PRODUCTS, WALLET_TOPUPS, formatInr, priceWithGst } from "@/lib/monetization/price";
 import { paymentsEnabled } from "@/lib/payments/pricing";
 
 export const metadata: Metadata = {
@@ -31,7 +31,7 @@ export default async function PricingPage() {
         </p>
       </header>
 
-      <section className="grid gap-4 md:grid-cols-3" aria-label="Readings">
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" aria-label="Readings">
         <Card as="article" className="flex flex-col">
           <h2 className="text-xl text-gold-200">Basic reading</h2>
           <p className="mt-2 flex-1 text-sm text-mist">
@@ -43,13 +43,24 @@ export default async function PricingPage() {
             Read my palm
           </ButtonLink>
         </Card>
-        {(["DETAILED_READING", "COUPLE_COMPATIBILITY"] as const).map((product) => (
+        {(["KUNDLI_REPORT", "DETAILED_READING", "COUPLE_COMPATIBILITY"] as const).map((product) => (
           <Card as="article" key={product} className="flex flex-col">
             <h2 className="text-xl text-gold-200">{PRODUCTS[product].name}</h2>
             <p className="mt-2 flex-1 text-sm text-mist">{PRODUCTS[product].description}</p>
-            <p className="mt-4 text-3xl text-parchment">{formatInr(PRODUCTS[product].priceInr)}</p>
+            <p className="mt-4 text-3xl text-parchment">
+              {priceWithGst(PRODUCTS[product]).headline}
+              <span className="ml-2 text-sm text-mist">
+                {priceWithGst(PRODUCTS[product]).total}
+              </span>
+            </p>
             <ButtonLink
-              href={product === "COUPLE_COMPATIBILITY" ? "/compatibility" : "/read"}
+              href={
+                product === "COUPLE_COMPATIBILITY"
+                  ? "/compatibility"
+                  : product === "KUNDLI_REPORT"
+                    ? "/mahakundli"
+                    : "/read"
+              }
               variant="secondary"
               className="mt-4"
             >
@@ -112,7 +123,8 @@ export default async function PricingPage() {
           law.
         </p>
         <p>
-          Prices include all taxes. Questions about a payment? See our{" "}
+          Prices include GST, except where shown as “+ GST” (the total is shown before you pay).
+          Questions about a payment? See our{" "}
           <Link href="/terms" className="text-gold-300 underline underline-offset-2">
             terms
           </Link>

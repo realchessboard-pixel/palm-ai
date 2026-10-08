@@ -36,7 +36,10 @@ export function PremiumPanel({
   paymentsEnabled,
   paymentState = "UNPAID",
   balances = null,
+  teaser = false,
 }: {
+  /** The free reading was the short teaser: the rest of the main reading is also locked. */
+  teaser?: boolean;
   readingId: string;
   locked: LockedContent;
   priceLabel: string;
@@ -48,6 +51,14 @@ export function PremiumPanel({
   const pricePaise = PRODUCTS.DETAILED_READING.priceInr * 100;
   const notice = STATE_NOTICE[paymentState];
   const items = [
+    ...(teaser
+      ? [
+          "The way you care",
+          "Your natural strengths",
+          "Your career nature",
+          "Something interesting about you",
+        ]
+      : []),
     ...locked.detailedSections.map((id) => `In-depth ${SECTION_TITLES[id].toLowerCase()} reading`),
     ...locked.sections.map((id) => SECTION_TITLES[id]),
     ...locked.lines.map((line) => `${lineLabel(line)} reading`),

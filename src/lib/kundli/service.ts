@@ -3,7 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { getAiProvider, interpretationModel } from "@/lib/ai";
 import { generateStructured } from "@/lib/ai/structured";
-import { computeChart, currentDasha, type Chart } from "@/lib/astro/chart";
+import { computeChart, currentDasha, upcomingTransits, type Chart } from "@/lib/astro/chart";
 import { GRAHA_NAMES, NAKSHATRAS, RASHIS } from "@/lib/astro/constants";
 import type { Actor } from "@/lib/auth/actor";
 import { getEnv } from "@/lib/config/env";
@@ -12,6 +12,7 @@ import { AppError, isAppError } from "@/lib/http/errors";
 import { runOnce } from "@/lib/pipeline/idempotency";
 import { sanitizeText } from "@/lib/pipeline/safety";
 import { getOwnedKundli, hasKundliAccess } from "./access";
+import { LIFE_AREAS, LIFE_AREA_IDS, lifeArea, type LifeAreaId } from "./areas";
 
 export const BirthSchema = z.object({
   year: z.number().int().min(1900).max(2100),
@@ -27,34 +28,29 @@ export const BirthSchema = z.object({
 });
 export type StoredBirth = z.infer<typeof BirthSchema>;
 
-export const KUNDLI_SECTIONS = [
-  { id: "nature", title: "Your nature (Lagna & Moon)" },
-  { id: "mind", title: "Mind and emotions" },
-  { id: "career", title: "Work and career style" },
-  { id: "relationships", title: "Relationships" },
-  { id: "strengths", title: "Strengths to lean on" },
-  { id: "dasha", title: "Your current dasha" },
-] as const;
-
 const ReportSchema = z.object({
   headline: z.string().min(1).max(140),
-  sections: z
-    .array(
-      z.object({
-        id: z.enum(KUNDLI_SECTIONS.map((s) => s.id) as [string, ...string[]]),
-        text: z.string().min(1).max(2200),
-      }),
-    )
-    .min(4)
-    .max(KUNDLI_SECTIONS.length),
+  areas: z
+    .array(z.object({ id: z.enum(LIFE_AREA_IDS), text: z.string().min(1).max(1600) }))
+    .min(12)
+    .max(LIFE_AREAS.length),
 });
 export type KundliReport = z.infer<typeof ReportSchema>;
 
+export const TeaserSchema = z.object({ area: z.enum(LIFE_AREA_IDS), text: z.string().min(1) });
+export type KundliTeaser = z.infer<typeof TeaserSchema>;
+
+const SYSTEM = `You are a warm, experienced Vedic astrologer (Jyotish). Speak to the person as "you", in plain, elegant English, explaining Sanskrit terms briefly.
+Ground everything ONLY in the chart facts given. Present it as traditional Jyotish for reflection: "traditionally…", "your chart suggests…". Never claim certainty.
+You may name the dasha and transit PERIODS given (with their dates) as times traditionally associated with a theme. NEVER predict specific events: no marriage dates, divorce, pregnancy or children's births, illness, accidents, death, lifespan, exam or job results, or money amounts. Health means energy and habits only, never diagnoses. No doshas, Manglik or Sade Sati warnings, remedies, gemstones, pujas, mantras or donations, and no fear.
+Return valid JSON only.`;
+
 export async function createKundli(
-  input: { name: string; birth: StoredBirth; guestKeyHash: string | null },
+  input: { name: string; birth: StoredBirth; area: LifeAreaId; guestKeyHash: string | null },
   actor: Actor,
 ): Promise<{ kundliId: string }> {
   const chart = computeChart(input.birth);
+  const teaser = await writeTeaser(input.name, input.birth, chart, input.area);
   const kundli = await db.kundliProfile.create({
     data: {
       userId: actor.user?.id ?? null,
@@ -62,6 +58,7 @@ export async function createKundli(
       name: input.name.trim().slice(0, 60) || "My Kundli",
       birth: input.birth as unknown as Prisma.InputJsonValue,
       chart: chart as unknown as Prisma.InputJsonValue,
+      teaser: teaser as unknown as Prisma.InputJsonValue,
     },
   });
   return { kundliId: kundli.id };
@@ -79,6 +76,7 @@ export async function getKundliView(id: string, actor: Actor) {
     unlocked,
     status: kundli.reportStatus,
     report: report?.success ? report.data : null,
+    teaser: kundli.teaser ? (TeaserSchema.safeParse(kundli.teaser).data ?? null) : null,
   };
 }
 
@@ -108,33 +106,68 @@ export function chartFacts(chart: Chart, timeKnown: boolean): string {
       `Current Vimshottari dasha: ${now.maha.lord} mahadasha (until ${now.maha.end.slice(0, 4)})${now.antar ? `, ${now.antar.lord} antardasha (until ${now.antar.end.slice(0, 7)})` : ""}`,
     );
   }
+  const transits = upcomingTransits(new Date());
+  if (transits.length) {
+    lines.push(
+      `Major transits ahead: ${transits.map((t) => `${t.planet} enters ${RASHIS[t.rashi]!.name} (${t.date})`).join("; ")}`,
+    );
+  }
   return lines.map((l) => `- ${l}`).join("\n");
+}
+
+/**
+ * The one free answer. Deliberately small (one area, ~150 words, low
+ * thinking) so a visitor who doesn't buy costs well under a rupee.
+ */
+async function writeTeaser(
+  name: string,
+  birth: StoredBirth,
+  chart: Chart,
+  area: LifeAreaId,
+): Promise<KundliTeaser> {
+  const a = lifeArea(area)!;
+  const provider = getAiProvider();
+  if (provider.isMock) {
+    return { area, text: `${a.title}: read from your ${a.houses}. (Demo mode: sample answer.)` };
+  }
+  const env = getEnv();
+  try {
+    const result = await generateStructured({
+      provider,
+      task: "kundli_report",
+      model: interpretationModel(provider),
+      system: SYSTEM,
+      prompt: `Person: ${name || "the visitor"}
+CHART FACTS (sidereal, Lahiri):
+${chartFacts(chart, birth.timeKnown)}
+
+Answer ONE life area only: "${a.title}" — the question "${a.question}". Look at ${a.houses}. 110–160 words, two short paragraphs, specific to this chart, ending with one practical reflection.
+JSON: {"text":"…"}`,
+      schema: z.object({ text: z.string().min(1).max(1500) }),
+      maxTokens: 900,
+      timeoutMs: env.AI_TIMEOUT_MS,
+      maxAttempts: env.AI_MAX_ATTEMPTS,
+      thinking: "low",
+    });
+    const text = sanitizeText(result.data.text).text;
+    if (text) return { area, text };
+  } catch {
+    // Fall through to a simple, honest answer rather than failing the form.
+  }
+  return {
+    area,
+    text: `Your ${a.title.toLowerCase()} is read from your ${a.houses}. Your full answer will be written in your Mahakundli.`,
+  };
 }
 
 function ruleBasedReport(chart: Chart): KundliReport {
   const moon = RASHIS[chart.moon.rashi]!;
-  const lagna = RASHIS[chart.lagna.rashi]!;
-  const now = currentDasha(chart.dasha);
   return {
-    headline: `A ${lagna.name} ascendant with the Moon in ${moon.name}`,
-    sections: [
-      {
-        id: "nature",
-        text: `With ${lagna.name} rising, ruled by ${lagna.lord}, tradition reads a nature shaped by that planet's qualities. (Demo mode: this is a sample reading.)`,
-      },
-      {
-        id: "mind",
-        text: `The Moon in ${moon.name}, in ${NAKSHATRAS[chart.moon.nakshatra]} nakshatra, colours how you feel and respond.`,
-      },
-      { id: "career", text: "Your tenth house and its lord describe your working style." },
-      { id: "relationships", text: "Your seventh house describes how you partner with others." },
-      {
-        id: "dasha",
-        text: now.maha
-          ? `You are in the ${now.maha.lord} mahadasha.`
-          : "Your dasha sequence is shown above.",
-      },
-    ],
+    headline: `A ${RASHIS[chart.lagna.rashi]!.name} ascendant with the Moon in ${moon.name}`,
+    areas: LIFE_AREAS.map((a) => ({
+      id: a.id,
+      text: `${a.title}: traditionally read from your ${a.houses}. (Demo mode: sample reading.)`,
+    })),
   };
 }
 
@@ -175,20 +208,16 @@ async function run(id: string, actor: Actor): Promise<{ status: "COMPLETE" }> {
         provider,
         task: "kundli_report",
         model: interpretationModel(provider),
-        system: `You are a warm, experienced Vedic astrologer writing a personal Kundli reading. Speak to the person as "you". Plain, elegant English with Sanskrit terms explained (rashi, bhava, graha, dasha).
-Ground everything ONLY in the chart facts given. Present it as traditional Jyotish for reflection: "traditionally…", "in Jyotish this is read as…". Never claim certainty.
-NEVER predict events, dates, marriage timing, divorce, children, illness, accidents, death, lifespan, wealth amounts, exam or job results. No doshas, Manglik or Sade Sati warnings, remedies, gemstones, pujas, mantras to buy or donations, and no fear. Describe the current dasha only as themes for reflection.
-Return valid JSON only.`,
+        system: SYSTEM,
         prompt: `Person: ${kundli.name}
 CHART FACTS (sidereal, Lahiri):
 ${chartFacts(chart, birth.timeKnown)}
 
-Write:
-- "headline": one warm line about this chart (not a prediction).
-- "sections": each 2–3 short paragraphs (separated by blank lines), ids: ${KUNDLI_SECTIONS.map((s) => `"${s.id}" (${s.title})`).join(", ")}.${birth.timeKnown ? "" : ' Without the birth time, read "nature" from the Moon, not the Lagna, and say so gently.'}
-JSON: {"headline":"…","sections":[{"id":"nature","text":"…"}, …]}`,
+Write the full Mahakundli: answer each of these ${LIFE_AREAS.length} life areas separately, 90–150 words each (one or two short paragraphs), specific to this chart. Where the dasha or transit periods above are relevant, name them with their dates as periods traditionally associated with that theme.${birth.timeKnown ? "" : " The birth time is unknown: read from the Moon, not the Lagna or houses, and say so once."}
+${LIFE_AREAS.map((a) => `- "${a.id}": ${a.title} — ${a.question} (${a.houses})`).join("\n")}
+JSON: {"headline":"…","areas":[{"id":"marriage","text":"…"}, …]}`,
         schema: ReportSchema,
-        maxTokens: 8000,
+        maxTokens: 14000,
         timeoutMs: env.AI_TIMEOUT_MS,
         maxAttempts: env.AI_MAX_ATTEMPTS,
         thinking: env.AI_INTERPRETATION_THINKING,
@@ -196,9 +225,9 @@ JSON: {"headline":"…","sections":[{"id":"nature","text":"…"}, …]}`,
       report = {
         headline:
           sanitizeText(result.data.headline).text || "Your birth chart, read the traditional way",
-        sections: result.data.sections
-          .map((s) => ({ ...s, text: sanitizeText(s.text).text }))
-          .filter((s) => s.text),
+        areas: result.data.areas
+          .map((x) => ({ ...x, text: sanitizeText(x.text).text }))
+          .filter((x) => x.text),
       };
     }
     await db.kundliProfile.update({

@@ -14,7 +14,7 @@ import { sampleAnalysis } from "@/lib/palmistry/sample-analysis";
 import { resetIdempotencyCache } from "@/lib/pipeline/idempotency";
 import { getReadingView } from "@/lib/readings/service";
 import { getActorFromRequest } from "@/lib/auth/actor";
-import { ScriptedProvider } from "../helpers/ai";
+import { ScriptedProvider, teaserJson } from "../helpers/ai";
 import { hasTestDatabase, resetDatabase } from "../helpers/db";
 import { CookieJar, json, makeRequest, params } from "../helpers/http";
 import { palmLikeImage } from "../helpers/images";
@@ -82,7 +82,7 @@ describe.skipIf(!hasTestDatabase)("reading translation", () => {
     const analysis = sampleAnalysis("right");
     const provider = new ScriptedProvider([
       JSON.stringify(analysis),
-      JSON.stringify(composeRuleBasedReading(analysis)),
+      teaserJson(composeRuleBasedReading(analysis).narrative!),
       translator("[hi]"),
       translator("[hi]"),
       translator("[hi]"),
@@ -135,7 +135,7 @@ describe.skipIf(!hasTestDatabase)("reading translation", () => {
       r.task === "palm_detailed_reading" ? JSON.stringify(detailed) : translator("[de]")(r);
     const provider = new ScriptedProvider([
       JSON.stringify(analysis),
-      JSON.stringify({ narrative }),
+      teaserJson(narrative!),
       ...Array.from({ length: 12 }, () => translateOrWrite),
     ]);
     const jar = new CookieJar();
@@ -204,7 +204,7 @@ describe.skipIf(!hasTestDatabase)("reading translation", () => {
     const readingId = await completedReading(
       new ScriptedProvider([
         JSON.stringify(analysis),
-        JSON.stringify(composeRuleBasedReading(analysis)),
+        teaserJson(composeRuleBasedReading(analysis).narrative!),
       ]),
       jar,
     );
@@ -216,7 +216,7 @@ describe.skipIf(!hasTestDatabase)("reading translation", () => {
     const analysis = sampleAnalysis("right");
     const provider = new ScriptedProvider([
       JSON.stringify(analysis),
-      JSON.stringify(composeRuleBasedReading(analysis)),
+      teaserJson(composeRuleBasedReading(analysis).narrative!),
       JSON.stringify({ items: [{ id: "made.up", text: "x" }] }),
       ...Array.from({ length: 6 }, () => translator("[hi]")),
     ]);

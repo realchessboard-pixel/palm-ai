@@ -22,7 +22,7 @@ import { sampleAnalysis } from "@/lib/palmistry/sample-analysis";
 import { resetIdempotencyCache } from "@/lib/pipeline/idempotency";
 import { listReadingsForUser } from "@/lib/readings/service";
 import type { ReadingView } from "@/lib/readings/view";
-import { ScriptedProvider } from "../helpers/ai";
+import { ScriptedProvider, teaserJson } from "../helpers/ai";
 import { hasTestDatabase, resetDatabase } from "../helpers/db";
 import { CookieJar, json, makeRequest, params } from "../helpers/http";
 import { palmLikeImage } from "../helpers/images";
@@ -230,7 +230,7 @@ describe.skipIf(!hasTestDatabase)("referrals", () => {
   const realReadingProvider = () =>
     new ScriptedProvider([
       JSON.stringify(sampleAnalysis("right")),
-      JSON.stringify({ narrative: composeRuleBasedReading(sampleAnalysis("right")).narrative }),
+      teaserJson(composeRuleBasedReading(sampleAnalysis("right")).narrative!),
     ]);
 
   it("3 friends who join and read their palm earn the referrer one credit, once", async () => {
@@ -347,7 +347,7 @@ describe.skipIf(!hasTestDatabase)("couple compatibility", () => {
     setAiProvider(
       new ScriptedProvider([
         JSON.stringify(sampleAnalysis("right")),
-        JSON.stringify({ narrative: composeRuleBasedReading(sampleAnalysis("right")).narrative }),
+        teaserJson(composeRuleBasedReading(sampleAnalysis("right")).narrative!),
         JSON.stringify(sampleAnalysis("right")),
         JSON.stringify({
           headline: "Two steady hands",

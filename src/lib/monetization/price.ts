@@ -20,16 +20,20 @@ export interface ProductInfo {
   priceInr: number;
   name: string;
   description: string;
+  /** Price before GST, when the price is shown as "base + GST". */
+  baseInr?: number;
   /** Account products need a signed-in user (balances, codes and memberships live on the account). */
   requiresAccount: boolean;
 }
 
 export const PRODUCTS: Record<CatalogProduct, ProductInfo> = {
   KUNDLI_REPORT: {
-    priceInr: 99,
-    name: "Full Kundli reading",
+    // ₹501 + 18% GST, shown as both before payment.
+    priceInr: 591,
+    baseInr: 501,
+    name: "Mahakundli",
     description:
-      "A personal written reading of your birth chart: Lagna and Moon nature, mind, career, relationships, strengths and your current dasha.",
+      "17 life areas, each answered separately from your chart, with your running dasha, life-area timing and the next 3 years of major transits.",
     requiresAccount: false,
   },
   DETAILED_READING: {
@@ -125,4 +129,11 @@ export function formatInr(amountInr: number): string {
     minimumFractionDigits: Number.isInteger(amountInr) ? 0 : 2,
     maximumFractionDigits: 2,
   }).format(amountInr);
+}
+
+/** "₹501 + GST" style label for products priced before tax, else the plain price. */
+export function priceWithGst(p: ProductInfo): { headline: string; total: string } {
+  return p.baseInr
+    ? { headline: `${formatInr(p.baseInr)} + GST`, total: `${formatInr(p.priceInr)} total` }
+    : { headline: formatInr(p.priceInr), total: "" };
 }
