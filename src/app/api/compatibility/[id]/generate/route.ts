@@ -7,7 +7,7 @@ import { parseParams } from "@/lib/http/request";
 import { IdSchema } from "@/lib/schemas/api";
 import { clientIp, enforceRateLimit } from "@/lib/security/rate-limit";
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 type Context = { params: Promise<{ id: string }> };
 const Params = z.object({ id: IdSchema });

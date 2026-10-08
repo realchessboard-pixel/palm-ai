@@ -7,7 +7,7 @@ import { MAX_QUESTION_LENGTH, askReader } from "@/lib/readers/service";
 import { IdSchema } from "@/lib/schemas/api";
 import { clientIp, enforceRateLimit } from "@/lib/security/rate-limit";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 type Context = { params: Promise<{ id: string }> };
 const Params = z.object({ id: IdSchema });

@@ -1,6 +1,6 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
-import { getAiProvider, interpretationModel } from "@/lib/ai";
+import { getAiProvider, premiumModel, premiumThinking } from "@/lib/ai";
 import { generateStructured } from "@/lib/ai/structured";
 import { trackServerEvent } from "@/lib/analytics/server";
 import type { Actor } from "@/lib/auth/actor";
@@ -170,17 +170,17 @@ async function runGeneration(
       const result = await generateStructured({
         provider: ai,
         task: "palm_compatibility",
-        model: interpretationModel(ai),
+        model: premiumModel(ai),
         system: COMPATIBILITY_SYSTEM_PROMPT,
         prompt: buildCompatibilityPrompt({
           you: { analysis: you, available: availableFeatures(you), rules: matchRules(you) },
           partner: { analysis: them, available: availableFeatures(them), rules: matchRules(them) },
         }),
         schema: GeneratedCompatibilitySchema,
-        maxTokens: 6000,
+        maxTokens: 12000,
         timeoutMs: env.AI_TIMEOUT_MS,
         maxAttempts: env.AI_MAX_ATTEMPTS,
-        thinking: env.AI_INTERPRETATION_THINKING,
+        thinking: premiumThinking(),
         check: (value) => {
           const done = finalizeCompatibility(value, you, them);
           if (!done) return ["Each part must cite listed features (you.<key> / partner.<key>)."];

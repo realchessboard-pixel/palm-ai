@@ -95,7 +95,11 @@ describe.skipIf(!hasTestDatabase)("Ask a Reader", () => {
     ]);
     setAiProvider(provider);
   });
-  afterEach(() => setAiProvider(undefined));
+  afterEach(() => {
+    setAiProvider(undefined);
+    delete process.env.AI_PREMIUM_MODEL;
+    resetEnvCache();
+  });
 
   it("greets, answers one free question about the palm, then asks to choose a plan", async () => {
     const jar = new CookieJar();
@@ -119,6 +123,8 @@ describe.skipIf(!hasTestDatabase)("Ask a Reader", () => {
     expect(prompt.task).toBe("reader_answer");
     expect(prompt.system).toContain('"Meera"');
     expect(prompt.system).toMatch(/Never claim or imply that you are a human/);
+    // The free question stays short and on the standard model.
+    expect(prompt.system).not.toMatch(/PAID consultation/);
     expect(prompt.prompt).toContain("OBSERVED FEATURES");
 
     expect((await question(jar, chatId, "And my career?")).status).toBe(402);
@@ -132,6 +138,7 @@ describe.skipIf(!hasTestDatabase)("Ask a Reader", () => {
     const { chatId } = await open(jar, "acharya-dev", readingId);
     expect((await view(jar, chatId)).questionsLeft).toBe(0);
 
+    setEnv({ AI_PREMIUM_MODEL: "premium-test-model" });
     expect((await buy(jar, chatId, "bundle")).status).toBe(200);
     const payment = await db.payment.findFirstOrThrow({ where: { readerChatId: chatId } });
     expect(payment).toMatchObject({
@@ -154,6 +161,9 @@ describe.skipIf(!hasTestDatabase)("Ask a Reader", () => {
     expect(ok.status).toBe(200);
     const body = await json<{ answer: string; questionsLeft: number }>(ok);
     expect(body.questionsLeft).toBe(9);
+    // Paid questions get the deeper treatment.
+    expect(provider.requests.at(-1)!.model).toBe("premium-test-model");
+    expect(provider.requests.at(-1)!.system).toMatch(/PAID consultation/);
     // Predictions are removed before anything is saved.
     expect(body.answer).toContain("Guru Parvat");
     expect(body.answer).not.toMatch(/marry|2027/);

@@ -1,6 +1,8 @@
 import "server-only";
 import { z } from "zod";
-import { getAiProvider, interpretationModel } from "@/lib/ai";
+import { getAiProvider, interpretationModel, premiumModel, premiumThinking } from "@/lib/ai";
+import type { Chart } from "@/lib/astro/chart";
+import { BirthSchema, chartFacts } from "@/lib/kundli/service";
 import { generateStructured } from "@/lib/ai/structured";
 import { trackServerEvent } from "@/lib/analytics/server";
 import type { Actor } from "@/lib/auth/actor";
@@ -178,10 +180,22 @@ export async function askReader(
 }
 
 async function writeAnswer(
-  chat: { id: string; readingId: string | null; userId: string | null },
+  chat: {
+    id: string;
+    readingId: string | null;
+    userId: string | null;
+    guestKeyHash: string | null;
+  },
   reader: Reader,
   question: string,
 ): Promise<string> {
+  // Paid conversations get the deeper treatment: stronger model, deeper
+  // thinking, longer chart-specific answers. Free questions stay short and cheap.
+  const paid = (await db.payment.count({ where: { readerChatId: chat.id, status: "PAID" } })) > 0;
+  const kundli = await db.kundliProfile.findFirst({
+    where: chat.userId ? { userId: chat.userId } : { guestKeyHash: chat.guestKeyHash ?? "-" },
+    orderBy: { createdAt: "desc" },
+  });
   const reading = chat.readingId
     ? await db.reading.findUnique({
         where: { id: chat.readingId },
@@ -213,22 +227,26 @@ async function writeAnswer(
   const result = await generateStructured({
     provider,
     task: "reader_answer",
-    model: interpretationModel(provider),
-    system: readerSystemPrompt(reader),
+    model: paid ? premiumModel(provider) : interpretationModel(provider),
+    system: readerSystemPrompt(reader, paid),
     prompt: readerPrompt({
-      context: readerContext({
+      context: `${readerContext({
         analysis,
         interpretation,
         available: analysis ? availableFeatures(analysis) : null,
-      }),
+      })}${
+        kundli
+          ? `\n\nTHE VISITOR'S KUNDLI (sidereal, Lahiri; birth details: ${BirthSchema.parse(kundli.birth).placeName}):\n${chartFacts(kundli.chart as unknown as Chart, BirthSchema.parse(kundli.birth).timeKnown)}`
+          : ""
+      }`,
       history: earlier.map((m) => ({ role: m.role, text: m.text })),
       question,
     }),
     schema: z.object({ answer: z.string().min(1).max(3000) }),
-    maxTokens: 1500,
+    maxTokens: paid ? 12000 : 1500,
     timeoutMs: env.AI_TIMEOUT_MS,
     maxAttempts: env.AI_MAX_ATTEMPTS,
-    thinking: "low",
+    thinking: paid ? premiumThinking() : "low",
   });
   const safe = sanitizeText(result.data.answer).text;
   await trackServerEvent("ai_stage_completed", {

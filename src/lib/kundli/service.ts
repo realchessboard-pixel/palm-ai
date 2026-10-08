@@ -1,7 +1,7 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
-import { getAiProvider, interpretationModel } from "@/lib/ai";
+import { getAiProvider, interpretationModel, premiumModel, premiumThinking } from "@/lib/ai";
 import { generateStructured } from "@/lib/ai/structured";
 import { computeChart, currentDasha, upcomingTransits, type Chart } from "@/lib/astro/chart";
 import { GRAHA_NAMES, NAKSHATRAS, RASHIS } from "@/lib/astro/constants";
@@ -31,11 +31,16 @@ export type StoredBirth = z.infer<typeof BirthSchema>;
 const ReportSchema = z.object({
   headline: z.string().min(1).max(140),
   areas: z
-    .array(z.object({ id: z.enum(LIFE_AREA_IDS), text: z.string().min(1).max(1600) }))
+    .array(z.object({ id: z.enum(LIFE_AREA_IDS), text: z.string().min(1).max(2000) }))
     .min(12)
     .max(LIFE_AREAS.length),
 });
 export type KundliReport = z.infer<typeof ReportSchema>;
+
+const PartSchema = z.object({
+  headline: z.string().min(1).max(140),
+  areas: z.array(z.object({ id: z.enum(LIFE_AREA_IDS), text: z.string().min(1).max(2000) })).min(1),
+});
 
 export const TeaserSchema = z.object({ area: z.enum(LIFE_AREA_IDS), text: z.string().min(1) });
 export type KundliTeaser = z.infer<typeof TeaserSchema>;
@@ -204,28 +209,38 @@ async function run(id: string, actor: Actor): Promise<{ status: "COMPLETE" }> {
       report = ruleBasedReport(chart);
     } else {
       const env = getEnv();
-      const result = await generateStructured({
-        provider,
-        task: "kundli_report",
-        model: interpretationModel(provider),
-        system: SYSTEM,
-        prompt: `Person: ${kundli.name}
+      // Two halves written in parallel: deep (premium) thinking over 17 areas in
+      // one call can take over a minute; halves keep each call well inside limits.
+      const half = Math.ceil(LIFE_AREAS.length / 2);
+      const parts = [LIFE_AREAS.slice(0, half), LIFE_AREAS.slice(half)];
+      const results = await Promise.all(
+        parts.map((areas, i) =>
+          generateStructured({
+            provider,
+            task: "kundli_report",
+            model: premiumModel(provider),
+            system: SYSTEM,
+            prompt: `Person: ${kundli.name}
 CHART FACTS (sidereal, Lahiri):
 ${chartFacts(chart, birth.timeKnown)}
 
-Write the full Mahakundli: answer each of these ${LIFE_AREAS.length} life areas separately, 90–150 words each (one or two short paragraphs), specific to this chart. Where the dasha or transit periods above are relevant, name them with their dates as periods traditionally associated with that theme.${birth.timeKnown ? "" : " The birth time is unknown: read from the Moon, not the Lagna or houses, and say so once."}
-${LIFE_AREAS.map((a) => `- "${a.id}": ${a.title} — ${a.question} (${a.houses})`).join("\n")}
-JSON: {"headline":"…","areas":[{"id":"marriage","text":"…"}, …]}`,
-        schema: ReportSchema,
-        maxTokens: 14000,
-        timeoutMs: env.AI_TIMEOUT_MS,
-        maxAttempts: env.AI_MAX_ATTEMPTS,
-        thinking: env.AI_INTERPRETATION_THINKING,
-      });
+You are writing part ${i + 1} of 2 of a paid Mahakundli. Answer each of these life areas separately and in depth, 120–180 words each (one or two short paragraphs), like a senior Jyotish consultant: name the exact houses, their lords and where they sit, the grahas involved, and where relevant the dasha or transit periods above with their dates as periods traditionally associated with that theme. End each area with one practical guidance line.${birth.timeKnown ? "" : " The birth time is unknown: read from the Moon, not the Lagna or houses, and say so once."}
+${areas.map((a) => `- "${a.id}": ${a.title} — ${a.question} (${a.houses})`).join("\n")}
+JSON: {"headline":"…","areas":[{"id":"${areas[0]!.id}","text":"…"}, …]}`,
+            schema: PartSchema,
+            maxTokens: 16000,
+            timeoutMs: env.AI_TIMEOUT_MS,
+            maxAttempts: env.AI_MAX_ATTEMPTS,
+            thinking: premiumThinking(),
+          }),
+        ),
+      );
       report = {
         headline:
-          sanitizeText(result.data.headline).text || "Your birth chart, read the traditional way",
-        areas: result.data.areas
+          sanitizeText(results[0]!.data.headline).text ||
+          "Your birth chart, read the traditional way",
+        areas: results
+          .flatMap((r) => r.data.areas)
           .map((x) => ({ ...x, text: sanitizeText(x.text).text }))
           .filter((x) => x.text),
       };

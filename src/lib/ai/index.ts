@@ -64,3 +64,13 @@ export function interpretationModel(provider: AiProvider): string {
   const env = getEnv();
   return env.AI_INTERPRETATION_MODEL ?? env.AI_MODEL ?? provider.defaultModel;
 }
+
+/** Model for paid content (falls back to the interpretation model). */
+export function premiumModel(provider: AiProvider): string {
+  const env = getEnv();
+  return env.AI_PREMIUM_MODEL ?? interpretationModel(provider);
+}
+
+export function premiumThinking() {
+  return getEnv().AI_PREMIUM_THINKING;
+}

@@ -1,5 +1,5 @@
 import "server-only";
-import { getAiProvider, interpretationModel } from "@/lib/ai";
+import { getAiProvider, premiumModel, premiumThinking } from "@/lib/ai";
 import { generateStructured } from "@/lib/ai/structured";
 import { trackServerEvent } from "@/lib/analytics/server";
 import type { Actor } from "@/lib/auth/actor";
@@ -94,7 +94,7 @@ async function run(
     const result = await generateStructured({
       provider,
       task: "palm_detailed_reading",
-      model: interpretationModel(provider),
+      model: premiumModel(provider),
       system: INTERPRETATION_SYSTEM_PROMPT,
       prompt: buildDetailedPrompt({
         analysis,
@@ -105,10 +105,10 @@ async function run(
         narrative: stored.narrative ?? null,
       }),
       schema: GeneratedDetailedSchema,
-      maxTokens: 10000,
+      maxTokens: 16000,
       timeoutMs: env.AI_TIMEOUT_MS,
       maxAttempts: env.AI_MAX_ATTEMPTS,
-      thinking: env.AI_INTERPRETATION_THINKING,
+      thinking: premiumThinking(),
       check: (value) => {
         const grounded = groundInterpretation({ ...stored, ...value }, analysis);
         const problems: string[] = [];
