@@ -177,6 +177,12 @@ JSON: {"headline":"…","overview":"…","months":[{"month":"…","title":"…",
           .filter((m) => m.text),
       };
     }
+    if (report.months.length === 0) {
+      // Nothing usable survived the safety filter: fail (retryable) rather than save an empty report.
+      throw new AppError("AI_UNAVAILABLE", {
+        internal: new Error("empty report after safety filter"),
+      });
+    }
     await db.kundliProfile.update({
       where: { id },
       data: { yearStatus: "COMPLETE", yearReport: report as unknown as Prisma.InputJsonValue },

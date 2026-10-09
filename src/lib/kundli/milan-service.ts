@@ -173,6 +173,12 @@ JSON: {"headline":"…","sections":[{"id":"overview","text":"…"}, …]}`,
           .filter((s) => s.text),
       };
     }
+    if (report.sections.length === 0) {
+      // Nothing usable survived the safety filter: fail (retryable) rather than save an empty report.
+      throw new AppError("AI_UNAVAILABLE", {
+        internal: new Error("empty report after safety filter"),
+      });
+    }
     await db.milanProfile.update({
       where: { id },
       data: { reportStatus: "COMPLETE", report: report as unknown as Prisma.InputJsonValue },

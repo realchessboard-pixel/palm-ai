@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LANGUAGES, LANGUAGE_COOKIE, type Language } from "@/lib/i18n/languages";
 
 /** Indian languages first, then English, then the rest. */
@@ -40,18 +40,47 @@ function Choices({ onPick, current }: { onPick: (c: Language) => void; current?:
   );
 }
 
+/** Full-screen native modal: focus stays inside and the page behind is inert. */
+function Sheet({
+  labelledBy,
+  label,
+  onClose,
+  children,
+}: {
+  labelledBy?: string;
+  label?: string;
+  /** Escape closes only when a close action exists. */
+  onClose?: () => void;
+  children: React.ReactNode;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = ref.current;
+    if (dialog && !dialog.open) dialog.showModal();
+  }, []);
+  return (
+    <dialog
+      ref={ref}
+      aria-labelledby={labelledBy}
+      aria-label={label}
+      onCancel={(e) => {
+        e.preventDefault();
+        onClose?.();
+      }}
+      className="fixed inset-0 z-50 m-0 h-full max-h-none w-full max-w-none overflow-y-auto bg-[var(--paper)] px-4 py-10 text-[var(--ink)]"
+    >
+      {children}
+    </dialog>
+  );
+}
+
 /** First visit: a full-screen language choice. */
 export function FirstVisitLanguagePicker({ title, subtitle }: { title: string; subtitle: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(true);
   if (!open) return null;
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="lang-title"
-      className="fixed inset-0 z-50 overflow-y-auto bg-[var(--paper)] px-4 py-10"
-    >
+    <Sheet labelledBy="lang-title">
       <div className="mx-auto max-w-xl space-y-5">
         <p className="eyebrow text-center">AstroVidya</p>
         <h2 id="lang-title" className="text-center text-3xl">
@@ -66,13 +95,12 @@ export function FirstVisitLanguagePicker({ title, subtitle }: { title: string; s
           }}
         />
       </div>
-    </div>
+    </Sheet>
   );
 }
 
 /** Header control to change language later. */
 export function LanguageMenu({ current, label }: { current: Language; label: string }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const here = LANGUAGES.find((l) => l.code === current)!;
   return (
@@ -86,12 +114,7 @@ export function LanguageMenu({ current, label }: { current: Language; label: str
         🌐 {here.label}
       </button>
       {open ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={label}
-          className="fixed inset-0 z-50 overflow-y-auto bg-[var(--paper)] px-4 py-10"
-        >
+        <Sheet label={label} onClose={() => setOpen(false)}>
           <div className="mx-auto max-w-xl space-y-5">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl">{label}</h2>
@@ -116,7 +139,7 @@ export function LanguageMenu({ current, label }: { current: Language; label: str
               }}
             />
           </div>
-        </div>
+        </Sheet>
       ) : null}
     </>
   );

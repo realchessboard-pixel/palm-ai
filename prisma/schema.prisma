@@ -241,6 +241,10 @@ model Payment {
 
   @@index([userId])
   @@index([readingId])
+  @@index([compatibilityId])
+  @@index([milanId])
+  @@index([kundliId])
+  @@index([readerChatId])
   @@index([status, createdAt])
   @@index([product, status])
 }

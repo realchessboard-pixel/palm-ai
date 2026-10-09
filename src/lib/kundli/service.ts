@@ -269,6 +269,12 @@ JSON: {"headline":"…","areas":[{"id":"${areas[0]!.id}","text":"…"}, …]}`,
           .filter((x) => x.text),
       };
     }
+    if (report.areas.length === 0) {
+      // Nothing usable survived the safety filter: fail (retryable) rather than save an empty report.
+      throw new AppError("AI_UNAVAILABLE", {
+        internal: new Error("empty report after safety filter"),
+      });
+    }
     await db.kundliProfile.update({
       where: { id },
       data: { reportStatus: "COMPLETE", report: report as unknown as Prisma.InputJsonValue },

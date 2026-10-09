@@ -146,6 +146,36 @@ describe.skipIf(!hasTestDatabase)("packs, wallet, gifts and membership", () => {
     expect(await premium(readingA, a.jar)).toBe(false);
   });
 
+  it("charges the wallet only once when the same purchase is tapped twice at once", async () => {
+    const { jar, userId } = await signUp("double@example.com");
+    await buy(jar, { product: "WALLET_TOPUP", payInr: 100 });
+    const readingId = await completedReading(jar);
+    const pay = () =>
+      payFromWallet(
+        makeRequest("/api/payments/wallet", {
+          json: { product: "DETAILED_READING", readingId },
+          jar,
+        }),
+        ctx,
+      );
+    const results = await Promise.all([pay(), pay(), pay()]);
+    expect(results.every((r) => r.status === 200)).toBe(true);
+    expect((await getAccountBalances(userId)).walletPaise).toBe(11000 - 4900);
+    expect(await db.payment.count({ where: { provider: "WALLET" } })).toBe(1);
+    expect(await db.usageEvent.count({ where: { name: "wallet_payment" } })).toBe(1);
+  });
+
+  it("spends one credit only when unlock is tapped twice at once", async () => {
+    const { jar, userId } = await signUp("credit@example.com");
+    await buy(jar, { product: "FAMILY_PACK" });
+    const before = (await getAccountBalances(userId)).readingCredits;
+    const readingId = await completedReading(jar);
+    const results = await Promise.all([unlock(jar, readingId), unlock(jar, readingId)]);
+    expect(results.map((r) => r.status)).toEqual([200, 200]);
+    expect((await getAccountBalances(userId)).readingCredits).toBe(before - 1);
+    expect(await premium(readingId, jar)).toBe(true);
+  });
+
   it("wallet top-ups add the bonus; wallet spends are not counted as revenue twice", async () => {
     const { jar, userId } = await signUp("wallet@example.com");
     await buy(jar, { product: "WALLET_TOPUP", payInr: 100 });

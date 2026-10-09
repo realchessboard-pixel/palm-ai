@@ -164,7 +164,11 @@ export async function payWithWallet(
   const userId = actor.user.id;
   const prepared = await prepareOrder(order, actor);
   if (!prepared.alreadyOwned) {
-    await db.$transaction(async (tx) => {
+    const charged = await db.$transaction(async (tx) => {
+      // Serialise this user's wallet spends, then re-check ownership: two taps
+      // at once must not both pay for the same thing.
+      await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR UPDATE`;
+      if ((await prepareOrder(order, actor)).alreadyOwned) return false;
       const debited = await tx.user.updateMany({
         where: { id: userId, walletBalance: { gte: prepared.amountPaise } },
         data: { walletBalance: { decrement: prepared.amountPaise } },
@@ -202,13 +206,15 @@ export async function payWithWallet(
         },
       });
       await grantOrder(tx, payment);
+      return true;
     });
     // Not "purchase_completed": the real money was counted when the wallet was topped up.
-    await trackServerEvent("wallet_payment", {
-      userId,
-      readingId: prepared.readingId,
-      properties: { amount: prepared.amountPaise, product: prepared.product },
-    });
+    if (charged)
+      await trackServerEvent("wallet_payment", {
+        userId,
+        readingId: prepared.readingId,
+        properties: { amount: prepared.amountPaise, product: prepared.product },
+      });
   }
   const user = await db.user.findUniqueOrThrow({
     where: { id: userId },
@@ -229,7 +235,12 @@ export async function unlockWithCredit(readingId: string, actor: Actor): Promise
     throw new AppError("CONFLICT", { message: "This reading isn't ready yet." });
   }
   if (await hasPremiumAccess({ readingId: reading.id, ownerUserId: reading.userId })) return;
-  await db.$transaction(async (tx) => {
+  const spentCredit = await db.$transaction(async (tx) => {
+    // One credit per reading, even when "unlock" is tapped twice at once.
+    await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR UPDATE`;
+    if (await tx.entitlement.count({ where: { type: "READING_PREMIUM", readingId: reading.id } })) {
+      return false;
+    }
     const spent = await tx.user.updateMany({
       where: { id: userId, readingCredits: { gt: 0 } },
       data: { readingCredits: { decrement: 1 } },
@@ -243,7 +254,9 @@ export async function unlockWithCredit(readingId: string, actor: Actor): Promise
     await tx.entitlement.create({
       data: { type: "READING_PREMIUM", readingId: reading.id, userId },
     });
+    return true;
   });
+  if (!spentCredit) return;
   await trackServerEvent("credit_used", { userId, readingId: reading.id });
   const context = await funnelContext(reading.id);
   if (context) await trackFunnelEvent("extended_reading_unlocked", context, { via: "credit" });

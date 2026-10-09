@@ -145,6 +145,11 @@ describe.skipIf(!hasTestDatabase)("Kundli reading", () => {
     const rashifal = () =>
       writeRashifal(makeRequest(`/api/kundli/${id}/rashifal`, { json: {}, jar }), params({ id }));
     expect((await rashifal()).status).toBe(403);
+    const stranger = await writeRashifal(
+      makeRequest(`/api/kundli/${id}/rashifal`, { json: {}, jar: new CookieJar() }),
+      params({ id }),
+    );
+    expect(stranger.status).toBe(404);
 
     const started = await checkout(
       makeRequest("/api/payments/checkout", {
@@ -179,6 +184,58 @@ describe.skipIf(!hasTestDatabase)("Kundli reading", () => {
       data: { yearReport: { ...stored, months: [{ ...stored.months[0]!, focus: "" }] } },
     });
     expect((await getRashifalView(id, actor)).report?.months).toHaveLength(1);
+  });
+
+  it("Detailed Rashifal: an AI outage leaves it retryable, and a retry completes it", async () => {
+    const jar = new CookieJar();
+    const res = await createKundli(
+      makeRequest("/api/kundli", { json: { name: "Ravi", birth, purpose: "rashifal" }, jar }),
+      ctx,
+    );
+    jar.absorb(res);
+    const { kundliId: id } = await json<{ kundliId: string }>(res);
+    const { url } = await json<{ url: string }>(
+      await checkout(
+        makeRequest("/api/payments/checkout", {
+          json: { product: "RASHIFAL_REPORT", kundliId: id },
+          jar,
+        }),
+        ctx,
+      ),
+    );
+    await mockComplete(
+      makeRequest("/api/payments/mock/complete", {
+        json: { paymentId: url.split("/checkout/sandbox/")[1]!, outcome: "success" },
+        jar,
+      }),
+      ctx,
+    );
+    const rashifal = () =>
+      writeRashifal(makeRequest(`/api/kundli/${id}/rashifal`, { json: {}, jar }), params({ id }));
+
+    setAiProvider(new ScriptedProvider(Array.from({ length: 6 }, () => new Error("down"))));
+    expect((await rashifal()).status).toBe(502);
+    expect((await db.kundliProfile.findUniqueOrThrow({ where: { id } })).yearStatus).toBe("FAILED");
+
+    const month = (m: string) => ({
+      month: m,
+      title: "A calm month",
+      text: "Steady work.",
+      focus: "Rest.",
+    });
+    setAiProvider(
+      new ScriptedProvider([
+        JSON.stringify({
+          headline: "Your year",
+          overview: "A steady year.",
+          months: Array.from({ length: 12 }, (_, i) => month(`Month ${i + 1}`)),
+        }),
+      ]),
+    );
+    expect((await rashifal()).status).toBe(200);
+    resetIdempotencyCache();
+    const view = await getRashifalView(id, await getActorFromRequest(makeRequest("/", { jar })));
+    expect(view.report?.months).toHaveLength(12);
   });
 
   it("rejects impossible birth details", async () => {
@@ -226,6 +283,11 @@ describe.skipIf(!hasTestDatabase)("detailed Kundli Milan", () => {
         params({ id: milanId }),
       );
     expect((await report()).status).toBe(403);
+    const stranger = await milanReport(
+      makeRequest(`/api/milan/${milanId}/report`, { json: {}, jar: new CookieJar() }),
+      params({ id: milanId }),
+    );
+    expect(stranger.status).toBe(404);
 
     const started = await checkout(
       makeRequest("/api/payments/checkout", { json: { product: "MILAN_REPORT", milanId }, jar }),
