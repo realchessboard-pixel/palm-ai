@@ -1,3 +1,6 @@
+"use client";
+
+import { useT } from "@/components/i18n/i18n";
 import Link from "next/link";
 import { siteConfig } from "@/lib/config/site";
 
@@ -27,11 +30,12 @@ export function LogoMark({ className = "size-8" }: { className?: string }) {
 }
 
 export function Logo() {
+  const tx = useT();
   return (
     <Link
       href="/"
       className="inline-flex items-center gap-2.5 rounded-full"
-      aria-label={`${siteConfig.name} home`}
+      aria-label={tx("{0} home", [siteConfig.name])}
     >
       <LogoMark />
       <span className="font-display text-xl tracking-tight text-parchment">{siteConfig.name}</span>

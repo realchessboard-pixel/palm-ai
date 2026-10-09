@@ -1,3 +1,5 @@
+import { getT } from "@/lib/i18n/server";
+import { T } from "@/components/i18n/i18n";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -20,9 +22,13 @@ import {
 import { getAccountBalances, listGiftsBought } from "@/lib/monetization/account";
 import { paymentsEnabled } from "@/lib/payments/pricing";
 
-export const metadata: Metadata = { title: "Your account", robots: { index: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  const tx = await getT();
+  return { title: tx("Your account"), robots: { index: false } };
+}
 
 export default async function AccountPage() {
+  const tx = await getT();
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/account");
   const [balances, gifts, referrals] = await Promise.all([
@@ -35,8 +41,12 @@ export default async function AccountPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 pt-10 pb-20 sm:px-6 sm:pt-14">
       <div>
-        <h1 className="text-4xl text-parchment">Your account</h1>
-        <p className="mt-2 text-mist">Signed in as {user.email}</p>
+        <h1 className="text-4xl text-parchment">
+          <T s="Your account" />
+        </h1>
+        <p className="mt-2 text-mist">
+          <T s="Signed in as {0}" v={[user.email]} />
+        </p>
       </div>
 
       <WalletSection
@@ -48,48 +58,64 @@ export default async function AccountPage() {
 
       <Card as="section" className="space-y-4" aria-labelledby="invite-title">
         <h2 id="invite-title" className="text-2xl">
-          Invite friends, earn free readings
+          <T s="Invite friends, earn free readings" />
         </h2>
         <p className="text-sm text-mist">
-          For every {REFERRALS_PER_CREDIT} friends who join through your link and read their palm,
-          you get one free detailed reading (up to {MAX_REFERRAL_CREDITS_PER_30_DAYS} a month).
+          <T
+            s="For every {0} friends who join through your link and read their palm, you get one free detailed reading (up to {1} a month)."
+            v={[REFERRALS_PER_CREDIT, MAX_REFERRAL_CREDITS_PER_30_DAYS]}
+          />
         </p>
         <p className="text-sm text-parchment/90">
-          {referrals.qualified} joined and read their palm · {referrals.pending} joined, reading
-          pending · {referrals.creditsEarned} free reading
-          {referrals.creditsEarned === 1 ? "" : "s"} earned
+          <T
+            s={
+              referrals.creditsEarned === 1
+                ? "{0} joined and read their palm · {1} joined, reading pending · 1 free reading earned"
+                : "{0} joined and read their palm · {1} joined, reading pending · {2} free readings earned"
+            }
+            v={[referrals.qualified, referrals.pending, referrals.creditsEarned]}
+          />
         </p>
         <WhatsAppShare
           context="referral"
-          label="Invite on WhatsApp"
-          text="I tried AstroVidya — a warm palm reading in the Indian tradition, and the main reading is free ✋ Try yours:"
+          label={tx("Invite on WhatsApp")}
+          text={tx(
+            "I tried AstroVidya — a warm palm reading in the Indian tradition, and the main reading is free ✋ Try yours:",
+          )}
           url={`${appUrl}/?ref=${referrals.code}`}
         />
       </Card>
 
       <Card as="section" className="space-y-4">
-        <h2 className="text-2xl">Privacy preferences</h2>
+        <h2 className="text-2xl">
+          <T s="Privacy preferences" />
+        </h2>
         <TrainingPreference initial={user.trainingOptIn} />
       </Card>
 
       <Card as="section" className="space-y-4">
-        <h2 className="text-2xl">Delete my data</h2>
+        <h2 className="text-2xl">
+          <T s="Delete my data" />
+        </h2>
         <p className="text-sm text-mist">
-          Remove all of your readings, palm photos and analysis results. You can also delete
-          individual readings from{" "}
-          <Link className="text-gold-300 underline underline-offset-2" href="/readings">
-            Your Readings
-          </Link>
-          .
+          <T
+            s="Remove all of your readings, palm photos and analysis results. You can also delete individual readings from {0}."
+            v={[
+              <Link key={0} className="text-gold-300 underline underline-offset-2" href="/readings">
+                <T s="Your Readings" />
+              </Link>,
+            ]}
+          />
         </p>
         <DeleteDataButton />
       </Card>
 
       <Card as="section" className="space-y-4">
-        <h2 className="text-2xl">Delete account</h2>
+        <h2 className="text-2xl">
+          <T s="Delete account" />
+        </h2>
         <p className="text-sm text-mist">
-          Permanently deletes your account, readings and photos. Payment records are kept only as
-          required for accounting, without your readings.
+          <T s="Permanently deletes your account, readings and photos. Payment records are kept only as required for accounting, without your readings." />
         </p>
         <DeleteAccountForm />
       </Card>

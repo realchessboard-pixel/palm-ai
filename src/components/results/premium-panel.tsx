@@ -1,3 +1,8 @@
+"use client";
+
+import { useT } from "@/components/i18n/i18n";
+import { msg } from "@/lib/i18n/msg";
+import { T } from "@/components/i18n/i18n";
 import Link from "next/link";
 import { BalanceUnlock } from "@/components/payments/balance-unlock";
 import { Alert } from "@/components/ui/misc";
@@ -12,15 +17,21 @@ import { UnlockButton } from "./unlock-button";
 const STATE_NOTICE: Partial<Record<PaymentState, { tone: "info" | "error"; text: string }>> = {
   PAYMENT_INITIATED: {
     tone: "info",
-    text: "A payment for this reading hasn't been confirmed yet. If you completed it, refresh in a moment — otherwise you can start again below.",
+    text: msg(
+      "A payment for this reading hasn't been confirmed yet. If you completed it, refresh in a moment — otherwise you can start again below.",
+    ),
   },
   PAYMENT_FAILED: {
     tone: "error",
-    text: "Your last payment didn't go through, so your detailed reading is still locked. You can try again below.",
+    text: msg(
+      "Your last payment didn't go through, so your detailed reading is still locked. You can try again below.",
+    ),
   },
   PAYMENT_CANCELLED: {
     tone: "info",
-    text: "Checkout was cancelled and you have not been charged. Your detailed reading is still available to unlock.",
+    text: msg(
+      "Checkout was cancelled and you have not been charged. Your detailed reading is still available to unlock.",
+    ),
   },
 };
 
@@ -48,26 +59,33 @@ export function PremiumPanel({
   /** Signed-in visitors: credits and wallet they can use instead of paying again. */
   balances?: { readingCredits: number; walletPaise: number } | null;
 }) {
+  const tx = useT();
   const pricePaise = PRODUCTS.DETAILED_READING.priceInr * 100;
   const notice = STATE_NOTICE[paymentState];
   const items = [
     ...(teaser
       ? [
-          "The way you care",
-          "Your natural strengths",
-          "Your career nature",
-          "Something interesting about you",
+          msg("The way you care"),
+          msg("Your natural strengths"),
+          msg("Your career nature"),
+          msg("Something interesting about you"),
         ]
       : []),
-    ...locked.detailedSections.map((id) => `In-depth ${SECTION_TITLES[id].toLowerCase()} reading`),
-    ...locked.sections.map((id) => SECTION_TITLES[id]),
-    ...locked.lines.map((line) => `${lineLabel(line)} reading`),
+    ...locked.detailedSections.map((id) =>
+      tx("In-depth {0} reading", [tx(SECTION_TITLES[id]).toLowerCase()]),
+    ),
+    ...locked.sections.map((id) => tx(SECTION_TITLES[id])),
+    ...locked.lines.map((line) => tx("{0} reading", [tx(lineLabel(line))])),
     ...(locked.mountCount > 0
-      ? [`${locked.mountCount} palm mount${locked.mountCount === 1 ? "" : "s"} interpreted`]
+      ? [
+          locked.mountCount === 1
+            ? tx("1 palm mount interpreted")
+            : tx("{0} palm mounts interpreted", [locked.mountCount]),
+        ]
       : []),
-    ...(locked.fingers ? ["Finger & thumb analysis"] : []),
-    ...(locked.markings ? ["Minor markings"] : []),
-    "Downloadable PDF report",
+    ...(locked.fingers ? [msg("Finger & thumb analysis")] : []),
+    ...(locked.markings ? [msg("Minor markings")] : []),
+    msg("Downloadable PDF report"),
   ];
 
   return (
@@ -77,18 +95,17 @@ export function PremiumPanel({
     >
       {paymentsEnabled ? <OfferViewed readingId={readingId} /> : null}
       <p className="text-xs font-semibold tracking-[0.2em] text-gold-300 uppercase">
-        Your Basic Reading Is Ready
+        <T s="Your Basic Reading Is Ready" />
       </p>
       <h2 id="premium-title" className="mt-2 text-3xl text-parchment">
-        Want the complete picture?
+        <T s="Want the complete picture?" />
       </h2>
       <p className="mt-3 max-w-xl text-mist">
-        Get your full palm analysis, including detailed line, mount, finger and interpretation
-        insights. It&apos;s prepared from the same photo and grounded in the features we detected.
+        <T s="Get your full palm analysis, including detailed line, mount, finger and interpretation insights. It's prepared from the same photo and grounded in the features we detected." />
       </p>
       {notice ? (
         <Alert tone={notice.tone} className="mt-5">
-          {notice.text}
+          <T s={notice.text} />
         </Alert>
       ) : null}
       <ul className="mt-6 grid gap-2 sm:grid-cols-2">
@@ -107,7 +124,7 @@ export function PremiumPanel({
                 strokeLinecap="round"
               />
             </svg>
-            {item}
+            <T s={item} />
           </li>
         ))}
       </ul>
@@ -116,7 +133,9 @@ export function PremiumPanel({
           <>
             <p className="mb-4 flex items-baseline gap-2">
               <span className="text-4xl text-parchment">{priceLabel}</span>
-              <span className="text-sm text-mist">one-time, for this reading</span>
+              <span className="text-sm text-mist">
+                <T s="one-time, for this reading" />
+              </span>
             </p>
             <UnlockButton readingId={readingId} priceLabel={priceLabel} />
             {balances ? (
@@ -125,30 +144,42 @@ export function PremiumPanel({
                   order={{ product: "DETAILED_READING", readingId }}
                   credits={balances.readingCredits}
                   canPayFromWallet={balances.walletPaise >= pricePaise}
-                  walletLabel={`${formatInr(balances.walletPaise / 100)} available`}
+                  walletLabel={tx("{0} available", [formatInr(balances.walletPaise / 100)])}
                 />
               </div>
             ) : null}
             <p className="mt-5 text-sm text-mist">
-              Reading for the whole family?{" "}
-              <Link href="/pricing" className="text-gold-300 underline underline-offset-2">
-                {PRODUCTS.FAMILY_PACK.name} — {formatInr(PRODUCTS.FAMILY_PACK.priceInr)}
-              </Link>{" "}
-              or{" "}
-              <Link href="/pricing" className="text-gold-300 underline underline-offset-2">
-                every reading in full for a year — {formatInr(PRODUCTS.MEMBERSHIP_YEAR.priceInr)}
-              </Link>
-              .
+              <T
+                s="Reading for the whole family? {0} or {1}."
+                v={[
+                  <Link
+                    key={0}
+                    href="/pricing"
+                    className="text-gold-300 underline underline-offset-2"
+                  >
+                    <T s={PRODUCTS.FAMILY_PACK.name} /> — {formatInr(PRODUCTS.FAMILY_PACK.priceInr)}
+                  </Link>,
+                  <Link
+                    key={1}
+                    href="/pricing"
+                    className="text-gold-300 underline underline-offset-2"
+                  >
+                    <T
+                      s="every reading in full for a year — {0}"
+                      v={[formatInr(PRODUCTS.MEMBERSHIP_YEAR.priceInr)]}
+                    />
+                  </Link>,
+                ]}
+              />
             </p>
           </>
         ) : (
           <p className="text-sm text-mist">
-            Detailed readings aren&apos;t available for purchase right now.
+            <T s="Detailed readings aren't available for purchase right now." />
           </p>
         )}
         <p className="mt-3 text-xs text-mist-dim">
-          One-time payment that unlocks the detailed reading for this palm reading only. No
-          auto-renewal. Same entertainment-only disclaimer applies.
+          <T s="One-time payment that unlocks the detailed reading for this palm reading only. No auto-renewal. Same entertainment-only disclaimer applies." />
         </p>
       </div>
     </section>

@@ -1,3 +1,5 @@
+import { getT } from "@/lib/i18n/server";
+import { T } from "@/components/i18n/i18n";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -20,13 +22,17 @@ import { PRODUCTS, formatInr, priceWithGst, toPaise } from "@/lib/monetization/p
 import { paymentsEnabled } from "@/lib/payments/pricing";
 import { IdSchema } from "@/lib/schemas/api";
 
-export const metadata: Metadata = { title: "Your Mahakundli", robots: { index: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  const tx = await getT();
+  return { title: tx("Your Mahakundli"), robots: { index: false } };
+}
 
 export default async function MahakundliReportPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const tx = await getT();
   const { id } = await params;
   if (!IdSchema.safeParse(id).success) notFound();
   const actor = await getActor();
@@ -55,7 +61,7 @@ export default async function MahakundliReportPage({
       <p className="flex flex-wrap items-baseline gap-2">
         <span className="text-3xl">{price.headline}</span>
         <span className="text-sm text-mist">
-          {price.total} · {tr("pay.oneTime")}
+          <T s={price.total} /> · {tr("pay.oneTime")}
         </span>
       </p>
       <BuyButton
@@ -67,7 +73,7 @@ export default async function MahakundliReportPage({
           order={{ product: "KUNDLI_REPORT", kundliId: view.id }}
           credits={0}
           canPayFromWallet={balances.walletPaise >= toPaise(product.priceInr)}
-          walletLabel={`${formatInr(balances.walletPaise / 100)} available`}
+          walletLabel={tx("{0} available", [formatInr(balances.walletPaise / 100)])}
         />
       ) : null}
     </div>
@@ -81,9 +87,16 @@ export default async function MahakundliReportPage({
         <p className="eyebrow">{tr("maha.yourMaha")}</p>
         <h1 className="text-4xl">{view.name}</h1>
         <p className="text-mist">
-          {RASHIS[chart.moon.rashi]!.name} Moon · {NAKSHATRAS[chart.moon.nakshatra]} nakshatra
-          {birth.timeKnown ? ` · ${RASHIS[chart.lagna.rashi]!.name} Lagna` : ""}
-          {now.maha ? ` · ${now.maha.lord} mahadasha` : ""} · {birth.placeName}
+          <T
+            s="{0} Moon · {1} nakshatra{2}{3} · {4}"
+            v={[
+              RASHIS[chart.moon.rashi]!.name,
+              NAKSHATRAS[chart.moon.nakshatra],
+              birth.timeKnown ? ` · ${RASHIS[chart.lagna.rashi]!.name} Lagna` : "",
+              now.maha ? ` · ${now.maha.lord} mahadasha` : "",
+              birth.placeName,
+            ]}
+          />
         </p>
       </header>
 
@@ -128,8 +141,13 @@ export default async function MahakundliReportPage({
             <PendingWriter
               endpoint={`/api/kundli/${view.id}/report`}
               title={tr("maha.writing")}
-              body={`Thank you — it's unlocked. All ${LIFE_AREAS.length} life areas are being read from your chart. This takes about a minute.`}
-              retryMessage="Your Mahakundli is unlocked and saved — it just needs another moment. Tap “Try again”."
+              body={tx(
+                "Thank you — it's unlocked. All {0} life areas are being read from your chart. This takes about a minute.",
+                [LIFE_AREAS.length],
+              )}
+              retryMessage={tx(
+                "Your Mahakundli is unlocked and saved — it just needs another moment. Tap “Try again”.",
+              )}
             />
           ) : (
             <section className="space-y-5" aria-labelledby="locked-title">
@@ -146,7 +164,7 @@ export default async function MahakundliReportPage({
                       <span className="font-semibold">{tr(`area.${a.id}.title`)}</span>
                       <span className="block text-sm text-mist">{tr(`area.${a.id}.question`)}</span>
                     </span>
-                    <span aria-label="Locked" className="ml-auto text-mist">
+                    <span aria-label={tx("Locked")} className="ml-auto text-mist">
                       🔒
                     </span>
                   </li>
@@ -165,7 +183,7 @@ export default async function MahakundliReportPage({
       <div className="paper-card flex flex-wrap items-center justify-between gap-4 p-6">
         <p className="text-lg">{tr("ask.question")}</p>
         <Link href="/readers" className="btn-primary">
-          Ask a reader
+          <T s="Ask a reader" />
         </Link>
       </div>
     </div>

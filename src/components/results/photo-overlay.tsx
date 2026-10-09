@@ -1,5 +1,7 @@
 "use client";
 
+import { useT } from "@/components/i18n/i18n";
+import { T } from "@/components/i18n/i18n";
 import { useState } from "react";
 import { LINE_COLORS } from "@/components/palm/palm-geometry";
 import { lineLabel } from "@/lib/palmistry/features";
@@ -17,12 +19,17 @@ export function PhotoOverlay({
   readingId: string;
   lines: LineObservationView[];
 }) {
+  const tx = useT();
   const [failed, setFailed] = useState(false);
   const [showMarkers, setShowMarkers] = useState(true);
   const withPaths = lines.filter((l) => l.approximatePath && l.approximatePath.length >= 2);
 
   if (failed) {
-    return <p className="text-sm text-mist">Your photo is no longer available.</p>;
+    return (
+      <p className="text-sm text-mist">
+        <T s="Your photo is no longer available." />
+      </p>
+    );
   }
 
   return (
@@ -32,7 +39,7 @@ export function PhotoOverlay({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={`/api/readings/${readingId}/image`}
-          alt="Your palm photo"
+          alt={tx("Your palm photo")}
           className="block h-auto w-full"
           onError={() => setFailed(true)}
         />
@@ -59,7 +66,7 @@ export function PhotoOverlay({
           </svg>
         ) : null}
         <span className="absolute top-3 left-3 rounded-full bg-night-950/80 px-3 py-1 text-xs text-gold-200 backdrop-blur">
-          Approximate positions
+          <T s="Approximate positions" />
         </span>
       </div>
       {withPaths.length > 0 ? (
@@ -71,7 +78,7 @@ export function PhotoOverlay({
                 style={{ background: LINE_COLORS[line.line] }}
                 aria-hidden="true"
               />
-              {lineLabel(line.line)}
+              <T s={lineLabel(line.line)} />
             </span>
           ))}
           <button
@@ -80,12 +87,12 @@ export function PhotoOverlay({
             onClick={() => setShowMarkers((v) => !v)}
             aria-pressed={showMarkers}
           >
-            {showMarkers ? "Hide markers" : "Show markers"}
+            {showMarkers ? tx("Hide markers") : tx("Show markers")}
           </button>
         </div>
       ) : (
         <p className="text-center text-xs text-mist-dim">
-          We weren&apos;t confident enough about exact line positions to mark them on your photo.
+          <T s="We weren't confident enough about exact line positions to mark them on your photo." />
         </p>
       )}
     </div>

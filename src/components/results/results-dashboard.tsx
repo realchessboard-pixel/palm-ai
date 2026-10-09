@@ -1,3 +1,9 @@
+"use client";
+
+const LATIN_SCRIPT = new Set(["en", "de", "es", "fr", "pt", "it", "id"]);
+
+import { useT } from "@/components/i18n/i18n";
+import { T } from "@/components/i18n/i18n";
 import Link from "next/link";
 import { DeleteReadingButton } from "@/components/account/delete-reading-button";
 import { DownloadButton } from "@/components/ui/download-button";
@@ -50,6 +56,7 @@ export function ResultsDashboard({
   shareUrl,
   referralNote = null,
 }: ResultsDashboardProps) {
+  const tx = useT();
   const lang = reading.language;
   const t = readingMessages(lang);
   const interpretation = reading.interpretation;
@@ -73,7 +80,14 @@ export function ResultsDashboard({
       <header className="space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div lang={lang}>
-            <p className="text-xs font-semibold tracking-[0.2em] text-gold-300 uppercase">{date}</p>
+            {/* Server and browser date libraries can spell months differently (e.g. Hindi);
+                keep the server's text instead of re-rendering it. */}
+            <p
+              className="text-xs font-semibold tracking-[0.2em] text-gold-300 uppercase"
+              suppressHydrationWarning
+            >
+              {date}
+            </p>
             <h1 className="mt-2 text-4xl text-parchment sm:text-5xl">{t.yourPalmReading}</h1>
             <p className="mt-2 text-mist">
               {reading.hand === "left" ? t.leftHand : t.rightHand} ·{" "}
@@ -83,15 +97,13 @@ export function ResultsDashboard({
           {!sample && interpretation ? <LanguageSelector value={lang} label={t.language} /> : null}
         </div>
         {sample ? (
-          <Alert tone="info" title="Sample reading">
-            This example is generated from built-in sample palm features to show what a full report
-            looks like.
+          <Alert tone="info" title={tx("Sample reading")}>
+            <T s="This example is generated from built-in sample palm features to show what a full report looks like." />
           </Alert>
         ) : null}
         {reading.isDemo ? (
-          <Alert tone="warning" title="Demo mode">
-            This reading uses built-in sample palm features, not an analysis of your photo, because
-            no AI provider is configured on this server.
+          <Alert tone="warning" title={tx("Demo mode")}>
+            <T s="This reading uses built-in sample palm features, not an analysis of your photo, because no AI provider is configured on this server." />
           </Alert>
         ) : null}
         {reading.translationPending && !interpretationPending ? (
@@ -231,29 +243,33 @@ export function ResultsDashboard({
       {sample ? (
         <div className="text-center">
           <ButtonLink href="/read" size="lg">
-            Read My Palm
+            <T s="Read My Palm" />
           </ButtonLink>
         </div>
       ) : (
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           {reading.premium && !interpretationPending && !reading.detailedPending ? (
-            <DownloadButton label={lang === "en" ? "Save as PDF" : "PDF ⬇"} />
+            <DownloadButton label={tx("Save as PDF")} />
           ) : null}
-          {reading.premium && !interpretationPending && !reading.detailedPending ? (
+          {/* The server PDF's built-in fonts only cover Latin script; other languages use "Save as PDF". */}
+          {reading.premium &&
+          !interpretationPending &&
+          !reading.detailedPending &&
+          LATIN_SCRIPT.has(reading.language) ? (
             <ButtonLink
               href={`/api/readings/${reading.id}/report`}
               prefetch={false}
               variant="primary"
             >
-              Download PDF report
+              <T s="Download PDF report" />
             </ButtonLink>
           ) : null}
           <ButtonLink href="/read" variant="secondary">
-            Read another palm
+            <T s="Read another palm" />
           </ButtonLink>
           {signedIn ? (
             <ButtonLink href="/readings" variant="ghost">
-              All your readings
+              <T s="All your readings" />
             </ButtonLink>
           ) : null}
           <DeleteReadingButton readingId={reading.id} redirectTo={signedIn ? "/readings" : "/"} />
@@ -261,15 +277,19 @@ export function ResultsDashboard({
       )}
 
       {!signedIn && !sample ? (
-        <Alert tone="info" title="Keep this reading">
-          This reading is linked to this browser only.{" "}
-          <Link
-            href={`/signup?next=/readings/${reading.id}`}
-            className="text-gold-300 underline underline-offset-2"
-          >
-            Create a free account
-          </Link>{" "}
-          to save it to your reading history.
+        <Alert tone="info" title={tx("Keep this reading")}>
+          <T
+            s="This reading is linked to this browser only. {0} to save it to your reading history."
+            v={[
+              <Link
+                key={0}
+                href={`/signup?next=/readings/${reading.id}`}
+                className="text-gold-300 underline underline-offset-2"
+              >
+                <T s="Create a free account" />
+              </Link>,
+            ]}
+          />
         </Alert>
       ) : null}
 

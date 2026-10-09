@@ -1,5 +1,7 @@
 "use client";
 
+import { useT } from "@/components/i18n/i18n";
+import { T } from "@/components/i18n/i18n";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -16,12 +18,17 @@ const AUTO_RETRIES = 2;
  * once: the server lets one request write and answers the others with 409.
  */
 export function DetailedPending({ readingId }: { readingId: string }) {
+  const tx = useT();
   return (
     <PendingWriter
       endpoint={`/api/readings/${readingId}/detailed`}
-      title="Writing your detailed reading…"
-      body="Thank you — it's unlocked. Your reader is now going line by line and parvat by parvat through your palm. This usually takes about 20 seconds, and it stays saved to this reading."
-      retryMessage="Your detailed reading is unlocked and saved — it just needs another moment to be written. Tap “Try again”."
+      title={tx("Writing your detailed reading…")}
+      body={tx(
+        "Thank you — it's unlocked. Your reader is now going line by line and parvat by parvat through your palm. This usually takes about 20 seconds, and it stays saved to this reading.",
+      )}
+      retryMessage={tx(
+        "Your detailed reading is unlocked and saved — it just needs another moment to be written. Tap “Try again”.",
+      )}
     />
   );
 }
@@ -80,14 +87,16 @@ export function PendingWriter({
   if (error) {
     return (
       <div className="glass space-y-4 rounded-3xl p-6">
-        <Alert tone="error">{error}</Alert>
+        <Alert tone="error">
+          <T s={error} />
+        </Alert>
         <Button
           onClick={() => {
             setError(null);
             setAttempt((n) => n + 1);
           }}
         >
-          Try again
+          <T s="Try again" />
         </Button>
       </div>
     );

@@ -151,7 +151,8 @@ export async function askReader(
         : { count: 0 };
     if (retry.count === 0) {
       throw new AppError("PAYMENT_ERROR", {
-        message: `Choose a plan to ask ${reader.name} your question.`,
+        message: "Choose a plan to ask {0} your question.",
+        vars: [reader.name],
       });
     }
   }
@@ -175,7 +176,8 @@ export async function askReader(
       .catch(() => undefined);
     logger.error("reader_answer_failed", { chatId: chat.id, error });
     throw new AppError(error instanceof AppError ? error.code : "AI_UNAVAILABLE", {
-      message: `${reader.name} couldn't answer just now. Your question wasn't used — please ask again.`,
+      message: "{0} couldn't answer just now. Your question wasn't used — please ask again.",
+      vars: [reader.name],
       internal: error,
     });
   }

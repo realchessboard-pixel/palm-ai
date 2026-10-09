@@ -1,3 +1,6 @@
+import type { Language } from "@/lib/i18n/languages";
+import { translatePhrase } from "@/lib/i18n/phrases";
+import { languageFromRequest } from "@/lib/i18n/server";
 import { NextResponse, type NextRequest } from "next/server";
 import { ZodError } from "zod";
 import { logger } from "@/lib/logger";
@@ -74,16 +77,24 @@ export class AppError extends Error {
   readonly details?: Record<string, unknown>;
   /** Internal-only context for logs. Never returned to clients. */
   readonly internal?: unknown;
+  readonly messageVars?: Record<string, string | number> | (string | number)[];
 
   constructor(
     code: ErrorCode,
-    options: { message?: string; details?: Record<string, unknown>; internal?: unknown } = {},
+    options: {
+      message?: string;
+      /** Values for {0}, {name}… in `message` (kept apart so it can be translated). */
+      vars?: Record<string, string | number> | (string | number)[];
+      details?: Record<string, unknown>;
+      internal?: unknown;
+    } = {},
   ) {
     super(options.message ?? DEFAULT_MESSAGES[code]);
     this.name = "AppError";
     this.code = code;
     this.status = STATUS[code];
     this.userMessage = options.message ?? DEFAULT_MESSAGES[code];
+    this.messageVars = options.vars;
     this.details = options.details;
     this.internal = options.internal;
   }
@@ -103,7 +114,11 @@ function isPrismaError(error: unknown): boolean {
 }
 
 /** Convert any thrown value into a safe JSON response, logging technical detail server-side. */
-export function errorResponse(error: unknown, context: Record<string, unknown> = {}) {
+export function errorResponse(
+  error: unknown,
+  context: Record<string, unknown> = {},
+  language: Language = "en",
+) {
   let appError: AppError;
   if (isAppError(error)) {
     appError = error;
@@ -128,7 +143,8 @@ export function errorResponse(error: unknown, context: Record<string, unknown> =
   const body: ApiErrorBody = {
     error: {
       code: appError.code,
-      message: appError.userMessage,
+      // Shown to the visitor in their chosen language.
+      message: translatePhrase(language, appError.userMessage, appError.messageVars),
       ...(appError.details ? { details: appError.details } : {}),
     },
   };
@@ -147,7 +163,11 @@ export function withErrorHandling<C>(name: string, handler: RouteHandler<C>): Ro
     try {
       return await handler(request, context);
     } catch (error) {
-      return errorResponse(error, { route: name, method: request.method });
+      return errorResponse(
+        error,
+        { route: name, method: request.method },
+        languageFromRequest(request),
+      );
     }
   };
 }

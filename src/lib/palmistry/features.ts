@@ -1,3 +1,4 @@
+import { msg } from "@/lib/i18n/msg";
 import {
   INSUFFICIENT,
   LINE_NAMES,
@@ -28,20 +29,20 @@ export const FEATURE_KEY_PATTERN =
 export const MIN_FEATURE_CONFIDENCE = 0.35;
 
 const LINE_LABELS: Record<LineName, string> = {
-  life: "Life line",
-  head: "Head line",
-  heart: "Heart line",
-  fate: "Fate line",
+  life: msg("Life line"),
+  head: msg("Head line"),
+  heart: msg("Heart line"),
+  fate: msg("Fate line"),
 };
 
 const MOUNT_LABELS: Record<MountName, string> = {
-  venus: "Mount of Venus",
-  jupiter: "Mount of Jupiter",
-  saturn: "Mount of Saturn",
-  apollo: "Mount of Apollo (Sun)",
-  mercury: "Mount of Mercury",
-  mars: "Mount of Mars",
-  moon: "Mount of Moon",
+  venus: msg("Mount of Venus"),
+  jupiter: msg("Mount of Jupiter"),
+  saturn: msg("Mount of Saturn"),
+  apollo: msg("Mount of Apollo (Sun)"),
+  mercury: msg("Mount of Mercury"),
+  mars: msg("Mount of Mars"),
+  moon: msg("Mount of Moon"),
 };
 
 export function lineLabel(line: LineName): string {
@@ -53,9 +54,9 @@ export function mountLabel(mount: MountName): string {
 }
 
 export function featureLabel(key: string, analysis?: PalmAnalysis): string {
-  if (key === "palmShape") return "Palm shape";
-  if (key === "fingers") return "Finger proportions";
-  if (key === "fingers.thumb") return "Thumb";
+  if (key === "palmShape") return msg("Palm shape");
+  if (key === "fingers") return msg("Finger proportions");
+  if (key === "fingers.thumb") return msg("Thumb");
   const [group, name] = key.split(".");
   if (group === "lines" && (LINE_NAMES as readonly string[]).includes(name)) {
     return LINE_LABELS[name as LineName];

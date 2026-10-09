@@ -1,3 +1,4 @@
+import { msg } from "@/lib/i18n/msg";
 import { NAKSHATRAS, RASHIS } from "./constants";
 
 /**
@@ -118,12 +119,12 @@ export function gunaMilan(
   const vb = VARNA[b.rashi % 4]!;
   kootas.push({
     id: "varna",
-    name: "Varna",
+    name: msg("Varna"),
     max: 1,
     score: VARNA_RANK[va]! >= VARNA_RANK[vb]! ? 1 : 0,
     a: va,
     b: vb,
-    meaning: "Temperament and approach to work and duty.",
+    meaning: msg("Temperament and approach to work and duty."),
   });
 
   // 2. Vashya
@@ -133,12 +134,12 @@ export function gunaMilan(
   const oneWay = VASHYA[a.rashi]!.includes(b.rashi) || VASHYA[b.rashi]!.includes(a.rashi);
   kootas.push({
     id: "vashya",
-    name: "Vashya",
+    name: msg("Vashya"),
     max: 2,
     score: mutual ? 2 : oneWay ? 1 : 0,
     a: RASHIS[a.rashi]!.name,
     b: RASHIS[b.rashi]!.name,
-    meaning: "Natural influence and attraction between the two.",
+    meaning: msg("Natural influence and attraction between the two."),
   });
 
   // 3. Tara
@@ -148,12 +149,12 @@ export function gunaMilan(
   const t2 = taraGood(a.nakshatra, b.nakshatra);
   kootas.push({
     id: "tara",
-    name: "Tara",
+    name: msg("Tara"),
     max: 3,
     score: t1 && t2 ? 3 : t1 || t2 ? 1.5 : 0,
     a: NAKSHATRAS[a.nakshatra]!,
     b: NAKSHATRAS[b.nakshatra]!,
-    meaning: "Harmony of the birth stars — wellbeing in each other's company.",
+    meaning: msg("Harmony of the birth stars — wellbeing in each other's company."),
   });
 
   // 4. Yoni (simplified: same 4, natural enemies 0, otherwise 2)
@@ -162,12 +163,12 @@ export function gunaMilan(
   const enemies = YONI_ENEMIES.some(([x, y]) => (x === ya && y === yb) || (x === yb && y === ya));
   kootas.push({
     id: "yoni",
-    name: "Yoni",
+    name: msg("Yoni"),
     max: 4,
     score: ya === yb ? 4 : enemies ? 0 : 2,
     a: ya,
     b: yb,
-    meaning: "Instinctive nature and physical comfort with each other.",
+    meaning: msg("Instinctive nature and physical comfort with each other."),
   });
 
   // 5. Graha Maitri
@@ -191,12 +192,12 @@ export function gunaMilan(
         )[pair]!;
   kootas.push({
     id: "maitri",
-    name: "Graha Maitri",
+    name: msg("Graha Maitri"),
     max: 5,
     score: maitri,
     a: `${la} (lord of ${RASHIS[a.rashi]!.name})`,
     b: `${lb} (lord of ${RASHIS[b.rashi]!.name})`,
-    meaning: "Mental wavelength and friendship between the two Moon-sign lords.",
+    meaning: msg("Mental wavelength and friendship between the two Moon-sign lords."),
   });
 
   // 6. Gana
@@ -214,12 +215,12 @@ export function gunaMilan(
         )[ganaPair]!;
   kootas.push({
     id: "gana",
-    name: "Gana",
+    name: msg("Gana"),
     max: 6,
     score: gana,
     a: ga,
     b: gb,
-    meaning: "Temperament: gentle, human or intense natures.",
+    meaning: msg("Temperament: gentle, human or intense natures."),
   });
 
   // 7. Bhakoot
@@ -232,12 +233,12 @@ export function gunaMilan(
   ].some(([x, y]) => (d1 === x && d2 === y) || (d1 === y && d2 === x));
   kootas.push({
     id: "bhakoot",
-    name: "Bhakoot",
+    name: msg("Bhakoot"),
     max: 7,
     score: bad ? 0 : 7,
     a: RASHIS[a.rashi]!.name,
     b: RASHIS[b.rashi]!.name,
-    meaning: "How the two Moon signs sit together — shared direction in life.",
+    meaning: msg("How the two Moon signs sit together — shared direction in life."),
   });
 
   // 8. Nadi
@@ -245,12 +246,12 @@ export function gunaMilan(
   const nb = nadiOf(b.nakshatra);
   kootas.push({
     id: "nadi",
-    name: "Nadi",
+    name: msg("Nadi"),
     max: 8,
     score: na === nb ? 0 : 8,
     a: na,
     b: nb,
-    meaning: "Constitution and energy — traditionally the most weighted koota.",
+    meaning: msg("Constitution and energy — traditionally the most weighted koota."),
   });
 
   return { total: kootas.reduce((n, k) => n + k.score, 0), max: 36, kootas };

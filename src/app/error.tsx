@@ -1,5 +1,6 @@
 "use client";
 
+import { T } from "@/components/i18n/i18n";
 import { useEffect } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
 
@@ -18,16 +19,24 @@ export default function ErrorPage({
 
   return (
     <div className="mx-auto max-w-md px-4 py-24 text-center">
-      <h1 className="text-3xl">Something went wrong</h1>
-      <p className="mt-3 text-mist">We couldn&apos;t load this page right now. Please try again.</p>
+      <h1 className="text-3xl">
+        <T s="Something went wrong" />
+      </h1>
+      <p className="mt-3 text-mist">
+        <T s="We couldn't load this page right now. Please try again." />
+      </p>
       <div className="mt-8 flex justify-center gap-3">
-        <Button onClick={reset}>Try again</Button>
+        <Button onClick={reset}>
+          <T s="Try again" />
+        </Button>
         <ButtonLink href="/" variant="secondary">
-          Home
+          <T s="Home" />
         </ButtonLink>
       </div>
       {error.digest ? (
-        <p className="mt-6 text-xs text-mist-dim">Reference: {error.digest}</p>
+        <p className="mt-6 text-xs text-mist-dim">
+          <T s="Reference: {0}" v={[error.digest]} />
+        </p>
       ) : null}
     </div>
   );

@@ -1,3 +1,4 @@
+import { msg } from "@/lib/i18n/msg";
 import { z } from "zod";
 import { FEATURE_KEY_PATTERN } from "@/lib/palmistry/features";
 import { LINE_NAMES, MOUNT_NAMES } from "@/lib/schemas/palm-analysis";
@@ -22,14 +23,14 @@ export const SECTION_IDS = [
 export type SectionId = (typeof SECTION_IDS)[number];
 
 export const SECTION_TITLES: Record<SectionId, string> = {
-  personality: "Personality",
-  relationships: "Love & Relationships",
-  career: "Career",
-  money: "Money & Success",
-  lifePath: "Life Path",
-  strengths: "Strengths",
-  challenges: "Challenges",
-  highlights: "Traditional Palmistry Highlights",
+  personality: msg("Personality"),
+  relationships: msg("Love & Relationships"),
+  career: msg("Career"),
+  money: msg("Money & Success"),
+  lifePath: msg("Life Path"),
+  strengths: msg("Strengths"),
+  challenges: msg("Challenges"),
+  highlights: msg("Traditional Palmistry Highlights"),
 };
 
 const FeatureKeySchema = z.string().regex(FEATURE_KEY_PATTERN, "Unknown feature key");

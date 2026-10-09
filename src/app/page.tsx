@@ -1,3 +1,5 @@
+import { msg } from "@/lib/i18n/msg";
+import { T } from "@/components/i18n/i18n";
 import { headers } from "next/headers";
 import { TrackOnMount } from "@/components/analytics/track-on-mount";
 import { Faq, FAQ_ITEMS } from "@/components/landing/faq";
@@ -22,7 +24,7 @@ function structuredData() {
         "@type": "Offer",
         price: "0",
         priceCurrency: "USD",
-        description: "Free basic reading",
+        description: msg("Free basic reading"),
       },
     },
     {
@@ -58,17 +60,17 @@ export default async function LandingPage() {
       <section aria-labelledby="cta-title" className="px-4 pt-8 pb-24 sm:px-6">
         <div className="mx-auto max-w-3xl text-center">
           <h2 id="cta-title" className="text-3xl sm:text-5xl">
-            Start with one free answer
+            <T s="Start with one free answer" />
           </h2>
           <p className="mt-4 text-mist">
-            Four birth details or one photo of your palm. Pay only if you want the full report.
+            <T s="Four birth details or one photo of your palm. Pay only if you want the full report." />
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <ButtonLink href="/mahakundli" size="lg">
-              Get my first answer free
+              <T s="Get my first answer free" />
             </ButtonLink>
             <ButtonLink href="/read" size="lg" variant="secondary">
-              Read my palm
+              <T s="Read my palm" />
             </ButtonLink>
           </div>
           <Disclaimer className="mt-12 text-left" />

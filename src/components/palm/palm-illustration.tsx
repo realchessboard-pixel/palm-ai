@@ -1,3 +1,6 @@
+"use client";
+
+import { useT } from "@/components/i18n/i18n";
 import { LINE_NAMES, MOUNT_NAMES } from "@/lib/schemas/palm-analysis";
 import { PALM_LINES, PALM_MOUNTS, PALM_OUTLINE, PALM_VIEWBOX } from "./palm-geometry";
 
@@ -7,12 +10,13 @@ import { PALM_LINES, PALM_MOUNTS, PALM_OUTLINE, PALM_VIEWBOX } from "./palm-geom
  * inside a block-print border. Pure SVG, no images.
  */
 export function PalmIllustration({ className }: { className?: string }) {
+  const tx = useT();
   return (
     <svg
       viewBox={PALM_VIEWBOX}
       className={className}
       role="img"
-      aria-label="Ink drawing of an open palm with its major palmistry lines"
+      aria-label={tx("Ink drawing of an open palm with its major palmistry lines")}
     >
       {/* block-print border */}
       <circle cx="150" cy="230" r="162" fill="#efe2c8" />

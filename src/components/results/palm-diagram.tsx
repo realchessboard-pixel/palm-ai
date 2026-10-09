@@ -1,5 +1,8 @@
 "use client";
 
+import { msg } from "@/lib/i18n/msg";
+import { useT } from "@/components/i18n/i18n";
+import { T } from "@/components/i18n/i18n";
 import { useState } from "react";
 import {
   LINE_COLORS,
@@ -12,9 +15,9 @@ import type { LineObservationView } from "@/lib/readings/view";
 import { cn } from "@/lib/cn";
 
 const STATE_TEXT = {
-  observed: "Observed",
-  not_visible: "Not clearly visible",
-  insufficient_visibility: "Couldn't assess",
+  observed: msg("Observed"),
+  not_visible: msg("Not clearly visible"),
+  insufficient_visibility: msg("Couldn't assess"),
 } as const;
 
 /**
@@ -28,6 +31,7 @@ export function PalmDiagram({
   hand: "left" | "right";
   lines: LineObservationView[];
 }) {
+  const tx = useT();
   const [active, setActive] = useState<string | null>(null);
   const mirror = hand === "right";
 
@@ -37,7 +41,7 @@ export function PalmDiagram({
         viewBox={PALM_VIEWBOX}
         className="mx-auto h-auto w-full max-w-[16rem]"
         role="img"
-        aria-label={`Diagram of a ${hand} palm highlighting the lines that were detected`}
+        aria-label={tx("Diagram of a {0} palm highlighting the lines that were detected", [hand])}
       >
         <g transform={mirror ? "translate(300 0) scale(-1 1)" : undefined}>
           <path d={`${PALM_OUTLINE} Z`} fill="rgb(42 30 23 / 0.035)" />
@@ -70,7 +74,7 @@ export function PalmDiagram({
         </g>
       </svg>
 
-      <ul className="space-y-2" aria-label="Major lines">
+      <ul className="space-y-2" aria-label={tx("Major lines")}>
         {lines.map((line) => (
           <li key={line.line}>
             <button
@@ -96,12 +100,12 @@ export function PalmDiagram({
               />
               <span className="flex-1">
                 <span className="block text-sm font-medium text-parchment">
-                  {lineLabel(line.line)}
+                  <T s={lineLabel(line.line)} />
                 </span>
                 <span className="block text-xs text-mist">
-                  {STATE_TEXT[line.state]}
+                  <T s={STATE_TEXT[line.state]} />
                   {line.state === "observed" && line.confidence !== null
-                    ? ` · ${Math.round(line.confidence * 100)}% confidence`
+                    ? tx(" · {0}% confidence", [Math.round(line.confidence * 100)])
                     : ""}
                 </span>
               </span>
@@ -109,7 +113,7 @@ export function PalmDiagram({
           </li>
         ))}
         <li className="px-1 pt-1 text-xs leading-snug text-mist-dim">
-          Generic diagram — line positions are illustrative, not measured from your photo.
+          <T s="Generic diagram — line positions are illustrative, not measured from your photo." />
         </li>
       </ul>
     </div>

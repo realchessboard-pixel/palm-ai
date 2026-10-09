@@ -1,5 +1,7 @@
 "use client";
 
+import { useT } from "@/components/i18n/i18n";
+import { T } from "@/components/i18n/i18n";
 import { useId, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -26,6 +28,7 @@ export function PhotoReview({
   /** The partner's palm for a couple reading: their agreement is confirmed instead. */
   partner?: boolean;
 }) {
+  const tx = useT();
   const [consent, setConsent] = useState(false);
   const [trainingOptIn, setTrainingOptIn] = useState(false);
   const [showConsentError, setShowConsentError] = useState(false);
@@ -40,11 +43,15 @@ export function PhotoReview({
       <div className="relative mx-auto aspect-[3/4] w-full max-w-sm overflow-hidden rounded-3xl border border-white/10 bg-black">
         {/* Local blob preview of the user's own photo; never leaves the device until "Use photo". */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={previewUrl} alt="Your palm photo preview" className="size-full object-contain" />
+        <img
+          src={previewUrl}
+          alt={tx("Your palm photo preview")}
+          className="size-full object-contain"
+        />
       </div>
 
       {blocking.length > 0 ? (
-        <Alert tone="error" title="This photo can't be read">
+        <Alert tone="error" title={tx("This photo can't be read")}>
           <ul className="list-disc space-y-1 pl-4">
             {blocking.map((i) => (
               <li key={i.code}>{i.message}</li>
@@ -53,19 +60,21 @@ export function PhotoReview({
         </Alert>
       ) : null}
       {warnings.length > 0 && !blocked ? (
-        <Alert tone="warning" title="A quick check">
+        <Alert tone="warning" title={tx("A quick check")}>
           <ul className="list-disc space-y-1 pl-4">
             {warnings.map((i) => (
               <li key={i.code}>{i.message}</li>
             ))}
           </ul>
           <p className="mt-2 text-xs opacity-80">
-            You can still continue — we will make the final call on what it can see.
+            <T s="You can still continue — we will make the final call on what it can see." />
           </p>
         </Alert>
       ) : null}
       {issues.length === 0 ? (
-        <Alert tone="success">Looks good — the photo is bright and sharp enough to analyze.</Alert>
+        <Alert tone="success">
+          <T s="Looks good — the photo is bright and sharp enough to analyze." />
+        </Alert>
       ) : null}
 
       {!blocked ? (
@@ -84,30 +93,36 @@ export function PhotoReview({
               className="mt-0.5 size-5 shrink-0 accent-gold-400"
             />
             <span className="leading-relaxed text-parchment/90">
-              {partner
-                ? "My partner has agreed to have their palm read for our couple reading, and we understand it is for entertainment and reflection. I agree to the "
-                : "This is my hand (or I have permission), and I understand the reading is for entertainment and reflection. I agree to the "}
-              <Link
-                href="/terms"
-                className="text-gold-300 underline underline-offset-2"
-                target="_blank"
-              >
-                terms
-              </Link>{" "}
-              and{" "}
-              <Link
-                href="/privacy"
-                className="text-gold-300 underline underline-offset-2"
-                target="_blank"
-              >
-                privacy policy
-              </Link>
-              .
+              <T
+                s={
+                  partner
+                    ? "My partner has agreed to have their palm read for our couple reading, and we understand it is for entertainment and reflection. I agree to the {0} and {1}."
+                    : "This is my hand (or I have permission), and I understand the reading is for entertainment and reflection. I agree to the {0} and {1}."
+                }
+                v={[
+                  <Link
+                    key={1}
+                    href="/terms"
+                    className="text-gold-300 underline underline-offset-2"
+                    target="_blank"
+                  >
+                    <T s="terms" />
+                  </Link>,
+                  <Link
+                    key={2}
+                    href="/privacy"
+                    className="text-gold-300 underline underline-offset-2"
+                    target="_blank"
+                  >
+                    <T s="privacy policy" />
+                  </Link>,
+                ]}
+              />
             </span>
           </label>
           {showConsentError ? (
             <p id={errorId} className="text-xs text-red-300" role="alert">
-              Please confirm to continue.
+              <T s="Please confirm to continue." />
             </p>
           ) : null}
           {partner ? null : (
@@ -119,8 +134,7 @@ export function PhotoReview({
                 className="mt-0.5 size-5 shrink-0 accent-gold-400"
               />
               <span className="leading-relaxed text-mist">
-                Optional: allow this photo to be used to improve palm analysis. Off by default —
-                your photo is never used for training without this.
+                <T s="Optional: allow this photo to be used to improve palm analysis. Off by default — your photo is never used for training without this." />
               </span>
             </label>
           )}
@@ -129,7 +143,7 @@ export function PhotoReview({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Button variant="secondary" onClick={onRetake} disabled={busy}>
-          Retake
+          <T s="Retake" />
         </Button>
         <Button
           onClick={() => {
@@ -141,7 +155,7 @@ export function PhotoReview({
           }}
           disabled={blocked || busy}
         >
-          Use photo
+          <T s="Use photo" />
         </Button>
       </div>
     </div>

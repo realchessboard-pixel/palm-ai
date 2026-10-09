@@ -1,3 +1,5 @@
+import { getT } from "@/lib/i18n/server";
+import { T } from "@/components/i18n/i18n";
 import Link from "next/link";
 import type { Language } from "@/lib/i18n/languages";
 import { translator } from "@/lib/i18n/ui";
@@ -8,7 +10,8 @@ import { PRODUCTS, READER_TIERS, formatInr, priceWithGst } from "@/lib/monetizat
 const fromQuestion = Math.min(...Object.values(READER_TIERS).map((t) => t.singleInr));
 
 /** Home page: the Mahakundli first, then palm reading and focused readings. */
-export function HomeFunnel({ lang }: { lang: Language }) {
+export async function HomeFunnel({ lang }: { lang: Language }) {
+  const tx = await getT();
   const tr = translator(lang);
   const price = priceWithGst(PRODUCTS.KUNDLI_REPORT);
   return (
@@ -67,7 +70,7 @@ export function HomeFunnel({ lang }: { lang: Language }) {
             </p>
             <p className="font-display text-xl text-[#f7efe2]/85">{tr("home.mahaLead")}</p>
             <h2 id="maha-title" className="text-5xl text-[#f0c27b]">
-              Mahakundli
+              <T s="Mahakundli" />
             </h2>
             <p className="text-[#f7efe2]/85">
               {LIFE_AREAS.length} · {tr("home.mahaBody")}
@@ -82,7 +85,9 @@ export function HomeFunnel({ lang }: { lang: Language }) {
             </ul>
             <p>
               <span className="text-2xl font-semibold">{price.headline}</span>{" "}
-              <span className="text-sm text-[#f7efe2]/65">{price.total}</span>
+              <span className="text-sm text-[#f7efe2]/65">
+                <T s={price.total} />
+              </span>
             </p>
             <Link
               href="/mahakundli"
@@ -112,8 +117,12 @@ export function HomeFunnel({ lang }: { lang: Language }) {
               );
             })}
             <div className="absolute inset-[30%] flex flex-col items-center justify-center rounded-full bg-[#f0c27b]/10 text-center">
-              <span className="text-xs tracking-widest">YOUR MAHA</span>
-              <span className="font-display text-xl text-[#f0c27b]">KUNDLI ✦</span>
+              <span className="text-xs tracking-widest">
+                <T s="YOUR MAHA" />
+              </span>
+              <span className="font-display text-xl text-[#f0c27b]">
+                <T s="KUNDLI ✦" />
+              </span>
             </div>
           </div>
         </div>
@@ -132,7 +141,7 @@ export function HomeFunnel({ lang }: { lang: Language }) {
         )}
       </ol>
 
-      <section aria-label="More readings" className="grid gap-4 md:grid-cols-2">
+      <section aria-label={tx("More readings")} className="grid gap-4 md:grid-cols-2">
         <div className="paper-card flex flex-col p-6">
           <p className="eyebrow">{tr("home.palmEyebrow")}</p>
           <h2 className="mt-1 text-3xl">{tr("home.palmTitle")}</h2>

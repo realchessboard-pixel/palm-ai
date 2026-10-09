@@ -1,5 +1,7 @@
 "use client";
 
+import { msg } from "@/lib/i18n/msg";
+import { T } from "@/components/i18n/i18n";
 import { useId, useState } from "react";
 import { PLACES, DEFAULT_PLACE_ID, findPlace } from "@/lib/astro/places";
 import type { BirthInput } from "@/lib/astro/chart";
@@ -16,13 +18,13 @@ export function emptyBirth(): Record<string, string> {
 
 /** Parse the form values into birth details (or an error message). */
 export function parseBirth(v: Record<string, string>, timeKnown: boolean): BirthDetails | string {
-  if (!v.date) return "Please enter the date of birth.";
+  if (!v.date) return msg("Please enter the date of birth.");
   const [y, m, d] = v.date.split("-").map(Number);
-  if (!y || !m || !d || y < 1900 || y > 2100) return "Please enter a valid date of birth.";
+  if (!y || !m || !d || y < 1900 || y > 2100) return msg("Please enter a valid date of birth.");
   let hour = 12;
   let minute = 0;
   if (timeKnown) {
-    if (!v.time) return "Please enter the time of birth (or tick “I don't know the time”).";
+    if (!v.time) return msg("Please enter the time of birth (or tick “I don't know the time”).");
     [hour, minute] = v.time.split(":").map(Number) as [number, number];
   }
   let lat: number, lon: number, tzMinutes: number, placeName: string;
@@ -31,9 +33,9 @@ export function parseBirth(v: Record<string, string>, timeKnown: boolean): Birth
     lon = Number(v.lon);
     tzMinutes = Math.round(Number(v.tz) * 60);
     if (!Number.isFinite(lat) || Math.abs(lat) > 66 || !Number.isFinite(lon) || Math.abs(lon) > 180)
-      return "Please enter a valid latitude (−66 to 66) and longitude.";
+      return msg("Please enter a valid latitude (−66 to 66) and longitude.");
     if (!Number.isFinite(tzMinutes) || Math.abs(tzMinutes) > 14 * 60)
-      return "Please enter a valid UTC offset, e.g. 5.5 for India.";
+      return msg("Please enter a valid UTC offset, e.g. 5.5 for India.");
     placeName = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
   } else {
     const place = findPlace(v.place ?? "") ?? findPlace(DEFAULT_PLACE_ID)!;
@@ -77,7 +79,7 @@ export function BirthFields({
       {legend ? <legend className="mb-2 text-lg font-semibold">{legend}</legend> : null}
       <div>
         <label htmlFor={`${id}-name`} className="mb-1 block text-sm text-mist">
-          Name (optional)
+          <T s="Name (optional)" />
         </label>
         <input
           id={`${id}-name`}
@@ -90,7 +92,7 @@ export function BirthFields({
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor={`${id}-date`} className="mb-1 block text-sm text-mist">
-            Date of birth
+            <T s="Date of birth" />
           </label>
           <input
             id={`${id}-date`}
@@ -105,7 +107,7 @@ export function BirthFields({
         </div>
         <div>
           <label htmlFor={`${id}-time`} className="mb-1 block text-sm text-mist">
-            Time of birth
+            <T s="Time of birth" />
           </label>
           <input
             id={`${id}-time`}
@@ -116,19 +118,24 @@ export function BirthFields({
             disabled={!timeKnown}
           />
           <label className="mt-2 flex items-center gap-2 text-sm text-mist">
-            <input
-              type="checkbox"
-              checked={!timeKnown}
-              onChange={(e) => onTimeKnown(!e.target.checked)}
-              className="size-4 accent-gold-400"
+            <T
+              s="{0}I don't know the time"
+              v={[
+                <input
+                  key={0}
+                  type="checkbox"
+                  checked={!timeKnown}
+                  onChange={(e) => onTimeKnown(!e.target.checked)}
+                  className="size-4 accent-gold-400"
+                />,
+              ]}
             />
-            I don&apos;t know the time
           </label>
         </div>
       </div>
       <div>
         <label htmlFor={`${id}-place`} className="mb-1 block text-sm text-mist">
-          Place of birth
+          <T s="Place of birth" />
         </label>
         <select
           id={`${id}-place`}
@@ -151,14 +158,14 @@ export function BirthFields({
         <div className="grid gap-4 sm:grid-cols-3">
           {(
             [
-              ["lat", "Latitude (e.g. 28.61)"],
-              ["lon", "Longitude (e.g. 77.21)"],
-              ["tz", "UTC offset (e.g. 5.5)"],
+              ["lat", msg("Latitude (e.g. 28.61)")],
+              ["lon", msg("Longitude (e.g. 77.21)")],
+              ["tz", msg("UTC offset (e.g. 5.5)")],
             ] as const
           ).map(([k, label]) => (
             <div key={k}>
               <label htmlFor={`${id}-${k}`} className="mb-1 block text-sm text-mist">
-                {label}
+                <T s={label} />
               </label>
               <input
                 id={`${id}-${k}`}

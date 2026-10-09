@@ -1,5 +1,7 @@
 "use client";
 
+import { useT } from "@/components/i18n/i18n";
+import { T } from "@/components/i18n/i18n";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/misc";
@@ -59,6 +61,7 @@ export function RewardedAd({
   adUnit?: string | null;
   onRewarded: () => void;
 }) {
+  const tx = useT();
   const [state, setState] = useState<"idle" | "loading" | "playing" | "saving">("idle");
   const [left, setLeft] = useState(TEST_AD_SECONDS);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +83,7 @@ export function RewardedAd({
       track("rewarded_ad_completed", { mode });
       onRewarded();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Please try again.");
+      setError(err instanceof ApiClientError ? err.message : tx("Please try again."));
       setState("idle");
     }
   }
@@ -105,7 +108,7 @@ export function RewardedAd({
       const gt = await loadGpt();
       const slot = gt.defineOutOfPageSlot(adUnit!, gt.enums.OutOfPageFormat.REWARDED);
       if (!slot) {
-        setError("Ads aren't supported on this browser. Please come back tomorrow.");
+        setError(tx("Ads aren't supported on this browser. Please come back tomorrow."));
         setState("idle");
         return;
       }
@@ -125,33 +128,42 @@ export function RewardedAd({
       });
       gt.pubads().addEventListener("slotRenderEnded", (e) => {
         if (e.slot === slot && e.isEmpty) {
-          setError("No ad is available right now. Please try again later.");
+          setError(tx("No ad is available right now. Please try again later."));
           setState("idle");
         }
       });
       gt.enableServices();
       gt.display(slot);
     } catch {
-      setError("The ad couldn't load (an ad blocker may be on). Please try again later.");
+      setError(tx("The ad couldn't load (an ad blocker may be on). Please try again later."));
       setState("idle");
     }
   }
 
   return (
     <div className="paper-card space-y-3 p-5">
-      <p className="font-medium">Want 1 more free palm reading today?</p>
-      <p className="text-sm text-mist">
-        Watch one short ad and your reading starts right after. It&apos;s your choice — you can also
-        just come back tomorrow.
+      <p className="font-medium">
+        <T s="Want 1 more free palm reading today?" />
       </p>
-      {error ? <Alert tone="error">{error}</Alert> : null}
+      <p className="text-sm text-mist">
+        <T s="Watch one short ad and your reading starts right after. It's your choice — you can also just come back tomorrow." />
+      </p>
+      {error ? (
+        <Alert tone="error">
+          <T s={error} />
+        </Alert>
+      ) : null}
       {state === "playing" && mode === "test" ? (
         <div
           role="status"
           className="rounded-2xl border border-dashed border-[var(--rule)] p-6 text-center"
         >
-          <p className="text-xs font-semibold tracking-[0.2em] uppercase">Test ad</p>
-          <p className="mt-2 text-sm text-mist">No real ad is shown in test mode.</p>
+          <p className="text-xs font-semibold tracking-[0.2em] uppercase">
+            <T s="Test ad" />
+          </p>
+          <p className="mt-2 text-sm text-mist">
+            <T s="No real ad is shown in test mode." />
+          </p>
           <p className="mt-3 text-2xl tabular-nums">{left}s</p>
         </div>
       ) : (
@@ -165,7 +177,7 @@ export function RewardedAd({
             else void playGam();
           }}
         >
-          {state === "idle" ? "▶ Watch a short ad for 1 more reading" : "Loading…"}
+          {state === "idle" ? tx("▶ Watch a short ad for 1 more reading") : tx("Loading…")}
         </Button>
       )}
     </div>

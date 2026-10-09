@@ -20,7 +20,9 @@
     "admin:grant": "tsx scripts/grant-admin.ts",
     "icons": "tsx scripts/generate-icons.ts",
     "postinstall": "prisma generate",
-    "check": "npm run lint && npm run typecheck && npm run test && npm run build"
+    "check": "npm run lint && npm run typecheck && npm run i18n:check && npm run test && npm run build",
+    "i18n:check": "tsx scripts/translate-phrases.mts --check",
+    "i18n:translate": "tsx scripts/translate-phrases.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",

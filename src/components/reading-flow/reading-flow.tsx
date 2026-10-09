@@ -1,5 +1,8 @@
 "use client";
 
+import { msg } from "@/lib/i18n/msg";
+import { useT } from "@/components/i18n/i18n";
+import { T } from "@/components/i18n/i18n";
 import { RewardedAd, type ClientAdMode } from "@/components/ads/rewarded-ad";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -46,21 +49,21 @@ interface AnalyzeResponse {
 const HAND = "right" as const;
 
 const PARTNER_TITLES: Record<Step["kind"], string> = {
-  source: "Now your partner's right palm",
-  camera: "Place your partner's right palm in the frame",
-  checking: "Checking the photo",
-  review: "Review the photo",
-  processing: "Reading your partner's palm",
-  failed: "Let's give it another go",
+  source: msg("Now your partner's right palm"),
+  camera: msg("Place your partner's right palm in the frame"),
+  checking: msg("Checking the photo"),
+  review: msg("Review the photo"),
+  processing: msg("Reading your partner's palm"),
+  failed: msg("Let's give it another go"),
 };
 
 const STEP_TITLES: Record<Step["kind"], string> = {
-  source: "Show us your right palm",
-  camera: "Place your right palm in the frame",
-  checking: "Checking your photo",
-  review: "Review your photo",
-  processing: "Reading your palm",
-  failed: "Let's give it another go",
+  source: msg("Show us your right palm"),
+  camera: msg("Place your right palm in the frame"),
+  checking: msg("Checking your photo"),
+  review: msg("Review your photo"),
+  processing: msg("Reading your palm"),
+  failed: msg("Let's give it another go"),
 };
 
 /**
@@ -73,6 +76,7 @@ export function ReadingFlow({
   adMode = "off",
   adUnit = null,
 }: { partnerFor?: string; adMode?: ClientAdMode; adUnit?: string | null } = {}) {
+  const tx = useT();
   const titles = partnerFor ? PARTNER_TITLES : STEP_TITLES;
   const router = useRouter();
   const [step, setStep] = useState<Step>({ kind: "source" });
@@ -108,8 +112,8 @@ export function ReadingFlow({
     } catch (error) {
       const message =
         error instanceof ImageInputError
-          ? error.message
-          : "We couldn't read that image. Please try another photo.";
+          ? tx(error.message)
+          : tx("We couldn't read that image. Please try another photo.");
       track("image_rejected", { stage: "client", reason: "invalid_file" });
       setStep({ kind: "source", error: message });
     }
@@ -190,7 +194,9 @@ export function ReadingFlow({
         message:
           error instanceof ApiClientError && !isTransientError(error)
             ? error.message
-            : "Our palm reader is very busy right now. Your photo is ready — tap “Try again” and we'll pick up where we left off.",
+            : tx(
+                "Our palm reader is very busy right now. Your photo is ready — tap “Try again” and we'll pick up where we left off.",
+              ),
         canRetry: true,
       });
     }
@@ -210,7 +216,7 @@ export function ReadingFlow({
       {step.kind !== "processing" ? (
         <div className="mb-6 flex items-center justify-between gap-3">
           <p className="text-xs font-semibold tracking-[0.2em] text-gold-300 uppercase">
-            Step {stepNumber} of 3
+            <T s="Step {0} of 3" v={[stepNumber]} />
           </p>
           {step.kind === "review" || step.kind === "camera" ? (
             <button
@@ -218,7 +224,7 @@ export function ReadingFlow({
               className="min-h-11 rounded-full px-3 text-sm text-mist hover:text-parchment"
               onClick={() => setStep({ kind: "source" })}
             >
-              ← Back
+              <T s="← Back" />
             </button>
           ) : null}
         </div>
@@ -233,17 +239,25 @@ export function ReadingFlow({
             : "mb-6 text-3xl text-parchment outline-none sm:text-4xl"
         }
       >
-        {titles[step.kind]}
+        <T s={titles[step.kind]} />
       </h1>
 
       {step.kind === "source" ? (
         <div className="space-y-4">
           <p className="-mt-2 text-mist">
             {partnerFor
-              ? "Ask your partner to hold their right hand inside the frame — palm facing the camera, fingers relaxed and slightly apart. Only read their palm with their agreement."
-              : "Place your right hand clearly inside the frame — palm facing the camera, fingers relaxed and slightly apart."}
+              ? tx(
+                  "Ask your partner to hold their right hand inside the frame — palm facing the camera, fingers relaxed and slightly apart. Only read their palm with their agreement.",
+                )
+              : tx(
+                  "Place your right hand clearly inside the frame — palm facing the camera, fingers relaxed and slightly apart.",
+                )}
           </p>
-          {step.error ? <Alert tone="error">{step.error}</Alert> : null}
+          {step.error ? (
+            <Alert tone="error">
+              <T s={step.error} />
+            </Alert>
+          ) : null}
           <PhotoSource onFile={handleSource} onOpenCamera={() => setStep({ kind: "camera" })} />
         </div>
       ) : null}
@@ -258,8 +272,10 @@ export function ReadingFlow({
 
       {step.kind === "checking" ? (
         <div className="flex flex-col items-center gap-4 py-16 text-mist">
-          <Spinner label="Checking photo quality" className="scale-150" />
-          Checking brightness, sharpness and framing…
+          <T
+            s="{0}Checking brightness, sharpness and framing…"
+            v={[<Spinner key={0} label={tx("Checking photo quality")} className="scale-150" />]}
+          />
         </div>
       ) : null}
 
@@ -277,7 +293,9 @@ export function ReadingFlow({
 
       {step.kind === "failed" ? (
         <div className="space-y-4">
-          <Alert tone="error">{step.message}</Alert>
+          <Alert tone="error">
+            <T s={step.message} />
+          </Alert>
           {step.adOffer ? (
             <RewardedAd
               mode={adMode}
@@ -296,11 +314,11 @@ export function ReadingFlow({
                   analyze(submission.current.image, submission.current.choices, true)
                 }
               >
-                Try again
+                <T s="Try again" />
               </Button>
             ) : null}
             <Button variant="secondary" onClick={() => setStep({ kind: "source" })}>
-              Use a different photo
+              <T s="Use a different photo" />
             </Button>
           </div>
         </div>

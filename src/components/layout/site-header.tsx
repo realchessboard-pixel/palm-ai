@@ -1,3 +1,6 @@
+import { msg } from "@/lib/i18n/msg";
+import { T } from "@/components/i18n/i18n";
+import { getT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { Logo } from "@/components/ui/logo";
 import { ButtonLink } from "@/components/ui/button";
@@ -11,7 +14,8 @@ export interface HeaderUser {
   isAdmin: boolean;
 }
 
-export function SiteHeader({ user, lang }: { user: HeaderUser | null; lang: Language }) {
+export async function SiteHeader({ user, lang }: { user: HeaderUser | null; lang: Language }) {
+  const tx = await getT();
   const links = [
     { href: "/horoscope", label: t(lang, "nav.rashifal") },
     { href: "/kundli", label: t(lang, "nav.kundli") },
@@ -21,7 +25,7 @@ export function SiteHeader({ user, lang }: { user: HeaderUser | null; lang: Lang
     { href: "/pricing", label: t(lang, "nav.pricing") },
     { href: "/how-readings-work", label: t(lang, "nav.about") },
     ...(user ? [{ href: "/readings", label: t(lang, "nav.readings") }] : []),
-    ...(user?.isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
+    ...(user?.isAdmin ? [{ href: "/admin", label: msg("Admin") }] : []),
   ];
 
   return (
@@ -31,7 +35,7 @@ export function SiteHeader({ user, lang }: { user: HeaderUser | null; lang: Lang
           <Logo />
           <LanguageMenu current={lang} label={t(lang, "nav.language")} />
         </div>
-        <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
+        <nav aria-label={tx("Main")} className="hidden items-center gap-1 md:flex">
           {links
             .filter((l) => l.href !== "/panchang" && l.href !== "/how-readings-work")
             .map((link) => (
@@ -40,7 +44,7 @@ export function SiteHeader({ user, lang }: { user: HeaderUser | null; lang: Lang
                 href={link.href}
                 className="rounded-full px-4 py-2 text-sm text-mist transition-colors hover:text-parchment"
               >
-                {link.label}
+                <T s={link.label} />
               </Link>
             ))}
           {user ? (

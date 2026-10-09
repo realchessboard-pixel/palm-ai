@@ -1,5 +1,10 @@
 "use client";
 
+import { useLang } from "@/components/i18n/i18n";
+import type { Language } from "@/lib/i18n/languages";
+import { localeFor } from "@/lib/i18n/languages";
+import { useT } from "@/components/i18n/i18n";
+import { T } from "@/components/i18n/i18n";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,6 +22,7 @@ const fmtDeg = (d: number) =>
 const year = (iso: string) => new Date(iso).getFullYear();
 
 export function KundliTool({ reportPriceLabel }: { reportPriceLabel: string }) {
+  const tx = useT();
   const [values, setValues] = useState(emptyBirth);
   const [timeKnown, setTimeKnown] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +42,7 @@ export function KundliTool({ reportPriceLabel }: { reportPriceLabel: string }) {
   function submit() {
     const parsed = parseBirth(values, timeKnown);
     if (typeof parsed === "string") {
-      setError(parsed);
+      setError(tx(parsed));
       return;
     }
     setError(null);
@@ -66,13 +72,16 @@ export function KundliTool({ reportPriceLabel }: { reportPriceLabel: string }) {
           timeKnown={timeKnown}
           onTimeKnown={setTimeKnown}
         />
-        {error ? <Alert tone="error">{error}</Alert> : null}
+        {error ? (
+          <Alert tone="error">
+            <T s={error} />
+          </Alert>
+        ) : null}
         <Button type="submit" size="lg" className="w-full sm:w-auto">
-          Make my Kundli — free
+          <T s="Make my Kundli — free" />
         </Button>
         <p className="text-xs text-mist">
-          Calculated in your browser — your birth details aren&apos;t sent to us unless you ask for
-          the full reading.
+          <T s="Calculated in your browser — your birth details aren't sent to us unless you ask for the full reading." />
         </p>
       </form>
       {result ? <KundliResult {...result} reportPriceLabel={reportPriceLabel} /> : null}
@@ -89,6 +98,8 @@ function KundliResult({
   chart: Chart;
   reportPriceLabel: string;
 }) {
+  const tx = useT();
+  const lang = useLang();
   const now = useMemo(() => currentDasha(chart.dasha), [chart]);
   const moonChart = !birth.timeKnown;
   const lagnaRashi = moonChart ? chart.moon.rashi : chart.lagna.rashi;
@@ -101,18 +112,18 @@ function KundliResult({
       ? []
       : [
           [
-            "Lagna (ascendant)",
+            tx("Lagna (ascendant)"),
             `${RASHIS[chart.lagna.rashi]!.name} ${fmtDeg(chart.lagna.degreeInSign)}`,
           ],
         ]),
     [
-      "Moon sign (Rashi)",
+      tx("Moon sign (Rashi)"),
       `${RASHIS[chart.moon.rashi]!.name} · ${RASHIS[chart.moon.rashi]!.english}`,
     ],
-    ["Nakshatra", `${NAKSHATRAS[chart.moon.nakshatra]}, pada ${chart.moon.pada}`],
-    ["Sun sign (sidereal)", RASHIS[chart.sunRashi]!.name],
+    [tx("Nakshatra"), tx("{0}, pada {1}", [NAKSHATRAS[chart.moon.nakshatra]!, chart.moon.pada])],
+    [tx("Sun sign (sidereal)"), RASHIS[chart.sunRashi]!.name],
     [
-      "Current dasha",
+      tx("Current dasha"),
       now.maha
         ? `${now.maha.lord} mahadasha${now.antar ? ` · ${now.antar.lord} antardasha` : ""}`
         : "—",
@@ -122,26 +133,34 @@ function KundliResult({
   return (
     <section id="kundli-result" className="space-y-8" aria-labelledby="kundli-title">
       <div>
-        <p className="eyebrow">Your Kundli</p>
+        <p className="eyebrow">
+          <T s="Your Kundli" />
+        </p>
         <h2 id="kundli-title" className="text-3xl">
-          {birth.name ? `${birth.name}'s` : "Your"} birth chart
+          {birth.name ? tx("{0}'s birth chart", [birth.name]) : tx("Your birth chart")}
         </h2>
         <p className="mt-1 text-sm text-mist">
-          {new Date(Date.UTC(birth.year, birth.month - 1, birth.day)).toLocaleDateString("en-IN", {
-            dateStyle: "long",
-            timeZone: "UTC",
-          })}
-          {birth.timeKnown
-            ? `, ${String(birth.hour).padStart(2, "0")}:${String(birth.minute).padStart(2, "0")}`
-            : ""}{" "}
-          · {birth.placeName} · Lahiri ayanamsa
+          <T
+            s="{0}{1} · {2} · Lahiri ayanamsa"
+            v={[
+              new Date(Date.UTC(birth.year, birth.month - 1, birth.day)).toLocaleDateString(
+                localeFor(lang as Language),
+                {
+                  dateStyle: "long",
+                  timeZone: "UTC",
+                },
+              ),
+              birth.timeKnown
+                ? `, ${String(birth.hour).padStart(2, "0")}:${String(birth.minute).padStart(2, "0")}`
+                : "",
+              birth.placeName,
+            ]}
+          />
         </p>
       </div>
       {moonChart ? (
         <p className="note">
-          Without a birth time the ascendant and houses can&apos;t be known, so this is a Chandra
-          kundli (houses counted from your Moon sign). The Moon sign itself may differ if the Moon
-          changed sign on your birthday.
+          <T s="Without a birth time the ascendant and houses can't be known, so this is a Chandra kundli (houses counted from your Moon sign). The Moon sign itself may differ if the Moon changed sign on your birthday." />
         </p>
       ) : null}
 
@@ -150,7 +169,7 @@ function KundliResult({
           <NorthIndianChart
             lagnaRashi={lagnaRashi}
             planets={planets}
-            title={moonChart ? "Chandra kundli" : "Lagna kundli"}
+            title={moonChart ? tx("Chandra kundli") : tx("Lagna kundli")}
           />
         </div>
         <dl className="paper-card divide-y divide-[var(--rule)] p-2">
@@ -166,11 +185,11 @@ function KundliResult({
       <div className="paper-card overflow-x-auto p-2">
         <table className="w-full min-w-[34rem] text-left text-sm">
           <caption className="px-4 pt-3 pb-2 text-left text-lg font-semibold">
-            Planets (grahas)
+            <T s="Planets (grahas)" />
           </caption>
           <thead className="text-mist">
             <tr>
-              {["Graha", "Rashi", "Degree", "Nakshatra", "House"].map((h) => (
+              {[tx("Graha"), tx("Rashi"), tx("Degree"), tx("Nakshatra"), tx("House")].map((h) => (
                 <th key={h} className="px-4 py-2 font-medium">
                   {h}
                 </th>
@@ -183,7 +202,9 @@ function KundliResult({
                 <td className="px-4 py-2">
                   {GRAHA_NAMES[p.graha].sanskrit} <span className="text-mist">({p.graha})</span>
                   {p.retrograde && p.graha !== "Rahu" && p.graha !== "Ketu" ? (
-                    <span className="tag ml-2">Retrograde</span>
+                    <span className="tag ml-2">
+                      <T s="Retrograde" />
+                    </span>
                   ) : null}
                 </td>
                 <td className="px-4 py-2">{RASHIS[p.rashi]!.name}</td>
@@ -199,7 +220,9 @@ function KundliResult({
       </div>
 
       <div className="paper-card p-6">
-        <h3 className="text-xl">Vimshottari dasha</h3>
+        <h3 className="text-xl">
+          <T s="Vimshottari dasha" />
+        </h3>
         <ol className="mt-4 grid gap-2 sm:grid-cols-3">
           {chart.dasha.map((d) => {
             const current = now.maha?.start === d.start;
@@ -209,7 +232,7 @@ function KundliResult({
                 className={`rounded-xl border px-4 py-3 ${current ? "border-[var(--color-gold-400)] bg-[rgb(184_71_31/0.07)]" : "border-[var(--rule)]"}`}
               >
                 <p className="font-medium">
-                  {GRAHA_NAMES[d.lord].sanskrit} ({d.lord}){current ? " · now" : ""}
+                  {GRAHA_NAMES[d.lord].sanskrit} ({d.lord}){current ? tx(" · now") : ""}
                 </p>
                 <p className="text-sm text-mist">
                   {year(d.start)} – {year(d.end)}
@@ -232,17 +255,21 @@ function KundliUpsell({
   birth: BirthDetails;
   reportPriceLabel: string;
 }) {
+  const tx = useT();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <div className="paper-card flex flex-col p-6 md:col-span-2">
-        <p className="eyebrow">Mahakundli · 17 life areas · {reportPriceLabel}</p>
-        <h3 className="mt-1 text-2xl">Marriage, career, money and 14 more answers</h3>
+        <p className="eyebrow">
+          <T s="Mahakundli · 17 life areas · {0}" v={[reportPriceLabel]} />
+        </p>
+        <h3 className="mt-1 text-2xl">
+          <T s="Marriage, career, money and 14 more answers" />
+        </h3>
         <p className="mt-2 flex-1 text-mist">
-          Each life area answered separately from this chart, with your running dasha and the next 3
-          years of major transits. Your first answer is free.
+          <T s="Each life area answered separately from this chart, with your running dasha and the next 3 years of major transits. Your first answer is free." />
         </p>
         <div className="mt-5">
           <Button
@@ -268,30 +295,32 @@ function KundliUpsell({
                 });
                 router.push(`/kundli/${kundliId}`);
               } catch (err) {
-                setError(err instanceof ApiClientError ? err.message : "Please try again.");
+                setError(err instanceof ApiClientError ? err.message : tx("Please try again."));
                 setBusy(false);
               }
             }}
           >
-            {busy ? "Reading your chart…" : "Get my first answer free"}
+            {busy ? tx("Reading your chart…") : tx("Get my first answer free")}
           </Button>
           {error ? (
             <Alert tone="error" className="mt-3">
-              {error}
+              <T s={error} />
             </Alert>
           ) : null}
         </div>
       </div>
       <div className="paper-card flex flex-col gap-3 p-6">
-        <h3 className="text-xl">More for you</h3>
+        <h3 className="text-xl">
+          <T s="More for you" />
+        </h3>
         <Link href="/kundli-milan" className="link">
-          Kundli Milan — check compatibility (free)
+          <T s="Kundli Milan — check compatibility (free)" />
         </Link>
         <Link href="/horoscope" className="link">
-          Today&apos;s rashifal (free)
+          <T s="Today's rashifal (free)" />
         </Link>
         <Link href="/readers" className="link">
-          Ask a reader your question
+          <T s="Ask a reader your question" />
         </Link>
       </div>
     </div>

@@ -1,3 +1,6 @@
+import { T } from "@/components/i18n/i18n";
+import { getLanguage } from "@/lib/i18n/server";
+import { getT } from "@/lib/i18n/server";
 import Link from "next/link";
 import type { Language } from "@/lib/i18n/languages";
 import { translator } from "@/lib/i18n/ui";
@@ -8,12 +11,13 @@ import { PRODUCTS, priceWithGst } from "@/lib/monetization/price";
  * The paid next step after any free tool: a rashifal or panchang is the same
  * for everyone; the Mahakundli is read from your own birth chart.
  */
-export function MahakundliCta({ lead, lang = "en" }: { lead: string; lang?: Language }) {
-  const tr = translator(lang);
+export async function MahakundliCta({ lead, lang }: { lead: string; lang?: Language }) {
+  const tx = await getT(lang);
+  const tr = translator(lang ?? (await getLanguage()));
   const price = priceWithGst(PRODUCTS.KUNDLI_REPORT);
   return (
     <section
-      aria-label="Mahakundli"
+      aria-label={tx("Mahakundli")}
       className="rounded-[1.5rem] bg-[#2a1e17] p-6 text-[#f7efe2] sm:p-8"
     >
       <p className="text-xs font-semibold tracking-[0.18em] text-[#f0c27b] uppercase">{lead}</p>
@@ -42,7 +46,8 @@ export function MahakundliCta({ lead, lang = "en" }: { lead: string; lang?: Lang
           {tr("home.firstFree")}
         </Link>
         <span className="text-sm text-[#f7efe2]/70">
-          {tr("cta.then")} {price.headline} ({price.total}) {tr("cta.forAll")} ({LIFE_AREAS.length})
+          {tr("cta.then")} {price.headline} (<T s={price.total} />) {tr("cta.forAll")} (
+          {LIFE_AREAS.length})
         </span>
       </div>
     </section>

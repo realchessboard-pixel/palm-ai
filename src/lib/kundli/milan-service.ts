@@ -1,3 +1,4 @@
+import { msg } from "@/lib/i18n/msg";
 import "server-only";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
@@ -17,12 +18,12 @@ import { getOwnedMilan, hasMilanAccess } from "./access";
 import { BirthSchema, chartFacts, type StoredBirth } from "./service";
 
 export const MILAN_SECTIONS = [
-  { id: "overview", title: "The two of you, in short" },
-  { id: "kootas", title: "Your 8 kootas, explained" },
-  { id: "minds", title: "Moon signs: how you feel and react" },
-  { id: "partnership", title: "Partnership in both charts (7th house & Venus)" },
-  { id: "timing", title: "Your running dashas side by side" },
-  { id: "guidance", title: "Guidance for the two of you" },
+  { id: "overview", title: msg("The two of you, in short") },
+  { id: "kootas", title: msg("Your 8 kootas, explained") },
+  { id: "minds", title: msg("Moon signs: how you feel and react") },
+  { id: "partnership", title: msg("Partnership in both charts (7th house & Venus)") },
+  { id: "timing", title: msg("Your running dashas side by side") },
+  { id: "guidance", title: msg("Guidance for the two of you") },
 ] as const;
 const SECTION_IDS = MILAN_SECTIONS.map((s) => s.id) as [string, ...string[]];
 

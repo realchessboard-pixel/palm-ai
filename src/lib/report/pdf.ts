@@ -1,3 +1,4 @@
+import { translatePhrase } from "@/lib/i18n/phrases";
 import "server-only";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { siteConfig } from "@/lib/config/site";
@@ -125,6 +126,7 @@ export async function renderReadingPdf(reading: ReadingView): Promise<Uint8Array
   const interpretation = reading.interpretation;
   if (!interpretation || !reading.premium)
     throw new Error("Full report requires a premium, completed reading");
+  const tx = (english: string) => translatePhrase(reading.language, english);
 
   const doc = await PDFDocument.create();
   doc.setTitle(`${siteConfig.name} palm reading`);
@@ -142,14 +144,15 @@ export async function renderReadingPdf(reading: ReadingView): Promise<Uint8Array
   w.text(`${date} - ${reading.hand === "left" ? "Left" : "Right"} hand - Detailed reading`, {
     color: MUTED,
   });
-  if (reading.isDemo) w.text("Demo reading generated from sample palm features.", { color: MUTED });
+  if (reading.isDemo)
+    w.text(tx("Demo reading generated from sample palm features."), { color: MUTED });
   w.rule();
   w.text(narrative.headline, { size: 17, font: "serif", gap: 8 });
   w.text(narrative.introduction);
 
   const parts: [string, string | undefined][] = [
-    ["The way you think", narrative.thinking?.text],
-    ["The way you care", narrative.caring?.text],
+    [tx("The way you think"), narrative.thinking?.text],
+    [tx("The way you care"), narrative.caring?.text],
   ];
   for (const [title, text] of parts) {
     if (!text) continue;
@@ -157,18 +160,18 @@ export async function renderReadingPdf(reading: ReadingView): Promise<Uint8Array
     w.text(text);
   }
   if (narrative.strengths.length) {
-    w.heading("Your natural strengths");
+    w.heading(tx("Your natural strengths"));
     for (const strength of narrative.strengths) {
       w.text(strength.name, { font: "bold", gap: 1 });
       w.text(strength.text, { gap: 4 });
     }
   }
   if (narrative.career) {
-    w.heading("Your career nature");
+    w.heading(tx("Your career nature"));
     w.text(narrative.career.text);
   }
   if (narrative.insight) {
-    w.heading("Something interesting about you");
+    w.heading(tx("Something interesting about you"));
     w.text(narrative.insight.title, { font: "bold", gap: 2 });
     w.text(narrative.insight.text);
   }
@@ -178,7 +181,7 @@ export async function renderReadingPdf(reading: ReadingView): Promise<Uint8Array
     .sort((a, b) => SECTION_IDS.indexOf(a.id) - SECTION_IDS.indexOf(b.id));
   if (sections.length || interpretation.lines.length) {
     w.rule();
-    w.text("Your detailed reading", { size: 18, font: "serif", gap: 4 });
+    w.text(tx("Your detailed reading"), { size: 18, font: "serif", gap: 4 });
   }
   for (const section of sections) {
     w.heading(section.title);
@@ -188,7 +191,7 @@ export async function renderReadingPdf(reading: ReadingView): Promise<Uint8Array
   }
 
   if (interpretation.lines.length) {
-    w.heading("Your major lines");
+    w.heading(tx("Your major lines"));
     for (const line of interpretation.lines) {
       w.text(lineTitle("en", line.line), { font: "bold", gap: 2 });
       w.text(line.summary, { gap: 2 });
@@ -197,7 +200,7 @@ export async function renderReadingPdf(reading: ReadingView): Promise<Uint8Array
   }
 
   if (interpretation.mounts.length) {
-    w.heading("The parvats (mounts) of your palm");
+    w.heading(tx("The parvats (mounts) of your palm"));
     for (const mount of interpretation.mounts) {
       w.text(mountTitle("en", mount.mount), { font: "bold", gap: 2 });
       w.text(`${mount.summary} ${mount.details}`);
@@ -209,14 +212,16 @@ export async function renderReadingPdf(reading: ReadingView): Promise<Uint8Array
     w.text(interpretation.fingers.details, { color: MUTED });
   }
   if (interpretation.markings) {
-    w.heading("Special markings");
+    w.heading(tx("Special markings"));
     w.text(interpretation.markings.summary);
     w.text(interpretation.markings.details, { color: MUTED });
   }
 
   w.rule();
   w.text(
-    "This reading follows traditional Indian palmistry (Hasta Samudrika Shastra). It is a cultural tradition offered for reflection and enjoyment - not a scientific prediction.",
+    tx(
+      "This reading follows traditional Indian palmistry (Hasta Samudrika Shastra). It is a cultural tradition offered for reflection and enjoyment - not a scientific prediction.",
+    ),
     { size: 8.5, color: MUTED, gap: 3 },
   );
   w.text(

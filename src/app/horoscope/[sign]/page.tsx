@@ -1,3 +1,4 @@
+import { getT } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { HoroscopeDay } from "@/components/astro/horoscope-day";
@@ -14,9 +15,12 @@ export async function generateMetadata({
   const { sign } = await params;
   const i = SIGN_SLUGS.indexOf(sign as (typeof SIGN_SLUGS)[number]);
   if (i < 0) return {};
+  const tx = await getT();
   return {
-    title: `${RASHIS[i]!.name} (${RASHIS[i]!.english}) horoscope today`,
-    description: `Today's rashifal for ${RASHIS[i]!.name} Moon sign — love, work and a tip for the day.`,
+    title: tx("{0} ({1}) horoscope today", [RASHIS[i]!.name, RASHIS[i]!.english]),
+    description: tx("Today's rashifal for {0} Moon sign — love, work and a tip for the day.", [
+      RASHIS[i]!.name,
+    ]),
     alternates: { canonical: `/horoscope/${sign}` },
   };
 }

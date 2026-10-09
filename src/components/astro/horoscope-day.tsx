@@ -1,3 +1,5 @@
+import { getT } from "@/lib/i18n/server";
+import { T } from "@/components/i18n/i18n";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { MahakundliCta } from "@/components/astro/mahakundli-cta";
@@ -27,6 +29,7 @@ export async function HoroscopeDay({
   /** Path shared on WhatsApp. */
   sharePath: string;
 }) {
+  const tx = await getT(language);
   const today = todayIst();
   const h = await getHoroscope(index, language, today);
   const r = RASHIS[index]!;
@@ -35,7 +38,9 @@ export async function HoroscopeDay({
     <div className="mx-auto max-w-4xl space-y-10 px-4 pt-10 pb-20 sm:px-6 sm:pt-14">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">Aaj ka Rashifal · {today}</p>
+          <p className="eyebrow">
+            <T s="Aaj ka Rashifal · {0}" v={[today]} />
+          </p>
           <h1 className="text-4xl sm:text-5xl">
             {heading ?? (
               <>
@@ -47,7 +52,7 @@ export async function HoroscopeDay({
             )}
           </h1>
           <p className="text-mist">
-            {r.english} Moon sign · ruled by {r.lord}
+            <T s="{0} Moon sign · ruled by {1}" v={[r.english, r.lord]} />
           </p>
         </div>
         {languageControl}
@@ -75,26 +80,39 @@ export async function HoroscopeDay({
       </article>
       <WhatsAppShare
         context="rashifal"
-        text={`${heading ?? `${r.name} (${r.hindi}) rashifal today`}: ${h.title}`}
+        text={`${heading ?? tx("{0} ({1}) rashifal today", [r.name, r.hindi])}: ${h.title}`}
         url={`${siteConfig.url}${sharePath}`}
-        label="Send to family on WhatsApp"
+        label={tx("Send to family on WhatsApp")}
       />
-      <RashifalCta lead={`${r.name} · Detailed Rashifal`} />
+      <RashifalCta lang={language} lead={tx("{0} · Detailed Rashifal", [r.name])} />
       <MahakundliCta lang={language} lead={`${r.name} · ${tr("cta.title")}`} />
       <div className="grid gap-4 md:grid-cols-3">
         <Link href="/readers" className="paper-card block p-5">
           <p className="eyebrow">
-            From {formatInr(Math.min(...Object.values(READER_TIERS).map((t) => t.singleInr)))}
+            <T
+              s="From {0}"
+              v={[formatInr(Math.min(...Object.values(READER_TIERS).map((t) => t.singleInr)))]}
+            />
           </p>
-          <p className="mt-1 text-lg">Ask a reader about your day →</p>
+          <p className="mt-1 text-lg">
+            <T s="Ask a reader about your day →" />
+          </p>
         </Link>
         <Link href="/kundli" className="paper-card block p-5">
-          <p className="eyebrow">Free</p>
-          <p className="mt-1 text-lg">Make your Kundli →</p>
+          <p className="eyebrow">
+            <T s="Free" />
+          </p>
+          <p className="mt-1 text-lg">
+            <T s="Make your Kundli →" />
+          </p>
         </Link>
         <Link href="/read" className="paper-card block p-5">
-          <p className="eyebrow">Free</p>
-          <p className="mt-1 text-lg">Read your palm →</p>
+          <p className="eyebrow">
+            <T s="Free" />
+          </p>
+          <p className="mt-1 text-lg">
+            <T s="Read your palm →" />
+          </p>
         </Link>
       </div>
       <section aria-labelledby="other-signs" className="space-y-4">
@@ -104,8 +122,7 @@ export async function HoroscopeDay({
         <SignGrid />
       </section>
       <p className="text-xs text-mist">
-        Based on today&apos;s Moon transit from your Moon sign. Traditional astrology for reflection
-        — not a prediction.
+        <T s="Based on today's Moon transit from your Moon sign. Traditional astrology for reflection — not a prediction." />
       </p>
     </div>
   );

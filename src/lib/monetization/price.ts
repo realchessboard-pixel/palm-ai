@@ -1,3 +1,4 @@
+import { msg } from "@/lib/i18n/msg";
 /**
  * The product catalogue: the single source of truth for every customer price.
  * Labels, checkout amounts, analytics and the admin economics all derive from
@@ -29,56 +30,62 @@ export interface ProductInfo {
 export const PRODUCTS: Record<CatalogProduct, ProductInfo> = {
   RASHIFAL_REPORT: {
     priceInr: 99,
-    name: "Detailed Rashifal",
-    description:
+    name: msg("Detailed Rashifal"),
+    description: msg(
       "Your personal rashifal for the next 12 months, month by month, from your own birth chart: Moon sign, Lagna and the real planetary transits.",
+    ),
     requiresAccount: false,
   },
   MILAN_REPORT: {
     priceInr: 235,
-    name: "Detailed Kundli Milan",
-    description:
+    name: msg("Detailed Kundli Milan"),
+    description: msg(
       "All 8 kootas explained for the two of you, both charts compared (Moon, 7th house, Venus), both running dashas and practical guidance.",
+    ),
     requiresAccount: false,
   },
   KUNDLI_REPORT: {
     priceInr: 591,
-    name: "Mahakundli",
-    description:
+    name: msg("Mahakundli"),
+    description: msg(
       "17 life areas, each answered separately from your chart, with your running dasha, life-area timing and the next 3 years of major transits.",
+    ),
     requiresAccount: false,
   },
   DETAILED_READING: {
     priceInr: 49,
-    name: "Detailed palm reading",
-    description:
+    name: msg("Detailed palm reading"),
+    description: msg(
       "Every section in depth, all major lines, the parvats, fingers and thumb, markings, and a PDF.",
+    ),
     requiresAccount: false,
   },
   COUPLE_COMPATIBILITY: {
     priceInr: 99,
-    name: "Couple compatibility reading",
-    description:
+    name: msg("Couple compatibility reading"),
+    description: msg(
       "Your palm and your partner's, read together: how you think, care and grow as a pair.",
+    ),
     requiresAccount: false,
   },
   FAMILY_PACK: {
     priceInr: 149,
-    name: "Family pack — 4 detailed readings",
-    description: "Four detailed-reading credits for you and your family. Never expire.",
+    name: msg("Family pack — 4 detailed readings"),
+    description: msg("Four detailed-reading credits for you and your family. Never expire."),
     requiresAccount: true,
   },
   GIFT_READING: {
     priceInr: 49,
-    name: "Gift a detailed reading",
-    description: "A gift code to share on WhatsApp — perfect for birthdays, Diwali and Rakhi.",
+    name: msg("Gift a detailed reading"),
+    description: msg("A gift code to share on WhatsApp — perfect for birthdays, Diwali and Rakhi."),
     requiresAccount: true,
   },
   MEMBERSHIP_YEAR: {
     priceInr: 299,
-    name: "AstroVidya membership — 1 year",
-    description:
+    name: msg("AstroVidya membership — 1 year"),
+    description: msg(
       "For a year, every palm reading includes the detailed reading and PDF, and every Kundli includes the full Kundli reading.",
+    ),
     requiresAccount: true,
   },
 };
@@ -145,5 +152,5 @@ export function formatInr(amountInr: number): string {
 
 /** Price label. All prices are GST-inclusive: what's shown is what's paid. */
 export function priceWithGst(p: ProductInfo): { headline: string; total: string } {
-  return { headline: formatInr(p.priceInr), total: "incl. GST" };
+  return { headline: formatInr(p.priceInr), total: msg("incl. GST") };
 }

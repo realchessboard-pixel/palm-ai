@@ -1,3 +1,6 @@
+"use client";
+
+import { useT } from "@/components/i18n/i18n";
 import type { Reader } from "@/lib/readers/catalog";
 
 /**
@@ -13,6 +16,7 @@ export function ReaderPortrait({
   size?: number;
   className?: string;
 }) {
+  const tx = useT();
   const { skin, hair, cloth, bg, accent } = reader.palette;
   const s = reader.hairStyle;
   const feminine = s === "bun" || s === "long" || s === "braid";
@@ -23,7 +27,7 @@ export function ReaderPortrait({
       height={size}
       className={className}
       role="img"
-      aria-label={`Illustration of ${reader.name}, an AI reader`}
+      aria-label={tx("Illustration of {0}, an AI reader", [reader.name])}
     >
       <defs>
         <clipPath id={`clip-${reader.id}`}>

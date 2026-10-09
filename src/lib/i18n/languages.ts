@@ -44,3 +44,10 @@ export function languageName(code: Language): string {
 
 /** Cookie that remembers the visitor's language (set by the language picker). */
 export const LANGUAGE_COOKIE = "av_lang";
+
+const INDIAN = new Set(["en", "hi", "bn", "mr", "te", "ta", "gu", "kn", "ml", "pa", "or"]);
+
+/** Locale for dates and numbers in the chosen language (e.g. "hi-IN"). */
+export function localeFor(code: Language): string {
+  return INDIAN.has(code) ? `${code}-IN` : code;
+}

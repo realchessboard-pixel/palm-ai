@@ -1,3 +1,5 @@
+import { T } from "@/components/i18n/i18n";
+import { getT } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 import { MahakundliStart } from "@/components/astro/mahakundli-start";
 import { getLanguage } from "@/lib/i18n/server";
@@ -5,12 +7,16 @@ import { translator } from "@/lib/i18n/ui";
 import { LIFE_AREAS, lifeArea, type LifeAreaId } from "@/lib/kundli/areas";
 import { PRODUCTS, priceWithGst } from "@/lib/monetization/price";
 
-export const metadata: Metadata = {
-  title: "Mahakundli — 17 life areas from your chart",
-  description:
-    "Marriage, career, money, business, family and 12 more life areas, each answered from your Kundli. Your first answer is free.",
-  alternates: { canonical: "/mahakundli" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const tx = await getT();
+  return {
+    title: tx("Mahakundli — 17 life areas from your chart"),
+    description: tx(
+      "Marriage, career, money, business, family and 12 more life areas, each answered from your Kundli. Your first answer is free.",
+    ),
+    alternates: { canonical: "/mahakundli" },
+  };
+}
 
 export default async function MahakundliPage({
   searchParams,
@@ -30,7 +36,8 @@ export default async function MahakundliPage({
         <h1 className="text-4xl sm:text-5xl">{tr("maha.title")}</h1>
         <p className="text-lg text-mist">
           {tr("maha.intro")} <strong className="text-parchment">{price.headline}</strong> (
-          {price.total}).
+          <T s={price.total} />
+          ).
         </p>
       </header>
       <MahakundliStart

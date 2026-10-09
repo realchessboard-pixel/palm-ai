@@ -1,5 +1,7 @@
 "use client";
 
+import { T } from "@/components/i18n/i18n";
+import { useT } from "@/components/i18n/i18n";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -9,6 +11,7 @@ import { BirthFields, emptyBirth, parseBirth } from "./birth-form";
 
 /** Birth details for the Detailed Rashifal; the chart is saved, then the offer is shown. */
 export function RashifalStart({ submitLabel }: { submitLabel: string }) {
+  const tx = useT();
   const router = useRouter();
   const [values, setValues] = useState(emptyBirth);
   const [timeKnown, setTimeKnown] = useState(true);
@@ -20,7 +23,7 @@ export function RashifalStart({ submitLabel }: { submitLabel: string }) {
       onSubmit={async (e) => {
         e.preventDefault();
         const b = parseBirth(values, timeKnown);
-        if (typeof b === "string") return setError(b);
+        if (typeof b === "string") return setError(tx(b));
         setBusy(true);
         setError(null);
         try {
@@ -42,7 +45,7 @@ export function RashifalStart({ submitLabel }: { submitLabel: string }) {
           });
           router.push(`/rashifal-report/${kundliId}`);
         } catch (err) {
-          setError(err instanceof ApiClientError ? err.message : "Please try again.");
+          setError(err instanceof ApiClientError ? err.message : tx("Please try again."));
           setBusy(false);
         }
       }}
@@ -53,7 +56,11 @@ export function RashifalStart({ submitLabel }: { submitLabel: string }) {
         timeKnown={timeKnown}
         onTimeKnown={setTimeKnown}
       />
-      {error ? <Alert tone="error">{error}</Alert> : null}
+      {error ? (
+        <Alert tone="error">
+          <T s={error} />
+        </Alert>
+      ) : null}
       <Button type="submit" size="lg" disabled={busy}>
         {busy ? "…" : submitLabel}
       </Button>

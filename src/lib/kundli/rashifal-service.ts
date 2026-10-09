@@ -75,7 +75,7 @@ export function monthFacts(chart: Chart, timeKnown: boolean, from = new Date()):
     .join("\n");
 }
 
-export async function getRashifalView(id: string, actor: Actor) {
+export async function getRashifalView(id: string, actor: Actor, locale = "en-IN") {
   const kundli = await getOwnedKundli(id, actor);
   const unlocked = await hasKundliAccess(kundli, "RASHIFAL_REPORT");
   const chart = kundli.chart as unknown as Chart;
@@ -88,7 +88,7 @@ export async function getRashifalView(id: string, actor: Actor) {
     unlocked,
     report: parsed?.success ? parsed.data : null,
     months: nextMonths().map((d) =>
-      d.toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "UTC" }),
+      d.toLocaleDateString(locale, { month: "long", year: "numeric", timeZone: "UTC" }),
     ),
   };
 }

@@ -1,3 +1,6 @@
+import { msg } from "@/lib/i18n/msg";
+import { getT } from "@/lib/i18n/server";
+import { T } from "@/components/i18n/i18n";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -18,11 +21,24 @@ import { PRODUCTS, formatInr, priceWithGst, toPaise } from "@/lib/monetization/p
 import { paymentsEnabled } from "@/lib/payments/pricing";
 import { IdSchema } from "@/lib/schemas/api";
 
-export const metadata: Metadata = { title: "Your Kundli Milan", robots: { index: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  const tx = await getT();
+  return { title: tx("Your Kundli Milan"), robots: { index: false } };
+}
 
-const KOOTA_NAMES = ["Varna", "Vashya", "Tara", "Yoni", "Graha Maitri", "Gana", "Bhakoot", "Nadi"];
+const KOOTA_NAMES = [
+  msg("Varna"),
+  msg("Vashya"),
+  msg("Tara"),
+  msg("Yoni"),
+  msg("Graha Maitri"),
+  msg("Gana"),
+  msg("Bhakoot"),
+  msg("Nadi"),
+];
 
 export default async function MilanResultPage({ params }: { params: Promise<{ id: string }> }) {
+  const tx = await getT();
   const { id } = await params;
   if (!IdSchema.safeParse(id).success) notFound();
   const actor = await getActor();
@@ -41,9 +57,14 @@ export default async function MilanResultPage({ params }: { params: Promise<{ id
   return (
     <div className="mx-auto max-w-4xl space-y-8 px-4 pt-10 pb-20 sm:px-6 sm:pt-14">
       <section className="paper-card p-6 sm:p-8">
-        <p className="eyebrow">Ashtakoota Guna Milan</p>
+        <p className="eyebrow">
+          <T s="Ashtakoota Guna Milan" />
+        </p>
         <h1 className="mt-1 text-5xl">
-          {view.total} <span className="text-2xl text-mist">/ 36 gunas</span>
+          {view.total}{" "}
+          <span className="text-2xl text-mist">
+            <T s="/ 36 gunas" />
+          </span>
         </h1>
         <p className="mt-3 max-w-2xl">{view.summary}</p>
         <p className="mt-3 text-sm text-mist">
@@ -53,9 +74,9 @@ export default async function MilanResultPage({ params }: { params: Promise<{ id
           className="no-print mt-5"
           context="milan"
           // Only the score is shared — never names or birth details; the link opens the free tool.
-          text={`Our Kundli Milan: ${view.total} / 36 gunas ✨ Check your own match free:`}
+          text={tx("Our Kundli Milan: {0} / 36 gunas ✨ Check your own match free:", [view.total])}
           url={`${siteConfig.url}/kundli-milan`}
-          label="Share score on WhatsApp"
+          label={tx("Share score on WhatsApp")}
         />
       </section>
 
@@ -64,7 +85,7 @@ export default async function MilanResultPage({ params }: { params: Promise<{ id
           <table className="w-full min-w-[36rem] text-left text-sm">
             <thead className="text-mist">
               <tr>
-                {["Koota", view.nameA, view.nameB, "Points"].map((h) => (
+                {[tx("Koota"), view.nameA, view.nameB, tx("Points")].map((h) => (
                   <th key={h} className="px-4 py-2 font-medium">
                     {h}
                   </th>
@@ -75,8 +96,12 @@ export default async function MilanResultPage({ params }: { params: Promise<{ id
               {view.kootas.map((k) => (
                 <tr key={k.id}>
                   <td className="px-4 py-3">
-                    <span className="font-medium">{k.name}</span>
-                    <span className="block text-xs text-mist">{k.meaning}</span>
+                    <span className="font-medium">
+                      <T s={k.name} />
+                    </span>
+                    <span className="block text-xs text-mist">
+                      <T s={k.meaning} />
+                    </span>
                   </td>
                   <td className="px-4 py-3">{k.a}</td>
                   <td className="px-4 py-3">{k.b}</td>
@@ -100,7 +125,9 @@ export default async function MilanResultPage({ params }: { params: Promise<{ id
             const x = view.report!.sections.find((r) => r.id === s.id);
             return x ? (
               <section key={s.id} className="space-y-3">
-                <h3 className="text-2xl">{s.title}</h3>
+                <h3 className="text-2xl">
+                  <T s={s.title} />
+                </h3>
                 <Prose text={x.text} />
               </section>
             ) : null;
@@ -110,8 +137,12 @@ export default async function MilanResultPage({ params }: { params: Promise<{ id
         <PendingWriter
           endpoint={`/api/milan/${view.id}/report`}
           title={tr("milan.writing")}
-          body="Thank you — it's unlocked. Both charts are being read side by side. This takes about a minute."
-          retryMessage="Your detailed Milan is unlocked and saved — it just needs another moment. Tap “Try again”."
+          body={tx(
+            "Thank you — it's unlocked. Both charts are being read side by side. This takes about a minute.",
+          )}
+          retryMessage={tx(
+            "Your detailed Milan is unlocked and saved — it just needs another moment. Tap “Try again”.",
+          )}
         />
       ) : (
         <section className="space-y-5" aria-labelledby="locked-title">
@@ -120,11 +151,11 @@ export default async function MilanResultPage({ params }: { params: Promise<{ id
           </h2>
           <ul className="grid gap-2 sm:grid-cols-2">
             {[
-              ...KOOTA_NAMES.map((k) => `${k} — your points and what they mean`),
-              ...MILAN_SECTIONS.filter((s) => s.id !== "kootas").map((s) => s.title),
+              ...KOOTA_NAMES.map((k) => tx("{0} — your points and what they mean", [tx(k)])),
+              ...MILAN_SECTIONS.filter((s) => s.id !== "kootas").map((s) => tx(s.title)),
             ].map((t) => (
               <li key={t} className="paper-card flex items-center gap-3 p-3 text-sm">
-                <span aria-label="Locked">🔒</span>
+                <span aria-label={tx("Locked")}>🔒</span>
                 {t}
               </li>
             ))}
@@ -135,7 +166,7 @@ export default async function MilanResultPage({ params }: { params: Promise<{ id
                 <p className="flex flex-wrap items-baseline gap-2">
                   <span className="text-3xl">{price.headline}</span>
                   <span className="text-sm text-mist">
-                    {price.total} · {tr("pay.oneTime")}
+                    <T s={price.total} /> · {tr("pay.oneTime")}
                   </span>
                 </p>
                 <BuyButton
@@ -147,25 +178,28 @@ export default async function MilanResultPage({ params }: { params: Promise<{ id
                     order={{ product: "MILAN_REPORT", milanId: view.id }}
                     credits={0}
                     canPayFromWallet={balances.walletPaise >= toPaise(product.priceInr)}
-                    walletLabel={`${formatInr(balances.walletPaise / 100)} available`}
+                    walletLabel={tx("{0} available", [formatInr(balances.walletPaise / 100)])}
                   />
                 ) : null}
               </>
             ) : (
-              <p className="text-sm text-mist">Not available for purchase right now.</p>
+              <p className="text-sm text-mist">
+                <T s="Not available for purchase right now." />
+              </p>
             )}
             <p className="text-xs text-mist">
-              Included with membership. Guna Milan is one traditional lens — it doesn&apos;t decide
-              a relationship. No dosha scares, no remedies to buy.
+              <T s="Included with membership. Guna Milan is one traditional lens — it doesn't decide a relationship. No dosha scares, no remedies to buy." />
             </p>
           </div>
         </section>
       )}
 
       <div className="paper-card flex flex-wrap items-center justify-between gap-4 p-6">
-        <p className="text-lg">Questions about the two of you?</p>
+        <p className="text-lg">
+          <T s="Questions about the two of you?" />
+        </p>
         <Link href="/readers" className="btn-primary">
-          Ask a reader
+          <T s="Ask a reader" />
         </Link>
       </div>
     </div>

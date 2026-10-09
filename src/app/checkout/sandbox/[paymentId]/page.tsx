@@ -1,3 +1,5 @@
+import { msg } from "@/lib/i18n/msg";
+import { getT } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { SandboxCheckout } from "@/components/results/sandbox-checkout";
@@ -12,14 +14,17 @@ import { IdSchema } from "@/lib/schemas/api";
 
 const PRODUCT_NAMES: Record<string, string> = {
   ...Object.fromEntries(Object.entries(PRODUCTS).map(([k, v]) => [k, v.name])),
-  WALLET_TOPUP: "AstroVidya wallet top-up",
-  READER_QUESTIONS: "Questions for an AI reader",
+  WALLET_TOPUP: msg("AstroVidya wallet top-up"),
+  READER_QUESTIONS: msg("Questions for an AI reader"),
 };
 
-export const metadata: Metadata = {
-  title: "Test checkout",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const tx = await getT();
+  return {
+    title: tx("Test checkout"),
+    robots: { index: false, follow: false },
+  };
+}
 
 /**
  * Sandbox checkout for the mock payment provider (development / demo only).

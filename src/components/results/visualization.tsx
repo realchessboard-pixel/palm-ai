@@ -1,5 +1,8 @@
 "use client";
 
+import { msg } from "@/lib/i18n/msg";
+import { T } from "@/components/i18n/i18n";
+import { useT } from "@/components/i18n/i18n";
 import { useState } from "react";
 import type { LineObservationView } from "@/lib/readings/view";
 import { cn } from "@/lib/cn";
@@ -17,10 +20,11 @@ export function Visualization({
   lines: LineObservationView[];
   hasImage: boolean;
 }) {
+  const tx = useT();
   const [tab, setTab] = useState<"diagram" | "photo">("diagram");
   const tabs = [
-    { id: "diagram" as const, label: "Palm diagram" },
-    ...(hasImage ? [{ id: "photo" as const, label: "Your photo" }] : []),
+    { id: "diagram" as const, label: msg("Palm diagram") },
+    ...(hasImage ? [{ id: "photo" as const, label: msg("Your photo") }] : []),
   ];
 
   return (
@@ -28,7 +32,7 @@ export function Visualization({
       {tabs.length > 1 ? (
         <div
           role="tablist"
-          aria-label="Palm visualization"
+          aria-label={tx("Palm visualization")}
           className="mb-6 inline-flex rounded-full bg-white/5 p-1"
         >
           {tabs.map((t) => (
@@ -45,7 +49,7 @@ export function Visualization({
                 tab === t.id ? "bg-gold-300 text-night-950" : "text-mist hover:text-parchment",
               )}
             >
-              {t.label}
+              <T s={t.label} />
             </button>
           ))}
         </div>

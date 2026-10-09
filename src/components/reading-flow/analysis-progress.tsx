@@ -1,3 +1,8 @@
+"use client";
+
+import { useT } from "@/components/i18n/i18n";
+import { msg } from "@/lib/i18n/msg";
+import { T } from "@/components/i18n/i18n";
 import { PalmIllustration } from "@/components/palm/palm-illustration";
 import { cn } from "@/lib/cn";
 
@@ -5,10 +10,10 @@ import { cn } from "@/lib/cn";
 export type PipelinePhase = "preparing" | "analyzing" | "analyzed";
 
 export const PROGRESS_STEPS = [
-  "Examining your palm",
-  "Identifying major lines",
-  "Reading palm features",
-  "Preparing your interpretation",
+  msg("Examining your palm"),
+  msg("Identifying major lines"),
+  msg("Reading palm features"),
+  msg("Preparing your interpretation"),
 ] as const;
 
 type StepState = "pending" | "active" | "done";
@@ -30,6 +35,7 @@ function stepStates(phase: PipelinePhase): StepState[] {
 }
 
 export function AnalysisProgress({ phase }: { phase: PipelinePhase }) {
+  const tx = useT();
   const states = stepStates(phase);
   const heading = phase === "analyzed" ? PROGRESS_STEPS[3] : PROGRESS_STEPS[0];
 
@@ -45,9 +51,9 @@ export function AnalysisProgress({ phase }: { phase: PipelinePhase }) {
         </div>
       </div>
       <h2 className="mt-6 text-2xl text-parchment" aria-live="polite">
-        {heading}…
+        {tx(heading)}…
       </h2>
-      <ol className="mt-6 space-y-2 text-left" aria-label="Analysis progress">
+      <ol className="mt-6 space-y-2 text-left" aria-label={tx("Analysis progress")}>
         {PROGRESS_STEPS.map((label, index) => {
           const state = states[index]!;
           return (
@@ -78,9 +84,13 @@ export function AnalysisProgress({ phase }: { phase: PipelinePhase }) {
                 )}
               </span>
               <span>
-                {label}
+                {tx(label)}
                 <span className="sr-only">
-                  {state === "done" ? " (complete)" : state === "active" ? " (in progress)" : ""}
+                  {state === "done"
+                    ? tx(" (complete)")
+                    : state === "active"
+                      ? tx(" (in progress)")
+                      : ""}
                 </span>
               </span>
             </li>
@@ -88,8 +98,7 @@ export function AnalysisProgress({ phase }: { phase: PipelinePhase }) {
         })}
       </ol>
       <p className="mt-6 text-xs leading-relaxed text-mist-dim">
-        We examine your photo in a single pass, so the first three steps finish together. Your palm
-        map appears as soon as they do, while your interpretation is written.
+        <T s="We examine your photo in a single pass, so the first three steps finish together. Your palm map appears as soon as they do, while your interpretation is written." />
       </p>
     </div>
   );

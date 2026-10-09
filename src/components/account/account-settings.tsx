@@ -1,5 +1,9 @@
 "use client";
 
+import { msg } from "@/lib/i18n/msg";
+
+import { useT } from "@/components/i18n/i18n";
+import { T } from "@/components/i18n/i18n";
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -7,10 +11,13 @@ import { Alert } from "@/components/ui/misc";
 import { ApiClientError, apiFetch, postJson } from "@/lib/api-client";
 
 function message(err: unknown) {
-  return err instanceof ApiClientError ? err.message : "Something went wrong. Please try again.";
+  return err instanceof ApiClientError
+    ? err.message
+    : msg("Something went wrong. Please try again.");
 }
 
 export function TrainingPreference({ initial }: { initial: boolean }) {
+  const tx = useT();
   const [value, setValue] = useState(initial);
   const [status, setStatus] = useState<string | null>(null);
   const id = useId();
@@ -32,7 +39,7 @@ export function TrainingPreference({ initial }: { initial: boolean }) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ trainingOptIn: next }),
               });
-              setStatus("Saved.");
+              setStatus(tx("Saved."));
             } catch (err) {
               setValue(!next);
               setStatus(message(err));
@@ -40,7 +47,7 @@ export function TrainingPreference({ initial }: { initial: boolean }) {
           }}
         />
         <span className="text-sm leading-relaxed text-parchment/90">
-          Allow my future palm photos to be used to improve palm analysis. Off by default.
+          <T s="Allow my future palm photos to be used to improve palm analysis. Off by default." />
         </span>
       </label>
       <p className="text-xs text-mist" aria-live="polite">
@@ -61,12 +68,13 @@ export function LogoutButton() {
         router.refresh();
       }}
     >
-      Sign out
+      <T s="Sign out" />
     </Button>
   );
 }
 
 export function DeleteDataButton() {
+  const tx = useT();
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -76,16 +84,20 @@ export function DeleteDataButton() {
     return (
       <div className="space-y-2">
         <Button variant="danger" onClick={() => setConfirming(true)}>
-          Delete all my readings
+          <T s="Delete all my readings" />
         </Button>
-        {result ? <Alert tone="success">{result}</Alert> : null}
+        {result ? (
+          <Alert tone="success">
+            <T s={result} />
+          </Alert>
+        ) : null}
       </div>
     );
   }
   return (
     <div className="space-y-3">
       <Alert tone="warning">
-        This permanently deletes every reading and palm photo. Your account stays open.
+        <T s="This permanently deletes every reading and palm photo. Your account stays open." />
       </Alert>
       <div className="flex gap-2">
         <Button
@@ -97,7 +109,11 @@ export function DeleteDataButton() {
               const res = await apiFetch<{ deleted: number }>("/api/account/readings", {
                 method: "DELETE",
               });
-              setResult(`Deleted ${res.deleted} reading${res.deleted === 1 ? "" : "s"}.`);
+              setResult(
+                res.deleted === 1
+                  ? tx("Deleted 1 reading.")
+                  : tx("Deleted {0} readings.", [res.deleted]),
+              );
               setConfirming(false);
               router.refresh();
             } catch (err) {
@@ -107,10 +123,10 @@ export function DeleteDataButton() {
             }
           }}
         >
-          {busy ? "Deleting…" : "Yes, delete everything"}
+          {busy ? tx("Deleting…") : tx("Yes, delete everything")}
         </Button>
         <Button variant="ghost" onClick={() => setConfirming(false)}>
-          Cancel
+          <T s="Cancel" />
         </Button>
       </div>
     </div>
@@ -118,6 +134,7 @@ export function DeleteDataButton() {
 }
 
 export function DeleteAccountForm() {
+  const tx = useT();
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -147,10 +164,14 @@ export function DeleteAccountForm() {
         }
       }}
     >
-      {error ? <Alert tone="error">{error}</Alert> : null}
+      {error ? (
+        <Alert tone="error">
+          <T s={error} />
+        </Alert>
+      ) : null}
       <div>
         <label htmlFor={pwId} className="mb-2 block text-sm text-parchment">
-          Current password
+          <T s="Current password" />
         </label>
         <input
           id={pwId}
@@ -164,7 +185,7 @@ export function DeleteAccountForm() {
       </div>
       <div>
         <label htmlFor={confirmId} className="mb-2 block text-sm text-parchment">
-          Type DELETE to confirm
+          <T s="Type DELETE to confirm" />
         </label>
         <input
           id={confirmId}
@@ -176,7 +197,7 @@ export function DeleteAccountForm() {
         />
       </div>
       <Button type="submit" variant="danger" disabled={busy || confirm !== "DELETE" || !password}>
-        {busy ? "Deleting…" : "Permanently delete my account"}
+        {busy ? tx("Deleting…") : tx("Permanently delete my account")}
       </Button>
     </form>
   );

@@ -1,5 +1,7 @@
 "use client";
 
+import { T } from "@/components/i18n/i18n";
+import { useT } from "@/components/i18n/i18n";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -21,6 +23,7 @@ const toBirth = (b: BirthDetails) => ({
 });
 
 export function MilanTool() {
+  const tx = useT();
   const router = useRouter();
   const [a, setA] = useState(emptyBirth);
   const [b, setB] = useState(emptyBirth);
@@ -33,7 +36,11 @@ export function MilanTool() {
     const pa = parseBirth(a, aTime);
     const pb = parseBirth(b, bTime);
     if (typeof pa === "string" || typeof pb === "string") {
-      setError(typeof pa === "string" ? `Person 1: ${pa}` : `Person 2: ${pb}`);
+      setError(
+        typeof pa === "string"
+          ? tx("Person 1: {0}", [tx(pa)])
+          : tx("Person 2: {0}", [tx(pb as string)]),
+      );
       return;
     }
     setBusy(true);
@@ -45,7 +52,7 @@ export function MilanTool() {
       });
       router.push(`/kundli-milan/${milanId}`);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Please try again.");
+      setError(err instanceof ApiClientError ? err.message : tx("Please try again."));
       setBusy(false);
     }
   }
@@ -61,7 +68,7 @@ export function MilanTool() {
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="paper-card p-6">
           <BirthFields
-            legend="Person 1 (traditionally the groom)"
+            legend={tx("Person 1 (traditionally the groom)")}
             values={a}
             onChange={setA}
             timeKnown={aTime}
@@ -70,7 +77,7 @@ export function MilanTool() {
         </div>
         <div className="paper-card p-6">
           <BirthFields
-            legend="Person 2 (traditionally the bride)"
+            legend={tx("Person 2 (traditionally the bride)")}
             values={b}
             onChange={setB}
             timeKnown={bTime}
@@ -78,9 +85,13 @@ export function MilanTool() {
           />
         </div>
       </div>
-      {error ? <Alert tone="error">{error}</Alert> : null}
+      {error ? (
+        <Alert tone="error">
+          <T s={error} />
+        </Alert>
+      ) : null}
       <Button type="submit" size="lg" disabled={busy}>
-        {busy ? "Matching…" : "Match Kundlis — free"}
+        {busy ? tx("Matching…") : tx("Match Kundlis — free")}
       </Button>
     </form>
   );

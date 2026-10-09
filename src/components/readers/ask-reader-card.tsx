@@ -1,3 +1,4 @@
+import { T } from "@/components/i18n/i18n";
 import Link from "next/link";
 import { READER_TIERS, formatInr } from "@/lib/monetization/price";
 import { READERS } from "@/lib/readers/catalog";
@@ -22,15 +23,17 @@ export function AskReaderCard({ readingId }: { readingId: string }) {
         </div>
         <div className="flex-1">
           <h2 id="ask-title" className="text-2xl">
-            Have a question about your palm?
+            <T s="Have a question about your palm?" />
           </h2>
           <p className="mt-1 text-mist">
-            Ask one of our readers — they&apos;ve seen this reading. Your first question is free,
-            then from {formatInr(from)}.
+            <T
+              s="Ask one of our readers — they've seen this reading. Your first question is free, then from {0}."
+              v={[formatInr(from)]}
+            />
           </p>
         </div>
         <Link href={`/readers?reading=${readingId}`} className="btn-primary shrink-0">
-          Choose a reader
+          <T s="Choose a reader" />
         </Link>
       </div>
     </section>

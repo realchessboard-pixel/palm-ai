@@ -1,3 +1,4 @@
+import { T } from "@/components/i18n/i18n";
 import type { ReadingMessages } from "@/lib/i18n/reading-messages";
 import type { ReadingView } from "@/lib/readings/view";
 
@@ -40,7 +41,10 @@ export function AnalysisDetails({
                 key={f.key}
                 className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-mist"
               >
-                <span className="text-parchment/90">{f.label}</span> · {pct(f.confidence)}
+                <span className="text-parchment/90">
+                  <T s={f.label} />
+                </span>{" "}
+                · {pct(f.confidence)}
               </li>
             ))}
           </ul>

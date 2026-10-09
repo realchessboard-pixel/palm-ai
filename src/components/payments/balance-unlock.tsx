@@ -1,5 +1,7 @@
 "use client";
 
+import { useT } from "@/components/i18n/i18n";
+import { T } from "@/components/i18n/i18n";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -25,6 +27,7 @@ export function BalanceUnlock({
   walletLabel: string | null;
   canPayFromWallet: boolean;
 }) {
+  const tx = useT();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +44,9 @@ export function BalanceUnlock({
       track("checkout_started", { provider: kind, product: order.product });
       router.refresh();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "That didn't work. Please try again.");
+      setError(
+        err instanceof ApiClientError ? err.message : tx("That didn't work. Please try again."),
+      );
     } finally {
       setBusy(false);
     }
@@ -55,16 +60,20 @@ export function BalanceUnlock({
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         {useCredit ? (
           <Button variant="secondary" onClick={() => run("credit")} disabled={busy}>
-            Use 1 reading credit ({credits} left)
+            <T s="Use 1 reading credit ({0} left)" v={[credits]} />
           </Button>
         ) : null}
         {canPayFromWallet ? (
           <Button variant="secondary" onClick={() => run("wallet")} disabled={busy}>
-            Pay from wallet{walletLabel ? ` · ${walletLabel}` : ""}
+            <T s="Pay from wallet{0}" v={[walletLabel ? ` · ${walletLabel}` : ""]} />
           </Button>
         ) : null}
       </div>
-      {error ? <Alert tone="error">{error}</Alert> : null}
+      {error ? (
+        <Alert tone="error">
+          <T s={error} />
+        </Alert>
+      ) : null}
     </div>
   );
 }

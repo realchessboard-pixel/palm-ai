@@ -1,18 +1,34 @@
+import { getT } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 import { ResultsDashboard } from "@/components/results/results-dashboard";
 import { composeRuleBasedReading } from "@/lib/palmistry/interpretation";
 import { sampleAnalysis } from "@/lib/palmistry/sample-analysis";
 import { buildReadingView } from "@/lib/readings/build-view";
+import { applyTexts, collectTexts } from "@/lib/readings/translation-texts";
+import { translateParagraphs } from "@/lib/i18n/phrases";
+import { getLanguage } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "Example Palm Reading",
-  description:
-    "See an example palm reading: heart, head, life and fate lines, mounts, fingers and traditional palmistry highlights.",
-  alternates: { canonical: "/example" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const tx = await getT();
+  return {
+    title: tx("Example Palm Reading"),
+    description: tx(
+      "See an example palm reading: heart, head, life and fate lines, mounts, fingers and traditional palmistry highlights.",
+    ),
+    alternates: { canonical: "/example" },
+  };
+}
 
-export default function ExampleReadingPage() {
+export default async function ExampleReadingPage() {
+  const lang = await getLanguage();
   const analysis = sampleAnalysis("right");
+  // The sample reading's texts are part of the site's translated phrases.
+  const english = composeRuleBasedReading(analysis);
+  const texts = collectTexts(english);
+  const interpretation = applyTexts(
+    english,
+    new Map([...texts].map(([id, text]) => [id, translateParagraphs(lang, text)])),
+  );
   const reading = buildReadingView({
     reading: {
       id: "example",
@@ -25,8 +41,9 @@ export default function ExampleReadingPage() {
       rejectionReason: null,
     },
     analysis,
-    interpretation: composeRuleBasedReading(analysis),
+    interpretation,
     premium: true,
+    language: lang,
   });
 
   return (

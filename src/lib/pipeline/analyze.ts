@@ -152,8 +152,9 @@ async function enforceDailyPalmLimit(input: AnalyzeInput): Promise<void> {
     const adAvailable = !bonusUsed && adMode() !== "off";
     throw new AppError("RATE_LIMITED", {
       message: adAvailable
-        ? `You've used today's ${FREE_PALM_READS_PER_DAY} free palm readings. Watch a short ad for 1 more today, or come back tomorrow.`
-        : `You've used today's free palm readings. Come back tomorrow, or open your detailed reading from your earlier palm.`,
+        ? "You've used today's {0} free palm readings. Watch a short ad for 1 more today, or come back tomorrow."
+        : "You've used today's free palm readings. Come back tomorrow, or open your detailed reading from your earlier palm.",
+      vars: [FREE_PALM_READS_PER_DAY],
       details: { reason: "daily_free_palm_limit", adAvailable },
     });
   }

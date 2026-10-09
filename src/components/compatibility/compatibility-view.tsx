@@ -1,3 +1,4 @@
+import { getT } from "@/lib/i18n/server";
 import type { ReactNode } from "react";
 import { Prose } from "@/components/results/section-card";
 import { COMPATIBILITY_PART_TITLES, type CompatibilityReading } from "@/lib/compatibility/schema";
@@ -15,7 +16,8 @@ function Part({ title, children }: { title: string; children: ReactNode }) {
 }
 
 /** The couple reading, told as one warm narrative. */
-export function CompatibilityReadingView({ reading }: { reading: CompatibilityReading }) {
+export async function CompatibilityReadingView({ reading }: { reading: CompatibilityReading }) {
+  const tx = await getT();
   return (
     <article className="mx-auto max-w-3xl space-y-12" aria-labelledby="couple-headline">
       <header className="space-y-6">
@@ -30,7 +32,7 @@ export function CompatibilityReadingView({ reading }: { reading: CompatibilityRe
         </Part>
       ))}
       {reading.strengths.length ? (
-        <Part title="Your strengths together">
+        <Part title={tx("Your strengths together")}>
           <ul className="grid gap-3 sm:grid-cols-2">
             {reading.strengths.map((s) => (
               <li key={s.name} className="card rounded-2xl p-5">

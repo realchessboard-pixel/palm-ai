@@ -1,3 +1,4 @@
+import { translatePhrase } from "./phrases";
 import "server-only";
 import { cookies } from "next/headers";
 import { LANGUAGE_COOKIE, isLanguage, parseLanguage, type Language } from "./languages";
@@ -19,4 +20,11 @@ export function languageFromRequest(request: {
   cookies: { get(name: string): { value: string } | undefined };
 }): Language {
   return parseLanguage(request.cookies.get(LANGUAGE_COOKIE)?.value);
+}
+
+/** Server components: `const t = await getT()`, then t("Close"), t("Pay {0}", [price]). */
+export async function getT(explicit?: string | null) {
+  const lang = await getLanguage(explicit);
+  return (english: string, vars?: Record<string, string | number> | (string | number)[]) =>
+    translatePhrase(lang, english, vars);
 }

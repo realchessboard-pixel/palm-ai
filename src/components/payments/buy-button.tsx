@@ -1,5 +1,8 @@
 "use client";
 
+import { msg } from "@/lib/i18n/msg";
+import { useT } from "@/components/i18n/i18n";
+import { T } from "@/components/i18n/i18n";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -40,7 +43,7 @@ function loadRazorpay(): Promise<void> {
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.async = true;
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Could not load the payment window."));
+    script.onerror = () => reject(new Error(msg("Could not load the payment window.")));
     document.head.appendChild(script);
   });
 }
@@ -78,6 +81,7 @@ export function BuyButton({
   /** Called after a confirmed purchase (defaults to refreshing the page). */
   onDone?: () => void;
 }) {
+  const tx = useT();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,7 +105,7 @@ export function BuyButton({
         return;
       }
       await loadRazorpay();
-      if (!window.Razorpay) throw new Error("Payment window unavailable.");
+      if (!window.Razorpay) throw new Error(msg("Payment window unavailable."));
       const rzp = new window.Razorpay({
         key: checkout.keyId,
         order_id: checkout.orderId,
@@ -132,7 +136,9 @@ export function BuyButton({
             done();
           } catch (err) {
             setError(
-              err instanceof ApiClientError ? err.message : "We couldn't confirm the payment yet.",
+              err instanceof ApiClientError
+                ? err.message
+                : tx("We couldn't confirm the payment yet."),
             );
           } finally {
             setBusy(false);
@@ -156,7 +162,7 @@ export function BuyButton({
       setError(
         err instanceof ApiClientError
           ? err.message
-          : "We couldn't start checkout. Please try again.",
+          : tx("We couldn't start checkout. Please try again."),
       );
     }
     setBusy(false);
@@ -165,15 +171,18 @@ export function BuyButton({
   return (
     <div className="space-y-3">
       <Button size={size} variant={variant} className={className} onClick={buy} disabled={busy}>
-        {busy ? "Opening checkout…" : label}
+        {busy ? tx("Opening checkout…") : label}
       </Button>
       {confirming ? (
         <Alert tone="info">
-          Payment received — we&apos;re confirming it with Razorpay. This completes automatically;
-          you can also refresh this page in a minute.
+          <T s="Payment received — we're confirming it with Razorpay. This completes automatically; you can also refresh this page in a minute." />
         </Alert>
       ) : null}
-      {error ? <Alert tone="error">{error}</Alert> : null}
+      {error ? (
+        <Alert tone="error">
+          <T s={error} />
+        </Alert>
+      ) : null}
     </div>
   );
 }

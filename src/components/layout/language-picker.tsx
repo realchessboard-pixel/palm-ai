@@ -1,5 +1,7 @@
 "use client";
 
+import { useT } from "@/components/i18n/i18n";
+import { T } from "@/components/i18n/i18n";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { LANGUAGES, LANGUAGE_COOKIE, type Language } from "@/lib/i18n/languages";
@@ -82,7 +84,9 @@ export function FirstVisitLanguagePicker({ title, subtitle }: { title: string; s
   return (
     <Sheet labelledBy="lang-title">
       <div className="mx-auto max-w-xl space-y-5">
-        <p className="eyebrow text-center">AstroVidya</p>
+        <p className="eyebrow text-center">
+          <T s="AstroVidya" />
+        </p>
         <h2 id="lang-title" className="text-center text-3xl">
           {title} · भाषा चुनें
         </h2>
@@ -101,6 +105,7 @@ export function FirstVisitLanguagePicker({ title, subtitle }: { title: string; s
 
 /** Header control to change language later. */
 export function LanguageMenu({ current, label }: { current: Language; label: string }) {
+  const tx = useT();
   const [open, setOpen] = useState(false);
   const here = LANGUAGES.find((l) => l.code === current)!;
   return (
@@ -122,7 +127,7 @@ export function LanguageMenu({ current, label }: { current: Language; label: str
                 type="button"
                 onClick={() => setOpen(false)}
                 className="text-2xl"
-                aria-label="Close"
+                aria-label={tx("Close")}
               >
                 ×
               </button>

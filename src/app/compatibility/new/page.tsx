@@ -1,3 +1,4 @@
+import { getT } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { ReadingFlow } from "@/components/reading-flow/reading-flow";
@@ -6,10 +7,13 @@ import { isAppError } from "@/lib/http/errors";
 import { getOwnedReading } from "@/lib/readings/service";
 import { IdSchema } from "@/lib/schemas/api";
 
-export const metadata: Metadata = {
-  title: "Your partner's palm",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const tx = await getT();
+  return {
+    title: tx("Your partner's palm"),
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function NewCompatibilityPage({
   searchParams,

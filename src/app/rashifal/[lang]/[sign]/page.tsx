@@ -1,3 +1,5 @@
+import { I18nProvider } from "@/components/i18n/i18n";
+import { phrasesFor } from "@/lib/i18n/phrases";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { HoroscopeDay } from "@/components/astro/horoscope-day";
@@ -32,12 +34,15 @@ export default async function SeoSignPage({ params }: { params: Params }) {
   const page = resolve(lang, sign);
   if (!page) notFound();
   return (
-    <HoroscopeDay
-      index={page.index}
-      language={page.lang}
-      heading={seoTitle(page.lang, page.index)}
-      sharePath={`/rashifal/${lang}/${sign}`}
-      languageControl={<SeoLanguageLinks current={page.lang} path={`/${sign}`} />}
-    />
+    // Page text follows the language in the URL, whatever the visitor's own setting.
+    <I18nProvider lang={page.lang} dict={phrasesFor(page.lang)}>
+      <HoroscopeDay
+        index={page.index}
+        language={page.lang}
+        heading={seoTitle(page.lang, page.index)}
+        sharePath={`/rashifal/${lang}/${sign}`}
+        languageControl={<SeoLanguageLinks current={page.lang} path={`/${sign}`} />}
+      />
+    </I18nProvider>
   );
 }

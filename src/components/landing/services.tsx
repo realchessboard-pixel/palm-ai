@@ -1,3 +1,6 @@
+import { msg } from "@/lib/i18n/msg";
+import { getT } from "@/lib/i18n/server";
+import { T } from "@/components/i18n/i18n";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ReaderPortrait } from "@/components/readers/reader-portrait";
@@ -95,43 +98,45 @@ interface Tile {
   title: string;
   text: string;
   price: string;
+  /** Values for {0} in `price`. */
+  priceVars?: string[];
 }
 
 const FREE: Tile[] = [
   {
     href: "/read",
     icon: "palm",
-    title: "Palm reading",
-    text: "Show your right palm — how you think, care and work.",
-    price: "Free",
+    title: msg("Palm reading"),
+    text: msg("Show your right palm — how you think, care and work."),
+    price: msg("Free"),
   },
   {
     href: "/horoscope",
     icon: "sun",
-    title: "Aaj ka Rashifal",
-    text: "Today's horoscope for your Moon sign, in your language.",
-    price: "Free",
+    title: msg("Aaj ka Rashifal"),
+    text: msg("Today's horoscope for your Moon sign, in your language."),
+    price: msg("Free"),
   },
   {
     href: "/kundli",
     icon: "chart",
-    title: "Kundli",
-    text: "Your birth chart, planets, nakshatra and dasha.",
-    price: "Free",
+    title: msg("Kundli"),
+    text: msg("Your birth chart, planets, nakshatra and dasha."),
+    price: msg("Free"),
   },
   {
     href: "/kundli-milan",
     icon: "rings",
-    title: "Kundli Milan",
-    text: "Guna Milan out of 36, every koota explained.",
-    price: "Free",
+    title: msg("Kundli Milan"),
+    text: msg("Guna Milan out of 36, every koota explained."),
+    price: msg("Free"),
   },
   {
     href: "/panchang",
     icon: "calendar",
-    title: "Aaj ka Panchang",
-    text: "Tithi, nakshatra, sunrise and Rahu Kaal for your city.",
-    price: "Free",
+    title: msg("Aaj ka Panchang"),
+    text: msg("Tithi, nakshatra, sunrise and Rahu Kaal for your city."),
+    price: msg("Free"),
   },
 ];
 
@@ -141,51 +146,53 @@ const PREMIUM: Tile[] = [
   {
     href: "/readers",
     icon: "chat",
-    title: "Ask a reader",
-    text: "Ask about your own palm or chart. First question free.",
-    price: `From ${formatInr(minQuestion)}`,
+    title: msg("Ask a reader"),
+    text: msg("Ask about your own palm or chart. First question free."),
+    price: msg("From {0}"),
+    priceVars: [formatInr(minQuestion)],
   },
   {
     href: "/read",
     icon: "palm",
-    title: "Detailed palm reading",
-    text: "Every line, parvat, finger and marking, with a PDF.",
+    title: msg("Detailed palm reading"),
+    text: msg("Every line, parvat, finger and marking, with a PDF."),
     price: formatInr(PRODUCTS.DETAILED_READING.priceInr),
   },
   {
     href: "/kundli",
     icon: "book",
-    title: "Full Kundli reading",
-    text: "Your chart read in words: nature, career, relationships, dasha.",
+    title: msg("Full Kundli reading"),
+    text: msg("Your chart read in words: nature, career, relationships, dasha."),
     price: formatInr(PRODUCTS.KUNDLI_REPORT.priceInr),
   },
   {
     href: "/compatibility",
     icon: "heart",
-    title: "Couple palm reading",
-    text: "Both your palms read together — how you grow as a pair.",
+    title: msg("Couple palm reading"),
+    text: msg("Both your palms read together — how you grow as a pair."),
     price: formatInr(PRODUCTS.COUPLE_COMPATIBILITY.priceInr),
   },
   {
     href: "/pricing",
     icon: "family",
-    title: "Family pack",
-    text: "Four detailed palm readings for the whole family.",
+    title: msg("Family pack"),
+    text: msg("Four detailed palm readings for the whole family."),
     price: formatInr(PRODUCTS.FAMILY_PACK.priceInr),
   },
   {
     href: "/pricing",
     icon: "gift",
-    title: "Gift a reading",
-    text: "Send a reading on WhatsApp for a birthday or festival.",
+    title: msg("Gift a reading"),
+    text: msg("Send a reading on WhatsApp for a birthday or festival."),
     price: formatInr(PRODUCTS.GIFT_READING.priceInr),
   },
   {
     href: "/pricing",
     icon: "star",
-    title: "Membership",
-    text: "Every palm and Kundli reading in full for a year.",
-    price: `${formatInr(PRODUCTS.MEMBERSHIP_YEAR.priceInr)}/year`,
+    title: msg("Membership"),
+    text: msg("Every palm and Kundli reading in full for a year."),
+    price: msg("{0}/year"),
+    priceVars: [formatInr(PRODUCTS.MEMBERSHIP_YEAR.priceInr)],
   },
 ];
 
@@ -205,26 +212,31 @@ function TileCard({ tile, free }: { tile: Tile; free: boolean }) {
                 : "tag border-[var(--color-gold-400)] text-gold-300"
             }
           >
-            {tile.price}
+            <T s={tile.price} v={tile.priceVars} />
           </span>
         </div>
-        <span className="text-xl font-semibold">{tile.title}</span>
-        <span className="text-sm text-mist">{tile.text}</span>
+        <span className="text-xl font-semibold">
+          <T s={tile.title} />
+        </span>
+        <span className="text-sm text-mist">
+          <T s={tile.text} />
+        </span>
       </Link>
     </li>
   );
 }
 
 /** Everything AstroVidya offers, on the home page: free tools first, then paid services. */
-export function Services() {
+export async function Services() {
+  const tx = await getT();
   return (
     <div className="mx-auto max-w-6xl space-y-14 px-4 py-14 sm:px-6">
-      <nav aria-label="Services" className="flex flex-wrap gap-2">
+      <nav aria-label={tx("Services")} className="flex flex-wrap gap-2">
         {[
-          ["#free", "Free for everyone"],
-          ["#premium", "Go deeper"],
-          ["#readers", "Ask a reader"],
-          ["/horoscope", "Today's rashifal"],
+          ["#free", tx("Free for everyone")],
+          ["#premium", tx("Go deeper")],
+          ["#readers", tx("Ask a reader")],
+          ["/horoscope", tx("Today's rashifal")],
         ].map(([href, label]) => (
           <Link key={href} href={href!} className="chip px-4">
             {label}
@@ -234,9 +246,11 @@ export function Services() {
 
       <section id="free" aria-labelledby="free-title" className="scroll-mt-24 space-y-5">
         <div>
-          <p className="eyebrow">Free for everyone</p>
+          <p className="eyebrow">
+            <T s="Free for everyone" />
+          </p>
           <h2 id="free-title" className="mt-1 text-3xl sm:text-4xl">
-            Start here — no payment, no catch
+            <T s="Start here — no payment, no catch" />
           </h2>
         </div>
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -248,12 +262,14 @@ export function Services() {
 
       <section id="premium" aria-labelledby="premium-title" className="scroll-mt-24 space-y-5">
         <div>
-          <p className="eyebrow">Go deeper</p>
+          <p className="eyebrow">
+            <T s="Go deeper" />
+          </p>
           <h2 id="premium-title" className="mt-1 text-3xl sm:text-4xl">
-            Readings and answers, when you want more
+            <T s="Readings and answers, when you want more" />
           </h2>
           <p className="mt-2 text-mist">
-            One-time payments by UPI, card or netbanking. Nothing renews automatically.
+            <T s="One-time payments by UPI, card or netbanking. Nothing renews automatically." />
           </p>
         </div>
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -270,18 +286,18 @@ export function Services() {
       >
         <div className="flex flex-col gap-6 md:flex-row md:items-center">
           <div className="flex-1">
-            <p className="eyebrow">Ask a reader · from {formatInr(minQuestion)}</p>
+            <p className="eyebrow">
+              <T s="Ask a reader · from {0}" v={[formatInr(minQuestion)]} />
+            </p>
             <h2 id="readers-title" className="mt-1 text-3xl">
-              Got a question about your palm or chart?
+              <T s="Got a question about your palm or chart?" />
             </h2>
             <p className="mt-2 text-mist">
-              Eight readers, each with their own style — Vedic, relationships, career, family. They
-              read your own reading and reply in your language within a minute. Readers are AI
-              characters, clearly labelled.
+              <T s="Eight readers, each with their own style — Vedic, relationships, career, family. They read your own reading and reply in your language within a minute. Readers are AI characters, clearly labelled." />
             </p>
           </div>
           <Link href="/readers" className="btn-primary shrink-0">
-            Meet the readers
+            <T s="Meet the readers" />
           </Link>
         </div>
         <ul className="mt-6 flex flex-wrap gap-4">
@@ -290,7 +306,9 @@ export function Services() {
               <ReaderPortrait reader={r} size={44} />
               <span className="text-sm">
                 {r.name}
-                <span className="block text-xs text-mist">{r.title}</span>
+                <span className="block text-xs text-mist">
+                  <T s={r.title} />
+                </span>
               </span>
             </li>
           ))}

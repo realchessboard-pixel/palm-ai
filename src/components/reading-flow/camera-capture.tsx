@@ -1,5 +1,8 @@
 "use client";
 
+import { msg } from "@/lib/i18n/msg";
+import { useT } from "@/components/i18n/i18n";
+import { T } from "@/components/i18n/i18n";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PalmGuide } from "@/components/palm/palm-guide";
 import { Button } from "@/components/ui/button";
@@ -7,10 +10,10 @@ import { Alert, Spinner } from "@/components/ui/misc";
 import { captureVideoFrame } from "@/lib/image/client-image";
 
 const TIPS = [
-  "Place your entire right palm inside the frame.",
-  "Keep your fingers naturally separated.",
-  "Use bright, even lighting.",
-  "Keep the camera directly above your palm.",
+  msg("Place your entire right palm inside the frame."),
+  msg("Keep your fingers naturally separated."),
+  msg("Use bright, even lighting."),
+  msg("Keep the camera directly above your palm."),
 ];
 
 type CameraState = "starting" | "live" | "denied" | "unavailable";
@@ -28,6 +31,7 @@ export function CameraCapture({
   onCapture: (blob: Blob) => void;
   onCancel: () => void;
 }) {
+  const tx = useT();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [state, setState] = useState<CameraState>("starting");
@@ -100,14 +104,18 @@ export function CameraCapture({
       <div className="space-y-4">
         <Alert
           tone="warning"
-          title={state === "denied" ? "Camera access was blocked" : "Camera unavailable"}
+          title={state === "denied" ? tx("Camera access was blocked") : tx("Camera unavailable")}
         >
           {state === "denied"
-            ? "You can allow camera access in your browser settings, or upload a photo from your gallery instead."
-            : "We couldn't start a camera on this device. Please upload a photo from your gallery instead."}
+            ? tx(
+                "You can allow camera access in your browser settings, or upload a photo from your gallery instead.",
+              )
+            : tx(
+                "We couldn't start a camera on this device. Please upload a photo from your gallery instead.",
+              )}
         </Alert>
         <Button variant="secondary" className="w-full" onClick={onCancel}>
-          Back to upload options
+          <T s="Back to upload options" />
         </Button>
       </div>
     );
@@ -120,54 +128,57 @@ export function CameraCapture({
           ref={videoRef}
           playsInline
           muted
-          aria-label="Live camera preview"
+          aria-label={tx("Live camera preview")}
           className="absolute inset-0 size-full object-cover"
           style={facing === "user" ? { transform: "scaleX(-1)" } : undefined}
         />
         <PalmGuide hand={hand} className="absolute inset-[6%] size-[88%]" />
         {state === "starting" ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-night-950/80 text-sm text-mist">
-            <Spinner label="Starting camera" />
-            Starting camera…
+            <T s="{0}Starting camera…" v={[<Spinner key={0} label={tx("Starting camera")} />]} />
           </div>
         ) : null}
         <p
           aria-live="polite"
           className="absolute inset-x-3 bottom-3 rounded-2xl bg-night-950/75 px-4 py-2.5 text-center text-sm text-parchment backdrop-blur"
         >
-          {TIPS[tipIndex]}
+          <T s={TIPS[tipIndex]!} />
         </p>
       </div>
 
       <div className="mx-auto flex max-w-md items-center justify-between gap-3">
         <Button variant="ghost" onClick={onCancel}>
-          Cancel
+          <T s="Cancel" />
         </Button>
         <button
           type="button"
           onClick={capture}
           disabled={state !== "live" || capturing}
-          aria-label="Capture photo"
+          aria-label={tx("Capture photo")}
           className="inline-flex size-20 items-center justify-center rounded-full border-4 border-gold-200/80 bg-gold-300/20 transition-transform active:scale-95 disabled:opacity-40"
         >
           <span className="block size-14 rounded-full bg-gradient-to-b from-gold-200 to-gold-500" />
         </button>
         <Button
           variant="ghost"
-          aria-label="Switch camera"
+          aria-label={tx("Switch camera")}
           onClick={() => setFacing((f) => (f === "environment" ? "user" : "environment"))}
         >
-          <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true">
-            <path
-              d="M4 8h3l2-3h6l2 3h3v11H4zM9 13a3 3 0 0 0 5.5 1.7M15 12a3 3 0 0 0-5.5-1.7"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          Flip
+          <T
+            s="{0}Flip"
+            v={[
+              <svg key={0} viewBox="0 0 24 24" className="size-5" aria-hidden="true">
+                <path
+                  d="M4 8h3l2-3h6l2 3h3v11H4zM9 13a3 3 0 0 0 5.5 1.7M15 12a3 3 0 0 0-5.5-1.7"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>,
+            ]}
+          />
         </Button>
       </div>
     </div>

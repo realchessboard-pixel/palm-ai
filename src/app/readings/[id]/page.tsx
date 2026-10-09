@@ -1,3 +1,5 @@
+import { getT } from "@/lib/i18n/server";
+import { T } from "@/components/i18n/i18n";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { TrackOnMount } from "@/components/analytics/track-on-mount";
@@ -16,11 +18,14 @@ import type { ReadingView } from "@/lib/readings/view";
 import { getLanguage } from "@/lib/i18n/server";
 import { IdSchema } from "@/lib/schemas/api";
 
-export const metadata: Metadata = {
-  title: "Your Palm Reading",
-  // Readings are private: never index them.
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const tx = await getT();
+  return {
+    title: tx("Your Palm Reading"),
+    // Readings are private: never index them.
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function ReadingPage({
   params,
@@ -29,6 +34,7 @@ export default async function ReadingPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ checkout?: string; session_id?: string; lang?: string }>;
 }) {
+  const tx = await getT();
   const { id } = await params;
   const { checkout, session_id: sessionId, lang } = await searchParams;
   const language = await getLanguage(lang);
@@ -84,7 +90,10 @@ export default async function ReadingPage({
         shareUrl={referralCode ? `${appUrl}/?ref=${referralCode}` : `${appUrl}/`}
         referralNote={
           referralCode
-            ? `When ${REFERRALS_PER_CREDIT} friends join through your link and read their palm, you get a free detailed reading.`
+            ? tx(
+                "When {0} friends join through your link and read their palm, you get a free detailed reading.",
+                [REFERRALS_PER_CREDIT],
+              )
             : null
         }
       />
@@ -95,16 +104,20 @@ export default async function ReadingPage({
 /** After returning from checkout. Driven by the server's payment record, not the URL. */
 function CheckoutNotice({ reading }: { reading: ReadingView }) {
   const notice = reading.premium ? (
-    <Alert tone="success">Thank you — your detailed reading is unlocked.</Alert>
+    <Alert tone="success">
+      <T s="Thank you — your detailed reading is unlocked." />
+    </Alert>
   ) : reading.paymentState === "PAYMENT_FAILED" ? (
     <Alert tone="error">
-      Your payment didn&apos;t go through, so nothing was unlocked. You can try again below.
+      <T s="Your payment didn't go through, so nothing was unlocked. You can try again below." />
     </Alert>
   ) : reading.paymentState === "PAYMENT_CANCELLED" ? (
-    <Alert tone="info">Checkout was cancelled. You have not been charged.</Alert>
+    <Alert tone="info">
+      <T s="Checkout was cancelled. You have not been charged." />
+    </Alert>
   ) : reading.paymentState === "PAYMENT_INITIATED" ? (
     <Alert tone="info">
-      Your payment is being confirmed. This usually takes a few seconds — refresh the page shortly.
+      <T s="Your payment is being confirmed. This usually takes a few seconds — refresh the page shortly." />
     </Alert>
   ) : null;
   return notice ? <div className="mx-auto max-w-5xl px-4 pt-6 sm:px-6">{notice}</div> : null;

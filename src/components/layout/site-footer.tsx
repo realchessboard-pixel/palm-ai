@@ -1,8 +1,11 @@
+import { getT } from "@/lib/i18n/server";
+import { T } from "@/components/i18n/i18n";
 import Link from "next/link";
 import { LogoMark } from "@/components/ui/logo";
 import { siteConfig } from "@/lib/config/site";
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const tx = await getT();
   const year = new Date().getFullYear();
   return (
     <footer className="border-t border-white/5 bg-night-950">
@@ -13,88 +16,97 @@ export function SiteFooter() {
             <span className="font-display text-xl">{siteConfig.name}</span>
           </div>
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-mist">
-            Mahakundli, palm reading, Kundli and rashifal in the Indian tradition.{" "}
-            {siteConfig.disclaimer}
+            <T
+              s="Mahakundli, palm reading, Kundli and rashifal in the Indian tradition. {0}"
+              v={[tx(siteConfig.disclaimer)]}
+            />
           </p>
         </div>
-        <nav aria-label="Product">
-          <h2 className="font-sans text-sm font-semibold text-parchment">Product</h2>
+        <nav aria-label={tx("Product")}>
+          <h2 className="font-sans text-sm font-semibold text-parchment">
+            <T s="Product" />
+          </h2>
           <ul className="mt-3 space-y-2 text-sm text-mist">
             <li>
               <Link className="hover:text-parchment" href="/read">
-                Palm reading
+                <T s="Palm reading" />
               </Link>
             </li>
             <li>
               <Link className="hover:text-parchment" href="/horoscope">
-                Aaj ka Rashifal
+                <T s="Aaj ka Rashifal" />
               </Link>
             </li>
             <li>
               <Link className="hover:text-parchment" href="/kundli">
-                Free Kundli
+                <T s="Free Kundli" />
               </Link>
             </li>
             <li>
               <Link className="hover:text-parchment" href="/kundli-milan">
-                Kundli Milan
+                <T s="Kundli Milan" />
               </Link>
             </li>
             <li>
               <Link className="hover:text-parchment" href="/panchang">
-                Panchang
+                <T s="Panchang" />
               </Link>
             </li>
             <li>
               <Link className="hover:text-parchment" href="/readers">
-                Ask a reader
+                <T s="Ask a reader" />
               </Link>
             </li>
             <li>
               <Link className="hover:text-parchment" href="/compatibility">
-                Couple reading
+                <T s="Couple reading" />
               </Link>
             </li>
             <li>
               <Link className="hover:text-parchment" href="/pricing">
-                Pricing
+                <T s="Pricing" />
               </Link>
             </li>
             <li>
               <Link className="hover:text-parchment" href="/readings">
-                Your readings
+                <T s="Your readings" />
               </Link>
             </li>
           </ul>
         </nav>
-        <nav aria-label="Legal">
-          <h2 className="font-sans text-sm font-semibold text-parchment">Trust</h2>
+        <nav aria-label={tx("Legal")}>
+          <h2 className="font-sans text-sm font-semibold text-parchment">
+            <T s="Trust" />
+          </h2>
           <ul className="mt-3 space-y-2 text-sm text-mist">
             <li>
               <Link className="hover:text-parchment" href="/how-readings-work">
-                How readings are made
+                <T s="How readings are made" />
               </Link>
             </li>
             <li>
               <Link className="hover:text-parchment" href="/privacy">
-                Privacy policy
+                <T s="Privacy policy" />
               </Link>
             </li>
             <li>
               <Link className="hover:text-parchment" href="/terms">
-                Terms of use
+                <T s="Terms of use" />
               </Link>
             </li>
             <li>
               <Link className="hover:text-parchment" href="/account">
-                Delete my data
+                <T s="Delete my data" />
               </Link>
             </li>
           </ul>
         </nav>
       </div>
       <div className="border-t border-white/5 px-4 py-6 text-center text-xs text-mist-dim">
-        © {year} {siteConfig.name}. For entertainment and personal reflection only.
+        <T
+          s="© {0} {1}. For entertainment and personal reflection only."
+          v={[year, siteConfig.name]}
+        />
       </div>
     </footer>
   );

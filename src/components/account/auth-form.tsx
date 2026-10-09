@@ -1,5 +1,7 @@
 "use client";
 
+import { useT } from "@/components/i18n/i18n";
+import { T } from "@/components/i18n/i18n";
 import { useId, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -22,6 +24,7 @@ function readReferral(): string | undefined {
 }
 
 export function AuthForm({ mode, next }: { mode: "login" | "signup"; next?: string }) {
+  const tx = useT();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -52,7 +55,7 @@ export function AuthForm({ mode, next }: { mode: "login" | "signup"; next?: stri
           setFieldErrors(Object.fromEntries(fields.map((f) => [f.path, f.message])));
         else setError(err.message);
       } else {
-        setError("Something went wrong. Please try again.");
+        setError(tx("Something went wrong. Please try again."));
       }
       setBusy(false);
     }
@@ -60,10 +63,14 @@ export function AuthForm({ mode, next }: { mode: "login" | "signup"; next?: stri
 
   return (
     <form onSubmit={submit} className="space-y-5" noValidate>
-      {error ? <Alert tone="error">{error}</Alert> : null}
+      {error ? (
+        <Alert tone="error">
+          <T s={error} />
+        </Alert>
+      ) : null}
       <div>
         <label htmlFor={emailId} className="mb-2 block text-sm font-medium text-parchment">
-          Email
+          <T s="Email" />
         </label>
         <input
           id={emailId}
@@ -85,7 +92,7 @@ export function AuthForm({ mode, next }: { mode: "login" | "signup"; next?: stri
       </div>
       <div>
         <label htmlFor={passwordId} className="mb-2 block text-sm font-medium text-parchment">
-          Password
+          <T s="Password" />
         </label>
         <input
           id={passwordId}
@@ -103,32 +110,42 @@ export function AuthForm({ mode, next }: { mode: "login" | "signup"; next?: stri
           id={`${passwordId}-hint`}
           className={`mt-1.5 text-xs ${fieldErrors.password ? "text-red-300" : "text-mist-dim"}`}
         >
-          {fieldErrors.password ?? (mode === "signup" ? "At least 10 characters." : "")}
+          {fieldErrors.password ?? (mode === "signup" ? tx("At least 10 characters.") : "")}
         </p>
       </div>
       <Button type="submit" size="lg" className="w-full" disabled={busy}>
-        {busy ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}
+        {busy ? tx("Please wait…") : mode === "login" ? tx("Sign in") : tx("Create account")}
       </Button>
       <p className="text-center text-sm text-mist">
         {mode === "login" ? (
           <>
-            New here?{" "}
-            <Link
-              href={`/signup${next ? `?next=${encodeURIComponent(next)}` : ""}`}
-              className="text-gold-300 underline-offset-4 hover:underline"
-            >
-              Create an account
-            </Link>
+            <T
+              s="New here? {0}"
+              v={[
+                <Link
+                  key={0}
+                  href={`/signup${next ? `?next=${encodeURIComponent(next)}` : ""}`}
+                  className="text-gold-300 underline-offset-4 hover:underline"
+                >
+                  <T s="Create an account" />
+                </Link>,
+              ]}
+            />
           </>
         ) : (
           <>
-            Already have an account?{" "}
-            <Link
-              href={`/login${next ? `?next=${encodeURIComponent(next)}` : ""}`}
-              className="text-gold-300 underline-offset-4 hover:underline"
-            >
-              Sign in
-            </Link>
+            <T
+              s="Already have an account? {0}"
+              v={[
+                <Link
+                  key={0}
+                  href={`/login${next ? `?next=${encodeURIComponent(next)}` : ""}`}
+                  className="text-gold-300 underline-offset-4 hover:underline"
+                >
+                  <T s="Sign in" />
+                </Link>,
+              ]}
+            />
           </>
         )}
       </p>

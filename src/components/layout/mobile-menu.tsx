@@ -1,11 +1,14 @@
 "use client";
 
+import { useT } from "@/components/i18n/i18n";
+import { T } from "@/components/i18n/i18n";
 import Link from "next/link";
 import { useEffect, useId, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ButtonLink } from "@/components/ui/button";
 
 export function MobileMenu({ links }: { links: { href: string; label: string }[] }) {
+  const tx = useT();
   const [open, setOpen] = useState(false);
   const menuId = useId();
   const pathname = usePathname();
@@ -33,7 +36,7 @@ export function MobileMenu({ links }: { links: { href: string; label: string }[]
         className="inline-flex size-11 items-center justify-center rounded-full text-parchment hover:bg-white/5"
         aria-expanded={open}
         aria-controls={menuId}
-        aria-label={open ? "Close menu" : "Open menu"}
+        aria-label={open ? tx("Close menu") : tx("Open menu")}
         onClick={() => setOpen((v) => !v)}
       >
         <svg viewBox="0 0 24 24" className="size-6" aria-hidden="true">
@@ -59,7 +62,7 @@ export function MobileMenu({ links }: { links: { href: string; label: string }[]
           id={menuId}
           className="absolute inset-x-0 top-16 border-b border-white/10 bg-night-900/95 px-4 pt-2 pb-6 backdrop-blur-xl"
         >
-          <nav aria-label="Mobile" className="flex flex-col">
+          <nav aria-label={tx("Mobile")} className="flex flex-col">
             {links.map((link) => (
               <Link
                 key={link.href}
@@ -71,7 +74,7 @@ export function MobileMenu({ links }: { links: { href: string; label: string }[]
               </Link>
             ))}
             <ButtonLink href="/read" className="mt-3 w-full" onClick={() => setOpen(false)}>
-              Read My Palm
+              <T s="Read My Palm" />
             </ButtonLink>
           </nav>
         </div>

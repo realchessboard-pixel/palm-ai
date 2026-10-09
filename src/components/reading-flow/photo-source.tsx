@@ -1,5 +1,8 @@
 "use client";
 
+import { msg } from "@/lib/i18n/msg";
+import { useT } from "@/components/i18n/i18n";
+import { T } from "@/components/i18n/i18n";
 import { useRef, useState, type DragEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { ACCEPTED_IMAGE_TYPES } from "@/lib/image/quality";
@@ -17,6 +20,7 @@ export function PhotoSource({
   onOpenCamera: () => void;
   disabled?: boolean;
 }) {
+  const tx = useT();
   const fileInput = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -57,32 +61,42 @@ export function PhotoSource({
             />
           </svg>
         </div>
-        <p className="mt-4 font-medium text-parchment">Add a photo of your palm</p>
+        <p className="mt-4 font-medium text-parchment">
+          <T s="Add a photo of your palm" />
+        </p>
         <p className="mt-1 text-sm text-mist">
-          <span className="hidden sm:inline">
-            Drag and drop an image here, or choose an option below.{" "}
-          </span>
-          JPG, PNG or WebP, up to 15 MB.
+          <T
+            s="{0}JPG, PNG or WebP, up to 15 MB."
+            v={[
+              <span key={0} className="hidden sm:inline">
+                <T s="Drag and drop an image here, or choose an option below." />
+              </span>,
+            ]}
+          />
         </p>
 
         <div className="mt-6 grid gap-3 sm:mx-auto sm:max-w-md sm:grid-cols-2">
           <Button onClick={onOpenCamera} disabled={disabled}>
-            <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true">
-              <path
-                d="M4 8a2 2 0 0 1 2-2h2l1.5-2h5L16 6h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM12 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-              />
-            </svg>
-            Take photo
+            <T
+              s="{0}Take photo"
+              v={[
+                <svg key={0} viewBox="0 0 24 24" className="size-5" aria-hidden="true">
+                  <path
+                    d="M4 8a2 2 0 0 1 2-2h2l1.5-2h5L16 6h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM12 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                </svg>,
+              ]}
+            />
           </Button>
           <Button
             variant="secondary"
             onClick={() => fileInput.current?.click()}
             disabled={disabled}
           >
-            Choose from gallery
+            <T s="Choose from gallery" />
           </Button>
         </div>
         <input
@@ -90,7 +104,7 @@ export function PhotoSource({
           type="file"
           accept={ACCEPT}
           className="sr-only"
-          aria-label="Upload a palm photo"
+          aria-label={tx("Upload a palm photo")}
           tabIndex={-1}
           onChange={(e) => {
             handleFiles(e.target.files);
@@ -101,14 +115,14 @@ export function PhotoSource({
 
       <ul className="grid gap-2 text-sm text-mist sm:grid-cols-2">
         {[
-          "Place your entire palm inside the frame",
-          "Keep your fingers naturally separated",
-          "Use bright, even lighting",
-          "Hold the camera directly above your palm",
+          msg("Place your entire palm inside the frame"),
+          msg("Keep your fingers naturally separated"),
+          msg("Use bright, even lighting"),
+          msg("Hold the camera directly above your palm"),
         ].map((tip) => (
           <li key={tip} className="flex items-start gap-2">
             <span className="mt-2 size-1.5 shrink-0 rounded-full bg-gold-300" aria-hidden="true" />
-            {tip}
+            <T s={tip} />
           </li>
         ))}
       </ul>

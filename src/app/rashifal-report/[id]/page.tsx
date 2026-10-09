@@ -1,3 +1,6 @@
+import { localeFor } from "@/lib/i18n/languages";
+import { getT } from "@/lib/i18n/server";
+import { T } from "@/components/i18n/i18n";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BalanceUnlock } from "@/components/payments/balance-unlock";
@@ -16,15 +19,22 @@ import { PRODUCTS, formatInr, priceWithGst, toPaise } from "@/lib/monetization/p
 import { paymentsEnabled } from "@/lib/payments/pricing";
 import { IdSchema } from "@/lib/schemas/api";
 
-export const metadata: Metadata = { title: "Your Detailed Rashifal", robots: { index: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  const tx = await getT();
+  return {
+    title: tx("Your Detailed Rashifal"),
+    robots: { index: false },
+  };
+}
 
 export default async function RashifalReportPage({ params }: { params: Promise<{ id: string }> }) {
+  const tx = await getT();
   const { id } = await params;
   if (!IdSchema.safeParse(id).success) notFound();
   const actor = await getActor();
   let view;
   try {
-    view = await getRashifalView(id, actor);
+    view = await getRashifalView(id, actor, localeFor(await getLanguage()));
   } catch (error) {
     if (isAppError(error) && error.code === "NOT_FOUND") notFound();
     throw error;
@@ -37,9 +47,13 @@ export default async function RashifalReportPage({ params }: { params: Promise<{
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-4 pt-10 pb-20 sm:px-6 sm:pt-14">
       <header className="space-y-2">
-        <p className="eyebrow">Detailed Rashifal</p>
+        <p className="eyebrow">
+          <T s="Detailed Rashifal" />
+        </p>
         <h1 className="text-4xl">{view.name}</h1>
-        <p className="text-mist">{RASHIS[view.moonRashi]!.name} Moon · next 12 months</p>
+        <p className="text-mist">
+          <T s="{0} Moon · next 12 months" v={[RASHIS[view.moonRashi]!.name]} />
+        </p>
       </header>
 
       {view.report ? (
@@ -52,7 +66,11 @@ export default async function RashifalReportPage({ params }: { params: Promise<{
           {view.report.months.map((m) => (
             <section key={m.month} className="paper-card space-y-2 p-6">
               <p className="eyebrow">{m.month}</p>
-              {m.title ? <h3 className="text-2xl">{m.title}</h3> : null}
+              {m.title ? (
+                <h3 className="text-2xl">
+                  <T s={m.title} />
+                </h3>
+              ) : null}
               <Prose text={m.text} />
               {m.focus ? <p className="note">{m.focus}</p> : null}
             </section>
@@ -61,19 +79,23 @@ export default async function RashifalReportPage({ params }: { params: Promise<{
       ) : view.unlocked ? (
         <PendingWriter
           endpoint={`/api/kundli/${view.id}/rashifal`}
-          title="Writing your Detailed Rashifal…"
-          body="Thank you — it's unlocked. Your 12 months are being read from your chart. This takes about a minute."
-          retryMessage="Your Detailed Rashifal is unlocked and saved — it just needs another moment. Tap “Try again”."
+          title={tx("Writing your Detailed Rashifal…")}
+          body={tx(
+            "Thank you — it's unlocked. Your 12 months are being read from your chart. This takes about a minute.",
+          )}
+          retryMessage={tx(
+            "Your Detailed Rashifal is unlocked and saved — it just needs another moment. Tap “Try again”.",
+          )}
         />
       ) : (
         <section className="space-y-5" aria-labelledby="offer">
           <h2 id="offer" className="text-2xl">
-            Want your detailed rashifal for the next 12 months?
+            <T s="Want your detailed rashifal for the next 12 months?" />
           </h2>
           <ul className="grid gap-2 sm:grid-cols-3">
             {view.months.map((m) => (
               <li key={m} className="paper-card flex items-center gap-2 p-3 text-sm">
-                <span aria-label="Locked">🔒</span>
+                <span aria-label={tx("Locked")}>🔒</span>
                 {m}
               </li>
             ))}
@@ -84,19 +106,19 @@ export default async function RashifalReportPage({ params }: { params: Promise<{
                 <p className="flex flex-wrap items-baseline gap-2">
                   <span className="text-3xl">{price.headline}</span>
                   <span className="text-sm text-mist">
-                    {price.total} · {tr("pay.oneTime")}
+                    <T s={price.total} /> · {tr("pay.oneTime")}
                   </span>
                 </p>
                 <BuyButton
                   order={{ product: "RASHIFAL_REPORT", kundliId: view.id }}
-                  label={`Get my Detailed Rashifal — ${formatInr(product.priceInr)}`}
+                  label={tx("Get my Detailed Rashifal — {0}", [formatInr(product.priceInr)])}
                 />
                 {balances ? (
                   <BalanceUnlock
                     order={{ product: "RASHIFAL_REPORT", kundliId: view.id }}
                     credits={0}
                     canPayFromWallet={balances.walletPaise >= toPaise(product.priceInr)}
-                    walletLabel={`${formatInr(balances.walletPaise / 100)} available`}
+                    walletLabel={tx("{0} available", [formatInr(balances.walletPaise / 100)])}
                   />
                 ) : null}
               </>
@@ -104,8 +126,7 @@ export default async function RashifalReportPage({ params }: { params: Promise<{
               <p className="text-sm text-mist">{tr("pay.notAvailable")}</p>
             )}
             <p className="text-xs text-mist">
-              Month-by-month themes from the real planet positions and your own Moon sign. Included
-              with membership. For reflection — no predictions, no remedies to buy.
+              <T s="Month-by-month themes from the real planet positions and your own Moon sign. Included with membership. For reflection — no predictions, no remedies to buy." />
             </p>
           </div>
         </section>

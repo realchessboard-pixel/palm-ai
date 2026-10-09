@@ -1,3 +1,5 @@
+import { getT } from "@/lib/i18n/server";
+import { T } from "@/components/i18n/i18n";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -12,10 +14,13 @@ import { getReader } from "@/lib/readers/catalog";
 import { getReaderChatView } from "@/lib/readers/service";
 import { IdSchema } from "@/lib/schemas/api";
 
-export const metadata: Metadata = {
-  title: "Your conversation",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const tx = await getT();
+  return {
+    title: tx("Your conversation"),
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function ChatPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -40,20 +45,24 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
         <div>
           <h1 className="text-3xl leading-tight">{reader.name}</h1>
           <p className="text-sm text-mist">
-            {reader.title} ·{" "}
+            <T s={reader.title} /> ·{" "}
             <Link href="/how-readings-work" className="tag">
-              AI
+              <T s="AI" />
             </Link>
           </p>
         </div>
       </header>
       {!view.readingId ? (
         <p className="note mb-6">
-          {reader.name.split(" ")[0]} can&apos;t see your palm in this conversation.{" "}
-          <Link href="/read" className="link">
-            Take your free reading
-          </Link>{" "}
-          for answers about your own hand.
+          <T
+            s="{0} can't see your palm in this conversation. {1} for answers about your own hand."
+            v={[
+              reader.name.split(" ")[0],
+              <Link key={1} href="/read" className="link">
+                <T s="Take your free reading" />
+              </Link>,
+            ]}
+          />
         </p>
       ) : null}
       {/* Remounts with the server's state after a purchase refreshes the page. */}
@@ -81,11 +90,14 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
         paymentsEnabled={paymentsEnabled()}
       />
       <p className="mt-10 text-xs text-mist">
-        Answers are traditional palmistry for reflection and entertainment — not predictions or
-        advice about health, money, relationships or the law.{" "}
-        <Link href="/readers" className="link">
-          All readers
-        </Link>
+        <T
+          s="Answers are traditional palmistry for reflection and entertainment — not predictions or advice about health, money, relationships or the law. {0}"
+          v={[
+            <Link key={0} href="/readers" className="link">
+              <T s="All readers" />
+            </Link>,
+          ]}
+        />
       </p>
     </div>
   );
