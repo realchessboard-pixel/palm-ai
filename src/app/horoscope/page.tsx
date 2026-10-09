@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MahakundliCta } from "@/components/astro/mahakundli-cta";
+import { RashifalCta } from "@/components/astro/rashifal-cta";
 import { SignGrid } from "@/components/astro/sign-grid";
 import { todayIst } from "@/lib/horoscope/service";
 
@@ -27,6 +28,7 @@ export default function HoroscopeIndex() {
       </header>
       <SignGrid />
       <div className="mt-10">
+        <RashifalCta lead="Beyond the daily rashifal" />
         <MahakundliCta lead="Beyond your Moon sign" />
       </div>
     </div>

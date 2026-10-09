@@ -66,6 +66,7 @@ enum ProductKind {
   READER_QUESTIONS
   KUNDLI_REPORT
   MILAN_REPORT
+  RASHIFAL_REPORT
 }
 
 enum ReadingRole {
@@ -429,6 +430,9 @@ model KundliProfile {
   teaser       Json?
   reportStatus KundliReportStatus @default(NONE)
   report       Json?
+  /// Detailed Rashifal: a personal 12-month guide from this chart (paid).
+  yearStatus   KundliReportStatus @default(NONE)
+  yearReport   Json?
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   payments     Payment[]

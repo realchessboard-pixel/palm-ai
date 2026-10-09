@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { POST as createKundli } from "@/app/api/kundli/route";
 import { POST as writeReport } from "@/app/api/kundli/[id]/report/route";
+import { POST as writeRashifal } from "@/app/api/kundli/[id]/rashifal/route";
 import { POST as checkout } from "@/app/api/payments/checkout/route";
 import { POST as mockComplete } from "@/app/api/payments/mock/complete/route";
 import { setAiProvider } from "@/lib/ai";
@@ -8,6 +9,7 @@ import { getActorFromRequest } from "@/lib/auth/actor";
 import { resetEnvCache } from "@/lib/config/env";
 import { db } from "@/lib/db";
 import { getHoroscope } from "@/lib/horoscope/service";
+import { getRashifalView } from "@/lib/kundli/rashifal-service";
 import { getKundliView } from "@/lib/kundli/service";
 import { PRODUCTS } from "@/lib/monetization/price";
 import { resetIdempotencyCache } from "@/lib/pipeline/idempotency";
@@ -129,6 +131,54 @@ describe.skipIf(!hasTestDatabase)("Kundli reading", () => {
     expect(view.unlocked).toBe(true);
     expect(view.report!.areas.length).toBe(17);
     expect(view.teaser?.area).toBe("career");
+  });
+
+  it("sells the ₹99 Detailed Rashifal separately from the Mahakundli", async () => {
+    const jar = new CookieJar();
+    const res = await createKundli(
+      makeRequest("/api/kundli", { json: { name: "Ravi", birth, purpose: "rashifal" }, jar }),
+      ctx,
+    );
+    jar.absorb(res);
+    const { kundliId: id } = await json<{ kundliId: string }>(res);
+    expect((await db.kundliProfile.findUniqueOrThrow({ where: { id } })).teaser).toBeNull();
+    const rashifal = () =>
+      writeRashifal(makeRequest(`/api/kundli/${id}/rashifal`, { json: {}, jar }), params({ id }));
+    expect((await rashifal()).status).toBe(403);
+
+    const started = await checkout(
+      makeRequest("/api/payments/checkout", {
+        json: { product: "RASHIFAL_REPORT", kundliId: id },
+        jar,
+      }),
+      ctx,
+    );
+    const { url } = await json<{ url: string }>(started);
+    const paymentId = url.split("/checkout/sandbox/")[1]!;
+    expect(await db.payment.findUniqueOrThrow({ where: { id: paymentId } })).toMatchObject({
+      product: "RASHIFAL_REPORT",
+      amount: 9900,
+    });
+    await mockComplete(
+      makeRequest("/api/payments/mock/complete", { json: { paymentId, outcome: "success" }, jar }),
+      ctx,
+    );
+
+    expect((await rashifal()).status).toBe(200);
+    expect((await report(jar, id)).status).toBe(403);
+    const actor = await getActorFromRequest(makeRequest("/", { jar }));
+    const view = await getRashifalView(id, actor);
+    expect(view.unlocked).toBe(true);
+    expect(view.report!.months.length).toBeGreaterThanOrEqual(10);
+    expect((await getKundliView(id, actor)).unlocked).toBe(false);
+
+    // A line emptied by the safety filter must never hide a paid report.
+    const stored = view.report!;
+    await db.kundliProfile.update({
+      where: { id },
+      data: { yearReport: { ...stored, months: [{ ...stored.months[0]!, focus: "" }] } },
+    });
+    expect((await getRashifalView(id, actor)).report?.months).toHaveLength(1);
   });
 
   it("rejects impossible birth details", async () => {

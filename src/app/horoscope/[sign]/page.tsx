@@ -7,6 +7,7 @@ import { getHoroscope, todayIst } from "@/lib/horoscope/service";
 import { getLanguage } from "@/lib/i18n/server";
 import { translator } from "@/lib/i18n/ui";
 import { MahakundliCta } from "@/components/astro/mahakundli-cta";
+import { RashifalCta } from "@/components/astro/rashifal-cta";
 import { SignGrid } from "@/components/astro/sign-grid";
 import { READER_TIERS, formatInr } from "@/lib/monetization/price";
 
@@ -80,6 +81,7 @@ export default async function SignPage({
           <strong>{h.luckyNumber}</strong>
         </p>
       </article>
+      <RashifalCta lead={`${r.name} · Detailed Rashifal`} />
       <MahakundliCta lang={language} lead={`${r.name} · ${tr("cta.title")}`} />
       <div className="grid gap-4 md:grid-cols-3">
         <Link href="/readers" className="paper-card block p-5">

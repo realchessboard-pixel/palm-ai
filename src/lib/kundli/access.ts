@@ -35,13 +35,16 @@ export async function hasMilanAccess(milan: { id: string; userId: string | null 
   return paid > 0 || isMember(milan.userId);
 }
 
-/** Unlocked by a verified payment for this chart, or by an active membership. */
-export async function hasKundliAccess(kundli: {
-  id: string;
-  userId: string | null;
-}): Promise<boolean> {
+/**
+ * Unlocked by a verified payment for THIS product on this chart (a cheaper
+ * product on the same chart never unlocks another), or by an active membership.
+ */
+export async function hasKundliAccess(
+  kundli: { id: string; userId: string | null },
+  product: "KUNDLI_REPORT" | "RASHIFAL_REPORT" = "KUNDLI_REPORT",
+): Promise<boolean> {
   const [paid, member] = await Promise.all([
-    db.payment.count({ where: { kundliId: kundli.id, status: "PAID" } }),
+    db.payment.count({ where: { kundliId: kundli.id, status: "PAID", product } }),
     kundli.userId
       ? db.entitlement.count({
           where: {

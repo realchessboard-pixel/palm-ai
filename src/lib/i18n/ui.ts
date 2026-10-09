@@ -97,7 +97,6 @@ export const UI_EN = {
   "milan.writing": "Writing your detailed Milan…",
   "pay.oneTime": "one-time",
   "pay.total": "total",
-  "pay.gst": "+ GST",
   "pay.notAvailable": "Not available for purchase right now.",
   "dl.download": "Download / Save as PDF",
   "rashifal.title": "Today's horoscope",

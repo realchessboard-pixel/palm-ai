@@ -123,8 +123,7 @@ export default async function PricingPage() {
           relationships or the law.
         </p>
         <p>
-          Prices include GST, except where shown as “+ GST” (the total is shown before you pay).
-          Questions about a payment? See our{" "}
+          All prices include GST — what you see is what you pay. Questions about a payment? See our{" "}
           <Link href="/terms" className="text-gold-300 underline underline-offset-2">
             terms
           </Link>

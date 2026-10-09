@@ -12,6 +12,8 @@ const Body = z.object({
   name: z.string().trim().max(60),
   birth: BirthSchema,
   area: z.enum(LIFE_AREA_IDS).default("career"),
+  /** "rashifal": save the chart for the Detailed Rashifal (no free answer is written). */
+  purpose: z.enum(["mahakundli", "rashifal"]).default("mahakundli"),
 });
 
 /** Save a birth chart and write its one free Mahakundli answer. */
@@ -24,7 +26,12 @@ export const POST = withErrorHandling("kundli.create", async (request: NextReque
   const body = await parseJsonBody(request, Body);
   const guest = actor.user ? null : ensureGuestKey(request, actor);
   const result = await createKundli(
-    { ...body, guestKeyHash: guest?.guestKeyHash ?? null, language: languageFromRequest(request) },
+    {
+      ...body,
+      guestKeyHash: guest?.guestKeyHash ?? null,
+      language: languageFromRequest(request),
+      withTeaser: body.purpose === "mahakundli",
+    },
     actor,
   );
   const response = NextResponse.json(result, { status: 201 });

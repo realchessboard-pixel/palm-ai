@@ -29,12 +29,13 @@ export const BirthSchema = z.object({
 });
 export type StoredBirth = z.infer<typeof BirthSchema>;
 
+/**
+ * The stored report, read back after the safety filter (which may drop an
+ * area). Loose on purpose: a saved, paid report must always show.
+ */
 const ReportSchema = z.object({
-  headline: z.string().min(1).max(140),
-  areas: z
-    .array(z.object({ id: z.enum(LIFE_AREA_IDS), text: z.string().min(1).max(2000) }))
-    .min(12)
-    .max(LIFE_AREAS.length),
+  headline: z.string(),
+  areas: z.array(z.object({ id: z.enum(LIFE_AREA_IDS), text: z.string().min(1) })).min(1),
 });
 export type KundliReport = z.infer<typeof ReportSchema>;
 
@@ -58,17 +59,22 @@ export async function createKundli(
     area: LifeAreaId;
     guestKeyHash: string | null;
     language?: Language;
+    /** The free Mahakundli answer; off for the Detailed Rashifal (no AI cost before purchase). */
+    withTeaser?: boolean;
   },
   actor: Actor,
 ): Promise<{ kundliId: string }> {
   const chart = computeChart(input.birth);
-  const teaser = await writeTeaser(
-    input.name,
-    input.birth,
-    chart,
-    input.area,
-    input.language ?? DEFAULT_LANGUAGE,
-  );
+  const teaser =
+    input.withTeaser === false
+      ? null
+      : await writeTeaser(
+          input.name,
+          input.birth,
+          chart,
+          input.area,
+          input.language ?? DEFAULT_LANGUAGE,
+        );
   const kundli = await db.kundliProfile.create({
     data: {
       userId: actor.user?.id ?? null,
@@ -76,7 +82,7 @@ export async function createKundli(
       name: input.name.trim().slice(0, 60) || "My Kundli",
       birth: input.birth as unknown as Prisma.InputJsonValue,
       chart: chart as unknown as Prisma.InputJsonValue,
-      teaser: teaser as unknown as Prisma.InputJsonValue,
+      ...(teaser ? { teaser: teaser as unknown as Prisma.InputJsonValue } : {}),
     },
   });
   return { kundliId: kundli.id };

@@ -37,6 +37,7 @@ export const OrderSchema = z.discriminatedUnion("product", [
   z.object({ product: z.literal("MEMBERSHIP_YEAR") }),
   z.object({ product: z.literal("KUNDLI_REPORT"), kundliId: IdSchema }),
   z.object({ product: z.literal("MILAN_REPORT"), milanId: IdSchema }),
+  z.object({ product: z.literal("RASHIFAL_REPORT"), kundliId: IdSchema }),
   z.object({
     product: z.literal("READER_QUESTIONS"),
     chatId: IdSchema,
@@ -142,6 +143,19 @@ export async function prepareOrder(order: Order, actor: Actor): Promise<Prepared
         description: PRODUCTS.KUNDLI_REPORT.name,
         returnPath: `/kundli/${kundli.id}`,
         alreadyOwned: await hasKundliAccess(kundli),
+      };
+    }
+    case "RASHIFAL_REPORT": {
+      const kundli = await getOwnedKundli(order.kundliId, actor);
+      return {
+        ...base,
+        product: order.product,
+        amountPaise: toPaise(PRODUCTS.RASHIFAL_REPORT.priceInr),
+        userId: kundli.userId,
+        kundliId: kundli.id,
+        description: PRODUCTS.RASHIFAL_REPORT.name,
+        returnPath: `/rashifal-report/${kundli.id}`,
+        alreadyOwned: await hasKundliAccess(kundli, "RASHIFAL_REPORT"),
       };
     }
     case "MILAN_REPORT": {
@@ -286,6 +300,7 @@ export async function grantOrder(tx: Prisma.TransactionClient, payment: Payment)
       });
       return;
     }
+    case "RASHIFAL_REPORT":
     case "MILAN_REPORT":
     case "KUNDLI_REPORT":
       // Access comes from the PAID payment itself (see hasKundliAccess).
@@ -339,12 +354,19 @@ export async function assertPaymentOwner(
 }
 
 export function returnPathFor(
-  payment: Pick<Payment, "readingId" | "compatibilityId" | "readerChatId" | "kundliId" | "milanId">,
+  payment: Pick<
+    Payment,
+    "readingId" | "compatibilityId" | "readerChatId" | "kundliId" | "milanId" | "product"
+  >,
 ): string {
   if (payment.readingId) return `/readings/${payment.readingId}`;
   if (payment.compatibilityId) return `/compatibility/${payment.compatibilityId}`;
   if (payment.readerChatId) return `/chat/${payment.readerChatId}`;
-  if (payment.kundliId) return `/kundli/${payment.kundliId}`;
+  if (payment.kundliId) {
+    return payment.product === "RASHIFAL_REPORT"
+      ? `/rashifal-report/${payment.kundliId}`
+      : `/kundli/${payment.kundliId}`;
+  }
   if (payment.milanId) return `/kundli-milan/${payment.milanId}`;
   return "/account";
 }

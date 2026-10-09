@@ -54,6 +54,7 @@ export type BuyOrder =
   | { product: "MEMBERSHIP_YEAR" }
   | { product: "KUNDLI_REPORT"; kundliId: string }
   | { product: "MILAN_REPORT"; milanId: string }
+  | { product: "RASHIFAL_REPORT"; kundliId: string }
   | { product: "READER_QUESTIONS"; chatId: string; plan: "single" | "bundle" }
   | { product: "WALLET_TOPUP"; payInr: number };
 

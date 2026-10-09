@@ -14,6 +14,7 @@ export const PRODUCT_KINDS = [
   "MEMBERSHIP_YEAR",
   "KUNDLI_REPORT",
   "MILAN_REPORT",
+  "RASHIFAL_REPORT",
 ] as const;
 export type CatalogProduct = (typeof PRODUCT_KINDS)[number];
 
@@ -21,26 +22,27 @@ export interface ProductInfo {
   priceInr: number;
   name: string;
   description: string;
-  /** Price before GST, when the price is shown as "base + GST". */
-  baseInr?: number;
   /** Account products need a signed-in user (balances, codes and memberships live on the account). */
   requiresAccount: boolean;
 }
 
 export const PRODUCTS: Record<CatalogProduct, ProductInfo> = {
+  RASHIFAL_REPORT: {
+    priceInr: 99,
+    name: "Detailed Rashifal",
+    description:
+      "Your personal rashifal for the next 12 months, month by month, from your own birth chart: Moon sign, Lagna and the real planetary transits.",
+    requiresAccount: false,
+  },
   MILAN_REPORT: {
-    // ₹199 + 18% GST, shown as both before payment.
     priceInr: 235,
-    baseInr: 199,
     name: "Detailed Kundli Milan",
     description:
       "All 8 kootas explained for the two of you, both charts compared (Moon, 7th house, Venus), both running dashas and practical guidance.",
     requiresAccount: false,
   },
   KUNDLI_REPORT: {
-    // ₹501 + 18% GST, shown as both before payment.
     priceInr: 591,
-    baseInr: 501,
     name: "Mahakundli",
     description:
       "17 life areas, each answered separately from your chart, with your running dasha, life-area timing and the next 3 years of major transits.",
@@ -141,9 +143,7 @@ export function formatInr(amountInr: number): string {
   }).format(amountInr);
 }
 
-/** "₹501 + GST" style label for products priced before tax, else the plain price. */
+/** Price label. All prices are GST-inclusive: what's shown is what's paid. */
 export function priceWithGst(p: ProductInfo): { headline: string; total: string } {
-  return p.baseInr
-    ? { headline: `${formatInr(p.baseInr)} + GST`, total: `${formatInr(p.priceInr)} total` }
-    : { headline: formatInr(p.priceInr), total: "" };
+  return { headline: formatInr(p.priceInr), total: "incl. GST" };
 }

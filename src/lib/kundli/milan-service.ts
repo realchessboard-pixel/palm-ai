@@ -34,6 +34,12 @@ const ReportSchema = z.object({
 });
 export type MilanReport = z.infer<typeof ReportSchema>;
 
+/** Read-back shape: the safety filter may drop a section; a paid report must still show. */
+const StoredReportSchema = z.object({
+  headline: z.string(),
+  sections: z.array(z.object({ id: z.enum(SECTION_IDS), text: z.string().min(1) })).min(1),
+});
+
 export async function createMilan(
   input: {
     a: { name: string; birth: StoredBirth };
@@ -67,7 +73,7 @@ export async function getMilanView(id: string, actor: Actor) {
   const result = milan.result as unknown as MilanResult;
   const chartA = milan.chartA as unknown as Chart;
   const chartB = milan.chartB as unknown as Chart;
-  const report = unlocked && milan.report ? ReportSchema.safeParse(milan.report) : null;
+  const report = unlocked && milan.report ? StoredReportSchema.safeParse(milan.report) : null;
   return {
     id: milan.id,
     nameA: milan.nameA,
