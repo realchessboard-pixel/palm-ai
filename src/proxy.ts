@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { LANGUAGE_CODES, LANGUAGE_COOKIE } from "@/lib/i18n/languages";
 import { isSameOriginRequest, isUnsafeMethod } from "@/lib/security/same-origin";
 
 /**
@@ -91,8 +92,28 @@ export function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", csp);
+
+  // Marketing links (e.g. /start?lang=hi from a Hindi Reel) choose the language
+  // up front, so the visitor isn't asked again by the first-visit picker.
+  const linkLang = request.nextUrl.searchParams.get("lang");
+  const chooseLang =
+    linkLang && LANGUAGE_CODES.includes(linkLang as never) && !request.cookies.get(LANGUAGE_COOKIE)
+      ? linkLang
+      : null;
+  if (chooseLang) {
+    const cookie = request.headers.get("cookie");
+    requestHeaders.set("cookie", `${cookie ? `${cookie}; ` : ""}${LANGUAGE_COOKIE}=${chooseLang}`);
+  }
+
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", csp);
+  if (chooseLang) {
+    response.cookies.set(LANGUAGE_COOKIE, chooseLang, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+    });
+  }
   return response;
 }
 

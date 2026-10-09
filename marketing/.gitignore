@@ -1,0 +1,7 @@
+# Generated media and downloaded fonts stay out of git (large / re-creatable).
+*.mp4
+*.mp3
+*.png
+*.tgz
+fonts/
+reel-*/list.txt
