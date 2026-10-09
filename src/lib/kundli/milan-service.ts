@@ -12,6 +12,7 @@ import { db } from "@/lib/db";
 import { AppError, isAppError } from "@/lib/http/errors";
 import { runOnce } from "@/lib/pipeline/idempotency";
 import { sanitizeText } from "@/lib/pipeline/safety";
+import { DEFAULT_LANGUAGE, languageName, type Language } from "@/lib/i18n/languages";
 import { getOwnedMilan, hasMilanAccess } from "./access";
 import { BirthSchema, chartFacts, type StoredBirth } from "./service";
 
@@ -82,11 +83,15 @@ export async function getMilanView(id: string, actor: Actor) {
   };
 }
 
-export function generateMilanReport(id: string, actor: Actor) {
-  return runOnce("milan-report", id, () => run(id, actor));
+export function generateMilanReport(
+  id: string,
+  actor: Actor,
+  language: Language = DEFAULT_LANGUAGE,
+) {
+  return runOnce("milan-report", id, () => run(id, actor, language));
 }
 
-async function run(id: string, actor: Actor): Promise<{ status: "COMPLETE" }> {
+async function run(id: string, actor: Actor, language: Language): Promise<{ status: "COMPLETE" }> {
   const milan = await getOwnedMilan(id, actor);
   if (milan.reportStatus === "COMPLETE" && milan.report) return { status: "COMPLETE" };
   if (!(await hasMilanAccess(milan))) {
@@ -147,7 +152,7 @@ ${chartFacts(chartB, birthB.timeKnown)}
 
 Write the detailed Milan, by name, as a senior consultant. Sections (2–4 short paragraphs each; "kootas" covers all 8 kootas one by one, 2–3 sentences each):
 ${MILAN_SECTIONS.map((s) => `- "${s.id}": ${s.title}`).join("\n")}
-If a birth time is unknown, don't discuss that person's houses.
+If a birth time is unknown, don't discuss that person's houses. WRITE ALL TEXT IN ${languageName(language)}${language === "en" ? "" : " (natural, native wording in its own script; keep Jyotish terms like Lagna, dasha, rashi)"}.
 JSON: {"headline":"…","sections":[{"id":"overview","text":"…"}, …]}`,
         schema: ReportSchema,
         maxTokens: 16000,

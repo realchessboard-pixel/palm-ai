@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { Logo } from "@/components/ui/logo";
 import { ButtonLink } from "@/components/ui/button";
+import type { Language } from "@/lib/i18n/languages";
+import { t } from "@/lib/i18n/ui";
+import { LanguageMenu } from "./language-picker";
 import { MobileMenu } from "./mobile-menu";
 
 export interface HeaderUser {
@@ -8,23 +11,26 @@ export interface HeaderUser {
   isAdmin: boolean;
 }
 
-export function SiteHeader({ user }: { user: HeaderUser | null }) {
+export function SiteHeader({ user, lang }: { user: HeaderUser | null; lang: Language }) {
   const links = [
-    { href: "/horoscope", label: "Rashifal" },
-    { href: "/kundli", label: "Kundli" },
-    { href: "/kundli-milan", label: "Milan" },
-    { href: "/panchang", label: "Panchang" },
-    { href: "/readers", label: "Ask a reader" },
-    { href: "/pricing", label: "Pricing" },
-    { href: "/how-readings-work", label: "About" },
-    ...(user ? [{ href: "/readings", label: "Your readings" }] : []),
+    { href: "/horoscope", label: t(lang, "nav.rashifal") },
+    { href: "/kundli", label: t(lang, "nav.kundli") },
+    { href: "/kundli-milan", label: t(lang, "nav.milan") },
+    { href: "/panchang", label: t(lang, "nav.panchang") },
+    { href: "/readers", label: t(lang, "nav.ask") },
+    { href: "/pricing", label: t(lang, "nav.pricing") },
+    { href: "/how-readings-work", label: t(lang, "nav.about") },
+    ...(user ? [{ href: "/readings", label: t(lang, "nav.readings") }] : []),
     ...(user?.isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
   ];
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/5 bg-night-950/70 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Logo />
+        <div className="flex items-center gap-3">
+          <Logo />
+          <LanguageMenu current={lang} label={t(lang, "nav.language")} />
+        </div>
         <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
           {links
             .filter((l) => l.href !== "/panchang" && l.href !== "/how-readings-work")
@@ -42,24 +48,26 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
               href="/account"
               className="rounded-full px-4 py-2 text-sm text-mist transition-colors hover:text-parchment"
             >
-              Account
+              {t(lang, "nav.account")}
             </Link>
           ) : (
             <Link
               href="/login"
               className="rounded-full px-4 py-2 text-sm text-mist transition-colors hover:text-parchment"
             >
-              Sign in
+              {t(lang, "nav.signin")}
             </Link>
           )}
           <ButtonLink href="/read" size="sm" className="ml-2">
-            Read My Palm
+            {t(lang, "nav.readPalm")}
           </ButtonLink>
         </nav>
         <MobileMenu
           links={[
             ...links,
-            user ? { href: "/account", label: "Account" } : { href: "/login", label: "Sign in" },
+            user
+              ? { href: "/account", label: t(lang, "nav.account") }
+              : { href: "/login", label: t(lang, "nav.signin") },
           ]}
         />
       </div>

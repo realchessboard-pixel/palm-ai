@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { ensureGuestKey, getActorFromRequest } from "@/lib/auth/actor";
+import { languageFromRequest } from "@/lib/i18n/server";
 import { withErrorHandling } from "@/lib/http/errors";
 import { parseJsonBody } from "@/lib/http/request";
 import { LIFE_AREA_IDS } from "@/lib/kundli/areas";
@@ -22,7 +23,10 @@ export const POST = withErrorHandling("kundli.create", async (request: NextReque
   );
   const body = await parseJsonBody(request, Body);
   const guest = actor.user ? null : ensureGuestKey(request, actor);
-  const result = await createKundli({ ...body, guestKeyHash: guest?.guestKeyHash ?? null }, actor);
+  const result = await createKundli(
+    { ...body, guestKeyHash: guest?.guestKeyHash ?? null, language: languageFromRequest(request) },
+    actor,
+  );
   const response = NextResponse.json(result, { status: 201 });
   return guest ? guest.apply(response) : response;
 });

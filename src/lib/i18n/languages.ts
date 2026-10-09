@@ -7,6 +7,15 @@
 export const LANGUAGES = [
   { code: "en", label: "English", english: "English" },
   { code: "hi", label: "हिन्दी", english: "Hindi" },
+  { code: "bn", label: "বাংলা", english: "Bengali" },
+  { code: "mr", label: "मराठी", english: "Marathi" },
+  { code: "te", label: "తెలుగు", english: "Telugu" },
+  { code: "ta", label: "தமிழ்", english: "Tamil" },
+  { code: "gu", label: "ગુજરાતી", english: "Gujarati" },
+  { code: "kn", label: "ಕನ್ನಡ", english: "Kannada" },
+  { code: "ml", label: "മലയാളം", english: "Malayalam" },
+  { code: "pa", label: "ਪੰਜਾਬੀ", english: "Punjabi" },
+  { code: "or", label: "ଓଡ଼ିଆ", english: "Odia" },
   { code: "de", label: "Deutsch", english: "German" },
   { code: "es", label: "Español", english: "Spanish" },
   { code: "fr", label: "Français", english: "French" },
@@ -32,3 +41,6 @@ export function parseLanguage(value: unknown): Language {
 export function languageName(code: Language): string {
   return LANGUAGES.find((l) => l.code === code)!.english;
 }
+
+/** Cookie that remembers the visitor's language (set by the language picker). */
+export const LANGUAGE_COOKIE = "av_lang";

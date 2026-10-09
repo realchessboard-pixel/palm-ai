@@ -14,7 +14,7 @@ import { adMode } from "@/lib/monetization/ads";
 import { cancelPendingCheckout, confirmStripeReturn } from "@/lib/payments/service";
 import { getReadingView } from "@/lib/readings/service";
 import type { ReadingView } from "@/lib/readings/view";
-import { parseLanguage } from "@/lib/i18n/languages";
+import { getLanguage } from "@/lib/i18n/server";
 import { IdSchema } from "@/lib/schemas/api";
 
 export const metadata: Metadata = {
@@ -32,7 +32,7 @@ export default async function ReadingPage({
 }) {
   const { id } = await params;
   const { checkout, session_id: sessionId, lang } = await searchParams;
-  const language = parseLanguage(lang);
+  const language = await getLanguage(lang);
   if (!IdSchema.safeParse(id).success) notFound();
   const actor = await getActor();
 

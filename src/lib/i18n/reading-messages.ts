@@ -1,6 +1,9 @@
 import { PARVATS, REKHAS } from "@/lib/palmistry/tradition";
 import type { LineName, MountName } from "@/lib/schemas/palm-analysis";
+import generated from "./generated.json";
 import type { Language } from "./languages";
+
+export { EN as READING_MESSAGES_EN };
 
 /**
  * Fixed labels around a reading (headings, notes). The reading text itself is
@@ -79,7 +82,7 @@ const EN: ReadingMessages = {
   },
 };
 
-const MESSAGES: Record<Language, ReadingMessages> = {
+const MESSAGES: Partial<Record<Language, ReadingMessages>> = {
   en: EN,
   hi: {
     yourPalmReading: "आपकी हस्तरेखा",
@@ -473,18 +476,20 @@ const MESSAGES: Record<Language, ReadingMessages> = {
   },
 };
 
+const GENERATED = (generated as { reading?: Record<string, ReadingMessages> }).reading ?? {};
+
 export function readingMessages(language: Language): ReadingMessages {
-  return MESSAGES[language];
+  return MESSAGES[language] ?? GENERATED[language] ?? EN;
 }
 
 /** Heading for a line: "Heart Line · Hridaya Rekha", or just "हृदय रेखा" in Hindi. */
 export function lineTitle(language: Language, line: LineName): string {
-  const local = MESSAGES[language].lines[line];
+  const local = readingMessages(language).lines[line];
   return language === "hi" ? local : `${local} · ${REKHAS[line].name}`;
 }
 
 /** Heading for a mount: "Guru Parvat · Mount of Jupiter", or "गुरु पर्वत" in Hindi. */
 export function mountTitle(language: Language, mount: MountName): string {
-  const local = MESSAGES[language].mounts[mount];
+  const local = readingMessages(language).mounts[mount];
   return language === "hi" ? local : `${PARVATS[mount].name} · ${local}`;
 }

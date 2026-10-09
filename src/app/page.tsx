@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { TrackOnMount } from "@/components/analytics/track-on-mount";
 import { Faq, FAQ_ITEMS } from "@/components/landing/faq";
 import { HomeFunnel } from "@/components/landing/home-funnel";
+import { getLanguage } from "@/lib/i18n/server";
 import { PrivacySection } from "@/components/landing/privacy-section";
 import { ButtonLink } from "@/components/ui/button";
 import { Disclaimer } from "@/components/ui/disclaimer";
@@ -38,6 +39,7 @@ function structuredData() {
 
 export default async function LandingPage() {
   const nonce = (await headers()).get("x-nonce") ?? undefined;
+  const lang = await getLanguage();
   // JSON-LD built only from our own static content; "<" is escaped so the
   // payload can never close the script element.
   const jsonLd = JSON.stringify(structuredData()).replace(/</g, "\\u003c");
@@ -50,7 +52,7 @@ export default async function LandingPage() {
         dangerouslySetInnerHTML={{ __html: jsonLd }}
       />
       <TrackOnMount event="landing_page_view" />
-      <HomeFunnel />
+      <HomeFunnel lang={lang} />
       <PrivacySection />
       <Faq />
       <section aria-labelledby="cta-title" className="px-4 pt-8 pb-24 sm:px-6">

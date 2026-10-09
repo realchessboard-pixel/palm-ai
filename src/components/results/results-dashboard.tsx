@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { DeleteReadingButton } from "@/components/account/delete-reading-button";
 import { AdSlot, type AdMode } from "@/components/ads/ad-slot";
+import { DownloadButton } from "@/components/ui/download-button";
 import { ButtonLink } from "@/components/ui/button";
 import { Disclaimer } from "@/components/ui/disclaimer";
 import { Alert, Card } from "@/components/ui/misc";
@@ -240,6 +241,9 @@ export function ResultsDashboard({
         </div>
       ) : (
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          {reading.premium && !interpretationPending && !reading.detailedPending ? (
+            <DownloadButton label={lang === "en" ? "Save as PDF" : "PDF ⬇"} />
+          ) : null}
           {reading.premium && !interpretationPending && !reading.detailedPending ? (
             <ButtonLink
               href={`/api/readings/${reading.id}/report`}

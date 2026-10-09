@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getActorFromRequest } from "@/lib/auth/actor";
 import { generateCompatibility } from "@/lib/compatibility/service";
+import { languageFromRequest } from "@/lib/i18n/server";
 import { withErrorHandling } from "@/lib/http/errors";
 import { parseParams } from "@/lib/http/request";
 import { IdSchema } from "@/lib/schemas/api";
@@ -22,6 +23,6 @@ export const POST = withErrorHandling<Context>(
       actor.user ? `user:${actor.user.id}` : `ip:${clientIp(request)}`,
     );
     const { id } = await parseParams(params, Params);
-    return NextResponse.json(await generateCompatibility(id, actor));
+    return NextResponse.json(await generateCompatibility(id, actor, languageFromRequest(request)));
   },
 );

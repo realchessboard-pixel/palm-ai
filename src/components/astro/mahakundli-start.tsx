@@ -9,7 +9,20 @@ import { LIFE_AREAS, type LifeAreaId } from "@/lib/kundli/areas";
 import { BirthFields, emptyBirth, parseBirth } from "./birth-form";
 
 /** Step 1 of the Mahakundli: pick the area to answer free, enter 4 birth details. */
-export function MahakundliStart({ initialArea }: { initialArea: LifeAreaId }) {
+export function MahakundliStart({
+  initialArea,
+  labels,
+}: {
+  initialArea: LifeAreaId;
+  labels: {
+    pick: string;
+    details: string;
+    submit: string;
+    busy: string;
+    note: string;
+    areas: Record<string, string>;
+  };
+}) {
   const router = useRouter();
   const [area, setArea] = useState<LifeAreaId>(initialArea);
   const [values, setValues] = useState(emptyBirth);
@@ -55,7 +68,7 @@ export function MahakundliStart({ initialArea }: { initialArea: LifeAreaId }) {
       }}
     >
       <fieldset>
-        <legend className="mb-3 text-lg font-semibold">1. Which answer would you like free?</legend>
+        <legend className="mb-3 text-lg font-semibold">{labels.pick}</legend>
         <div className="flex flex-wrap gap-2">
           {LIFE_AREAS.map((a) => (
             <button
@@ -65,13 +78,13 @@ export function MahakundliStart({ initialArea }: { initialArea: LifeAreaId }) {
               onClick={() => setArea(a.id)}
               className={`chip px-3 ${area === a.id ? "border-[var(--color-gold-400)] bg-[rgb(184_71_31/0.08)] text-gold-300" : ""}`}
             >
-              <span aria-hidden="true">{a.icon}</span> {a.title}
+              <span aria-hidden="true">{a.icon}</span> {labels.areas[a.id] ?? a.title}
             </button>
           ))}
         </div>
       </fieldset>
       <div>
-        <p className="mb-3 text-lg font-semibold">2. Your birth details</p>
+        <p className="mb-3 text-lg font-semibold">{labels.details}</p>
         <BirthFields
           values={values}
           onChange={setValues}
@@ -81,11 +94,9 @@ export function MahakundliStart({ initialArea }: { initialArea: LifeAreaId }) {
       </div>
       {error ? <Alert tone="error">{error}</Alert> : null}
       <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={busy}>
-        {busy ? "Reading your chart…" : "Get my first answer free"}
+        {busy ? labels.busy : labels.submit}
       </Button>
-      <p className="text-xs text-mist">
-        A reliable birth time and place give your Lagna, 12 houses and personal dasha dates.
-      </p>
+      <p className="text-xs text-mist">{labels.note}</p>
     </form>
   );
 }

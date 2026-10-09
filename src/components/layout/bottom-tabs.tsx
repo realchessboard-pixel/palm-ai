@@ -4,23 +4,39 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  { href: "/", label: "Home", d: "M4 13l8-7 8 7M6 11v9h12v-9" },
+  { key: "home" as const, href: "/", label: "Home", d: "M4 13l8-7 8 7M6 11v9h12v-9" },
   {
+    key: "rashifal" as const,
     href: "/horoscope",
     label: "Rashifal",
     d: "M12 4v2M12 18v2M4 12h2M18 12h2M6.5 6.5l1.4 1.4M16.1 16.1l1.4 1.4M6.5 17.5l1.4-1.4M16.1 7.9l1.4-1.4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z",
   },
   {
+    key: "palm" as const,
     href: "/read",
     label: "Palm",
     d: "M9 21v-9l-2-3a1.5 1.5 0 0 1 2.5-1.6L11 9V4.5a1.5 1.5 0 0 1 3 0V10V3.5a1.5 1.5 0 0 1 3 0V10V5a1.5 1.5 0 0 1 3 0v8c0 5-2 8-5 8z",
   },
-  { href: "/kundli", label: "Kundli", d: "M4 4h16v16H4zM4 4l16 16M20 4L4 20M12 4l8 8-8 8-8-8z" },
-  { href: "/readers", label: "Ask", d: "M4 5h16v11H10l-4 3v-3H4zM8 9h8M8 12h5" },
+  {
+    key: "kundli" as const,
+    href: "/kundli",
+    label: "Kundli",
+    d: "M4 4h16v16H4zM4 4l16 16M20 4L4 20M12 4l8 8-8 8-8-8z",
+  },
+  {
+    key: "ask" as const,
+    href: "/readers",
+    label: "Ask",
+    d: "M4 5h16v11H10l-4 3v-3H4zM8 9h8M8 12h5",
+  },
 ];
 
 /** App-style tab bar on phones, so every section is one tap away. */
-export function BottomTabs() {
+export function BottomTabs({
+  labels,
+}: {
+  labels: Record<"home" | "rashifal" | "palm" | "kundli" | "ask", string>;
+}) {
   const path = usePathname();
   return (
     <nav
@@ -49,7 +65,7 @@ export function BottomTabs() {
                 >
                   <path d={t.d} />
                 </svg>
-                {t.label}
+                {labels[t.key]}
               </Link>
             </li>
           );

@@ -3,6 +3,9 @@ import { Fraunces, Inter } from "next/font/google";
 import { headers } from "next/headers";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { BottomTabs } from "@/components/layout/bottom-tabs";
+import { FirstVisitLanguagePicker } from "@/components/layout/language-picker";
+import { getLanguage, hasChosenLanguage } from "@/lib/i18n/server";
+import { t } from "@/lib/i18n/ui";
 import { SiteHeader } from "@/components/layout/site-header";
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
 import { ReferralCapture } from "@/components/share/referral-capture";
@@ -68,8 +71,11 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     return null;
   });
 
+  const lang = await getLanguage();
+  const chosen = await hasChosenLanguage();
+
   return (
-    <html lang="en" className={`${inter.variable} ${fraunces.variable}`}>
+    <html lang={lang} className={`${inter.variable} ${fraunces.variable}`}>
       <body className="sky-backdrop min-h-dvh pb-16 antialiased md:pb-0">
         <a
           href="#main"
@@ -77,12 +83,26 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         >
           Skip to content
         </a>
-        <SiteHeader user={user ? { email: user.email, isAdmin: user.isAdmin } : null} />
+        <SiteHeader user={user ? { email: user.email, isAdmin: user.isAdmin } : null} lang={lang} />
         <main id="main" className="relative">
           {children}
         </main>
         <SiteFooter />
-        <BottomTabs />
+        <BottomTabs
+          labels={{
+            home: t(lang, "tab.home"),
+            rashifal: t(lang, "tab.rashifal"),
+            palm: t(lang, "tab.palm"),
+            kundli: t(lang, "tab.kundli"),
+            ask: t(lang, "tab.ask"),
+          }}
+        />
+        {chosen ? null : (
+          <FirstVisitLanguagePicker
+            title={t(lang, "picker.title")}
+            subtitle={t(lang, "picker.subtitle")}
+          />
+        )}
         <ServiceWorkerRegistration />
         <ReferralCapture />
       </body>

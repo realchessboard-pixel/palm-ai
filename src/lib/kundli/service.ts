@@ -11,6 +11,7 @@ import { db } from "@/lib/db";
 import { AppError, isAppError } from "@/lib/http/errors";
 import { runOnce } from "@/lib/pipeline/idempotency";
 import { sanitizeText } from "@/lib/pipeline/safety";
+import { DEFAULT_LANGUAGE, languageName, type Language } from "@/lib/i18n/languages";
 import { getOwnedKundli, hasKundliAccess } from "./access";
 import { LIFE_AREAS, LIFE_AREA_IDS, lifeArea, type LifeAreaId } from "./areas";
 
@@ -51,11 +52,23 @@ You may name the dasha and transit PERIODS given (with their dates) as times tra
 Return valid JSON only.`;
 
 export async function createKundli(
-  input: { name: string; birth: StoredBirth; area: LifeAreaId; guestKeyHash: string | null },
+  input: {
+    name: string;
+    birth: StoredBirth;
+    area: LifeAreaId;
+    guestKeyHash: string | null;
+    language?: Language;
+  },
   actor: Actor,
 ): Promise<{ kundliId: string }> {
   const chart = computeChart(input.birth);
-  const teaser = await writeTeaser(input.name, input.birth, chart, input.area);
+  const teaser = await writeTeaser(
+    input.name,
+    input.birth,
+    chart,
+    input.area,
+    input.language ?? DEFAULT_LANGUAGE,
+  );
   const kundli = await db.kundliProfile.create({
     data: {
       userId: actor.user?.id ?? null,
@@ -129,6 +142,7 @@ async function writeTeaser(
   birth: StoredBirth,
   chart: Chart,
   area: LifeAreaId,
+  language: Language,
 ): Promise<KundliTeaser> {
   const a = lifeArea(area)!;
   const provider = getAiProvider();
@@ -146,7 +160,7 @@ async function writeTeaser(
 CHART FACTS (sidereal, Lahiri):
 ${chartFacts(chart, birth.timeKnown)}
 
-Answer ONE life area only: "${a.title}" — the question "${a.question}". Look at ${a.houses}. 110–160 words, two short paragraphs, specific to this chart, ending with one practical reflection.
+Answer ONE life area only: "${a.title}" — the question "${a.question}". Look at ${a.houses}. 110–160 words, two short paragraphs, specific to this chart, ending with one practical reflection.\n\nWRITE ALL TEXT IN ${languageName(language)}${language === "en" ? "" : " (natural, native wording in its own script; keep Jyotish terms like Lagna, dasha, rashi)"}.
 JSON: {"text":"…"}`,
       schema: z.object({ text: z.string().min(1).max(1500) }),
       maxTokens: 900,
@@ -177,11 +191,15 @@ function ruleBasedReport(chart: Chart): KundliReport {
 }
 
 /** Write the paid Kundli reading once (claim-guarded; 409 while in progress). */
-export function generateKundliReport(id: string, actor: Actor) {
-  return runOnce("kundli-report", id, () => run(id, actor));
+export function generateKundliReport(
+  id: string,
+  actor: Actor,
+  language: Language = DEFAULT_LANGUAGE,
+) {
+  return runOnce("kundli-report", id, () => run(id, actor, language));
 }
 
-async function run(id: string, actor: Actor): Promise<{ status: "COMPLETE" }> {
+async function run(id: string, actor: Actor, language: Language): Promise<{ status: "COMPLETE" }> {
   const kundli = await getOwnedKundli(id, actor);
   if (kundli.reportStatus === "COMPLETE" && kundli.report) return { status: "COMPLETE" };
   if (!(await hasKundliAccess(kundli))) {
@@ -225,7 +243,7 @@ CHART FACTS (sidereal, Lahiri):
 ${chartFacts(chart, birth.timeKnown)}
 
 You are writing part ${i + 1} of 2 of a paid Mahakundli. Answer each of these life areas separately and in depth, 120–180 words each (one or two short paragraphs), like a senior Jyotish consultant: name the exact houses, their lords and where they sit, the grahas involved, and where relevant the dasha or transit periods above with their dates as periods traditionally associated with that theme. End each area with one practical guidance line.${birth.timeKnown ? "" : " The birth time is unknown: read from the Moon, not the Lagna or houses, and say so once."}
-${areas.map((a) => `- "${a.id}": ${a.title} — ${a.question} (${a.houses})`).join("\n")}
+${areas.map((a) => `- "${a.id}": ${a.title} — ${a.question} (${a.houses})`).join("\n")}\n\nWRITE ALL TEXT IN ${languageName(language)}${language === "en" ? "" : " (natural, native wording in its own script; keep Jyotish terms like Lagna, dasha, rashi)"}.
 JSON: {"headline":"…","areas":[{"id":"${areas[0]!.id}","text":"…"}, …]}`,
             schema: PartSchema,
             maxTokens: 16000,

@@ -18,6 +18,7 @@ import {
   parseStoredAnalysis,
   parseStoredInterpretation,
 } from "@/lib/readings/service";
+import { DEFAULT_LANGUAGE, languageName, type Language } from "@/lib/i18n/languages";
 import { getOwnedReaderChat } from "./access";
 import { getReader, type Reader } from "./catalog";
 import { readerContext, readerPrompt, readerSystemPrompt } from "./prompt";
@@ -126,6 +127,7 @@ export async function askReader(
   chatId: string,
   question: string,
   actor: Actor,
+  language: Language = DEFAULT_LANGUAGE,
 ): Promise<{ answer: string; questionsLeft: number }> {
   const chat = await getOwnedReaderChat(chatId, actor);
   const reader = getReader(chat.readerId);
@@ -158,7 +160,7 @@ export async function askReader(
     data: { chatId: chat.id, role: "USER", text },
   });
   try {
-    const answer = await writeAnswer(chat, reader, text);
+    const answer = await writeAnswer(chat, reader, text, language);
     await db.$transaction([
       db.readerMessage.create({ data: { chatId: chat.id, role: "READER", text: answer } }),
       db.readerChat.update({ where: { id: chat.id }, data: { updatedAt: new Date() } }),
@@ -188,6 +190,7 @@ async function writeAnswer(
   },
   reader: Reader,
   question: string,
+  language: Language,
 ): Promise<string> {
   // Paid conversations get the deeper treatment: stronger model, deeper
   // thinking, longer chart-specific answers. Free questions stay short and cheap.
@@ -240,7 +243,7 @@ async function writeAnswer(
           : ""
       }`,
       history: earlier.map((m) => ({ role: m.role, text: m.text })),
-      question,
+      question: `${question}\n\n(The visitor chose ${languageName(language)} on the site: reply in ${languageName(language)} unless they write in another language.)`,
     }),
     schema: z.object({ answer: z.string().min(1).max(3000) }),
     maxTokens: paid ? 12000 : 1500,

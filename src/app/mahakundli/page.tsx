@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { MahakundliStart } from "@/components/astro/mahakundli-start";
+import { getLanguage } from "@/lib/i18n/server";
+import { translator } from "@/lib/i18n/ui";
 import { LIFE_AREAS, lifeArea, type LifeAreaId } from "@/lib/kundli/areas";
 import { PRODUCTS, priceWithGst } from "@/lib/monetization/price";
 
@@ -18,18 +20,30 @@ export default async function MahakundliPage({
   const { area } = await searchParams;
   const initial = (lifeArea(area ?? "")?.id ?? "marriage") as LifeAreaId;
   const price = priceWithGst(PRODUCTS.KUNDLI_REPORT);
+  const tr = translator(await getLanguage());
   return (
     <div className="mx-auto max-w-4xl space-y-8 px-4 pt-10 pb-20 sm:px-6 sm:pt-14">
       <header className="space-y-3">
-        <p className="eyebrow">Mahakundli · {LIFE_AREAS.length} life areas</p>
-        <h1 className="text-4xl sm:text-5xl">One report for your whole kundli</h1>
+        <p className="eyebrow">
+          {tr("maha.eyebrow")} · {LIFE_AREAS.length}
+        </p>
+        <h1 className="text-4xl sm:text-5xl">{tr("maha.title")}</h1>
         <p className="text-lg text-mist">
-          Each life area checked separately, with your running dasha, life-area timing and the next
-          3 years of major transits. Your first answer is free; the full Mahakundli is{" "}
-          <strong className="text-parchment">{price.headline}</strong> ({price.total}).
+          {tr("maha.intro")} <strong className="text-parchment">{price.headline}</strong> (
+          {price.total}).
         </p>
       </header>
-      <MahakundliStart initialArea={initial} />
+      <MahakundliStart
+        initialArea={initial}
+        labels={{
+          pick: tr("maha.pickArea"),
+          details: tr("maha.details"),
+          submit: tr("maha.submit"),
+          busy: tr("maha.reading"),
+          note: tr("home.mahaNote"),
+          areas: Object.fromEntries(LIFE_AREAS.map((a) => [a.id, tr(`area.${a.id}.title`)])),
+        }}
+      />
     </div>
   );
 }

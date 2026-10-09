@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DownloadButton } from "@/components/ui/download-button";
+import { getLanguage } from "@/lib/i18n/server";
+import { translator } from "@/lib/i18n/ui";
 import { BalanceUnlock } from "@/components/payments/balance-unlock";
 import { BuyButton } from "@/components/payments/buy-button";
 import { PendingWriter } from "@/components/results/detailed-pending";
@@ -29,6 +32,7 @@ export default async function MilanResultPage({ params }: { params: Promise<{ id
     throw error;
   }
   const product = PRODUCTS.MILAN_REPORT;
+  const tr = translator(await getLanguage());
   const price = priceWithGst(product);
   const balances = actor.user && !view.unlocked ? await getAccountBalances(actor.user.id) : null;
 
@@ -78,7 +82,10 @@ export default async function MilanResultPage({ params }: { params: Promise<{ id
 
       {view.report ? (
         <article className="space-y-8">
-          <h2 className="text-3xl text-gold-200">{view.report.headline}</h2>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <h2 className="text-3xl text-gold-200">{view.report.headline}</h2>
+            <DownloadButton label={tr("dl.download")} />
+          </div>
           {MILAN_SECTIONS.map((s) => {
             const x = view.report!.sections.find((r) => r.id === s.id);
             return x ? (
@@ -92,14 +99,14 @@ export default async function MilanResultPage({ params }: { params: Promise<{ id
       ) : view.unlocked ? (
         <PendingWriter
           endpoint={`/api/milan/${view.id}/report`}
-          title="Writing your detailed Milan…"
+          title={tr("milan.writing")}
           body="Thank you — it's unlocked. Both charts are being read side by side. This takes about a minute."
           retryMessage="Your detailed Milan is unlocked and saved — it just needs another moment. Tap “Try again”."
         />
       ) : (
         <section className="space-y-5" aria-labelledby="locked-title">
           <h2 id="locked-title" className="text-2xl">
-            Inside your detailed Kundli Milan
+            {tr("milan.inside")}
           </h2>
           <ul className="grid gap-2 sm:grid-cols-2">
             {[
@@ -117,11 +124,13 @@ export default async function MilanResultPage({ params }: { params: Promise<{ id
               <>
                 <p className="flex flex-wrap items-baseline gap-2">
                   <span className="text-3xl">{price.headline}</span>
-                  <span className="text-sm text-mist">{price.total} · one-time</span>
+                  <span className="text-sm text-mist">
+                    {price.total} · {tr("pay.oneTime")}
+                  </span>
                 </p>
                 <BuyButton
                   order={{ product: "MILAN_REPORT", milanId: view.id }}
-                  label={`Open my detailed Milan — ${formatInr(product.priceInr)}`}
+                  label={`${tr("milan.open")} — ${formatInr(product.priceInr)}`}
                 />
                 {balances ? (
                   <BalanceUnlock

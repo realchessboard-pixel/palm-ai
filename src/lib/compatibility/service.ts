@@ -15,6 +15,7 @@ import { availableFeatures } from "@/lib/palmistry/features";
 import { matchRules } from "@/lib/palmistry/interpretation";
 import { stageMetrics } from "@/lib/perf/timing";
 import { runOnce } from "@/lib/pipeline/idempotency";
+import { DEFAULT_LANGUAGE, languageName, type Language } from "@/lib/i18n/languages";
 import { getOwnedReading, parseStoredAnalysis } from "@/lib/readings/service";
 import {
   COMPATIBILITY_PROMPT_VERSION,
@@ -110,13 +111,15 @@ export async function getCompatibilityView(id: string, actor: Actor): Promise<Co
 export function generateCompatibility(
   id: string,
   actor: Actor,
+  language: Language = DEFAULT_LANGUAGE,
 ): Promise<{ compatibilityId: string; status: "COMPLETE" }> {
-  return runOnce("compatibility", id, () => runGeneration(id, actor));
+  return runOnce("compatibility", id, () => runGeneration(id, actor, language));
 }
 
 async function runGeneration(
   id: string,
   actor: Actor,
+  language: Language,
 ): Promise<{ compatibilityId: string; status: "COMPLETE" }> {
   const compatibility = await getOwnedCompatibility(id, actor);
   if (compatibility.status === "COMPLETE" && compatibility.data) {
@@ -172,10 +175,10 @@ async function runGeneration(
         task: "palm_compatibility",
         model: premiumModel(ai),
         system: COMPATIBILITY_SYSTEM_PROMPT,
-        prompt: buildCompatibilityPrompt({
+        prompt: `${buildCompatibilityPrompt({
           you: { analysis: you, available: availableFeatures(you), rules: matchRules(you) },
           partner: { analysis: them, available: availableFeatures(them), rules: matchRules(them) },
-        }),
+        })}\n\nWRITE ALL TEXT IN ${languageName(language)}.`,
         schema: GeneratedCompatibilitySchema,
         maxTokens: 12000,
         timeoutMs: env.AI_TIMEOUT_MS,

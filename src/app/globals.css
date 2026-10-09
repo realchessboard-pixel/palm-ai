@@ -357,3 +357,27 @@
     stroke-dashoffset: 0;
   }
 }
+
+/* Saving a paid result as PDF: only the result itself is printed. */
+@media print {
+  header,
+  footer,
+  nav,
+  .no-print,
+  [role="dialog"] {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+    padding: 0 !important;
+  }
+  .paper-card,
+  .glass,
+  .card {
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+  a {
+    text-decoration: none !important;
+  }
+}

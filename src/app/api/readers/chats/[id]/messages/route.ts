@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getActorFromRequest } from "@/lib/auth/actor";
+import { languageFromRequest } from "@/lib/i18n/server";
 import { withErrorHandling } from "@/lib/http/errors";
 import { parseJsonBody, parseParams } from "@/lib/http/request";
 import { MAX_QUESTION_LENGTH, askReader } from "@/lib/readers/service";
@@ -24,6 +25,6 @@ export const POST = withErrorHandling<Context>(
     );
     const { id } = await parseParams(params, Params);
     const { text } = await parseJsonBody(request, Body);
-    return NextResponse.json(await askReader(id, text, actor));
+    return NextResponse.json(await askReader(id, text, actor, languageFromRequest(request)));
   },
 );

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CompatibilityReadingView } from "@/components/compatibility/compatibility-view";
+import { DownloadButton } from "@/components/ui/download-button";
 import { BalanceUnlock } from "@/components/payments/balance-unlock";
 import { BuyButton } from "@/components/payments/buy-button";
 import { PendingWriter } from "@/components/results/detailed-pending";
@@ -65,6 +66,9 @@ export default async function CompatibilityPage({
 
       {view.reading ? (
         <>
+          <div className="flex justify-end">
+            <DownloadButton label="Download / Save as PDF" />
+          </div>
           <CompatibilityReadingView reading={view.reading} />
           <section className="glass space-y-3 rounded-3xl p-6">
             <h2 className="text-xl text-gold-200">Know another couple who&apos;d enjoy this?</h2>
