@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MahakundliCta } from "@/components/astro/mahakundli-cta";
 import { RashifalCta } from "@/components/astro/rashifal-cta";
 import { SignGrid } from "@/components/astro/sign-grid";
+import { SeoLanguageLinks } from "@/components/astro/seo-language-links";
 import { todayIst } from "@/lib/horoscope/service";
 
 export const metadata: Metadata = {
@@ -27,6 +28,12 @@ export default function HoroscopeIndex() {
         </p>
       </header>
       <SignGrid />
+      <section aria-labelledby="by-language" className="space-y-3">
+        <h2 id="by-language" className="text-xl">
+          Rashifal in your language
+        </h2>
+        <SeoLanguageLinks path="" />
+      </section>
       <div className="mt-10">
         <RashifalCta lead="Beyond the daily rashifal" />
         <MahakundliCta lead="Beyond your Moon sign" />

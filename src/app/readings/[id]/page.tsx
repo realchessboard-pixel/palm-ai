@@ -10,7 +10,6 @@ import { extendedReadingPrice, paymentsEnabled } from "@/lib/payments/pricing";
 import { getEnv } from "@/lib/config/env";
 import { REFERRALS_PER_CREDIT, ensureReferralCode } from "@/lib/growth/referrals";
 import { getAccountBalances } from "@/lib/monetization/account";
-import { adMode } from "@/lib/monetization/ads";
 import { cancelPendingCheckout, confirmStripeReturn } from "@/lib/payments/service";
 import { getReadingView } from "@/lib/readings/service";
 import type { ReadingView } from "@/lib/readings/view";
@@ -81,7 +80,6 @@ export default async function ReadingPage({
         paymentsEnabled={paymentsEnabled()}
         signedIn={Boolean(actor.user)}
         interpretationPending={interpretationPending}
-        adMode={adMode()}
         balances={balances}
         shareUrl={referralCode ? `${appUrl}/?ref=${referralCode}` : `${appUrl}/`}
         referralNote={

@@ -63,6 +63,12 @@ export default async function AdminPage() {
         <Link href="/admin/beta" className="mt-2 inline-block text-sm text-gold-300 underline">
           Beta report (per-reading timings, hands, retries, cost) →
         </Link>
+        <Link
+          href="/admin/social"
+          className="mt-2 ml-4 inline-block text-sm text-gold-300 underline"
+        >
+          Today&apos;s social posts (Shorts / Reels captions) →
+        </Link>
       </div>
 
       <section aria-label="Key metrics" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

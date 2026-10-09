@@ -468,3 +468,15 @@ model MilanProfile {
   @@index([userId])
   @@index([guestKeyHash])
 }
+
+/// One watched rewarded ad = one extra free palm reading that day (max one per day).
+model AdReward {
+  id           String   @id @default(cuid())
+  userId       String?
+  guestKeyHash String?
+  purpose      String
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([guestKeyHash, createdAt])
+}

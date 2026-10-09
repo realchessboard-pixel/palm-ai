@@ -9,6 +9,7 @@ import { AppError, isAppError } from "@/lib/http/errors";
 import { processPalmImage } from "@/lib/image/process";
 import { QUALITY_MESSAGES } from "@/lib/image/quality";
 import { logger } from "@/lib/logger";
+import { AD_BONUS_READINGS, adBonusUsedToday, adMode } from "@/lib/monetization/ads";
 import { trackFunnelEvent } from "@/lib/monetization/funnel";
 import { PipelineTimer, stageMetrics, usageCounts } from "@/lib/perf/timing";
 import { availableFeatures } from "@/lib/palmistry/features";
@@ -144,10 +145,16 @@ async function enforceDailyPalmLimit(input: AnalyzeInput): Promise<void> {
       ...(input.userId ? { userId: input.userId } : { guestKeyHash: input.guestKeyHash }),
     },
   });
-  if (used >= FREE_PALM_READS_PER_DAY) {
+  const owner = { userId: input.userId, guestKeyHash: input.guestKeyHash };
+  const bonusUsed = await adBonusUsedToday(owner);
+  const allowed = FREE_PALM_READS_PER_DAY + (bonusUsed ? AD_BONUS_READINGS : 0);
+  if (used >= allowed) {
+    const adAvailable = !bonusUsed && adMode() !== "off";
     throw new AppError("RATE_LIMITED", {
-      message: `You've used today's ${FREE_PALM_READS_PER_DAY} free palm readings. Come back tomorrow, or open your detailed reading from your earlier palm.`,
-      details: { reason: "daily_free_palm_limit" },
+      message: adAvailable
+        ? `You've used today's ${FREE_PALM_READS_PER_DAY} free palm readings. Watch a short ad for 1 more today, or come back tomorrow.`
+        : `You've used today's free palm readings. Come back tomorrow, or open your detailed reading from your earlier palm.`,
+      details: { reason: "daily_free_palm_limit", adAvailable },
     });
   }
 }

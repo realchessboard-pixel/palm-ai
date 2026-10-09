@@ -6,6 +6,8 @@ import { getLanguage } from "@/lib/i18n/server";
 import { translator } from "@/lib/i18n/ui";
 import { BalanceUnlock } from "@/components/payments/balance-unlock";
 import { BuyButton } from "@/components/payments/buy-button";
+import { WhatsAppShare } from "@/components/share/whatsapp-share";
+import { siteConfig } from "@/lib/config/site";
 import { PendingWriter } from "@/components/results/detailed-pending";
 import { Prose } from "@/components/results/section-card";
 import { getActor } from "@/lib/auth/actor";
@@ -47,6 +49,14 @@ export default async function MilanResultPage({ params }: { params: Promise<{ id
         <p className="mt-3 text-sm text-mist">
           {view.nameA}: {describeMoon(view.moonA)} · {view.nameB}: {describeMoon(view.moonB)}
         </p>
+        <WhatsAppShare
+          className="no-print mt-5"
+          context="milan"
+          // Only the score is shared — never names or birth details; the link opens the free tool.
+          text={`Our Kundli Milan: ${view.total} / 36 gunas ✨ Check your own match free:`}
+          url={`${siteConfig.url}/kundli-milan`}
+          label="Share score on WhatsApp"
+        />
       </section>
 
       {view.kootas ? (

@@ -1,5 +1,6 @@
 "use client";
 
+import { RewardedAd, type ClientAdMode } from "@/components/ads/rewarded-ad";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ type Step =
   | { kind: "checking" }
   | { kind: "review"; image: PreparedImage }
   | { kind: "processing"; phase: PipelinePhase }
-  | { kind: "failed"; message: string; canRetry: boolean };
+  | { kind: "failed"; message: string; canRetry: boolean; adOffer?: boolean };
 
 const AUTO_RETRIES = 2;
 const RETRY_DELAYS_MS = [1500, 4000];
@@ -67,7 +68,11 @@ const STEP_TITLES: Record<Step["kind"], string> = {
  * the partner's palm for a couple reading instead: analysis only, with the
  * partner's agreement confirmed, then on to the couple reading page.
  */
-export function ReadingFlow({ partnerFor }: { partnerFor?: string } = {}) {
+export function ReadingFlow({
+  partnerFor,
+  adMode = "off",
+  adUnit = null,
+}: { partnerFor?: string; adMode?: ClientAdMode; adUnit?: string | null } = {}) {
   const titles = partnerFor ? PARTNER_TITLES : STEP_TITLES;
   const router = useRouter();
   const [step, setStep] = useState<Step>({ kind: "source" });
@@ -172,7 +177,12 @@ export function ReadingFlow({ partnerFor }: { partnerFor?: string } = {}) {
         return;
       }
       if (error instanceof ApiClientError && error.details?.reason === "daily_free_palm_limit") {
-        setStep({ kind: "failed", message: error.message, canRetry: false });
+        setStep({
+          kind: "failed",
+          message: error.message,
+          canRetry: false,
+          adOffer: error.details?.adAvailable === true,
+        });
         return;
       }
       setStep({
@@ -268,6 +278,16 @@ export function ReadingFlow({ partnerFor }: { partnerFor?: string } = {}) {
       {step.kind === "failed" ? (
         <div className="space-y-4">
           <Alert tone="error">{step.message}</Alert>
+          {step.adOffer ? (
+            <RewardedAd
+              mode={adMode}
+              adUnit={adUnit}
+              onRewarded={() =>
+                submission.current &&
+                analyze(submission.current.image, submission.current.choices, true)
+              }
+            />
+          ) : null}
           <div className="grid gap-3 sm:grid-cols-2">
             {step.canRetry ? (
               <Button

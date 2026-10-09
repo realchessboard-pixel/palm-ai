@@ -13,6 +13,16 @@ const CSRF_EXEMPT = [/^\/api\/payments\/webhook\//, /^\/api\/cron\//];
 function contentSecurityPolicy(nonce: string): string {
   const dev = process.env.NODE_ENV === "development";
   const razorpay = process.env.PAYMENT_PROVIDER === "razorpay";
+  // Google Ad Manager rewarded ads (only when ADS_MODE=gam): GPT is loaded by our
+  // nonce'd code ('strict-dynamic'), then serves creatives from Google domains.
+  const ads = process.env.ADS_MODE === "gam";
+  const adHosts = [
+    "https://*.doubleclick.net",
+    "https://*.googlesyndication.com",
+    "https://*.google.com",
+    "https://*.gstatic.com",
+    "https://*.adtrafficquality.google",
+  ];
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
     // 'strict-dynamic' lets our nonce'd scripts load their own chunks (and the
@@ -25,15 +35,20 @@ function contentSecurityPolicy(nonce: string): string {
     ],
     // Inline style attributes are needed for dynamic widths/animation delays.
     "style-src": ["'self'", "'unsafe-inline'"],
-    "img-src": ["'self'", "blob:", "data:"],
+    "img-src": ["'self'", "blob:", "data:", ...(ads ? ["https:"] : [])],
     "font-src": ["'self'"],
     "connect-src": [
       "'self'",
       ...(razorpay ? ["https://api.razorpay.com", "https://lumberjack.razorpay.com"] : []),
+      ...(ads ? adHosts : []),
     ],
-    "frame-src": razorpay
-      ? ["https://api.razorpay.com", "https://checkout.razorpay.com"]
-      : ["'none'"],
+    "frame-src":
+      razorpay || ads
+        ? [
+            ...(razorpay ? ["https://api.razorpay.com", "https://checkout.razorpay.com"] : []),
+            ...(ads ? adHosts : []),
+          ]
+        : ["'none'"],
     "media-src": ["'self'", "blob:"],
     "worker-src": ["'self'"],
     "manifest-src": ["'self'"],

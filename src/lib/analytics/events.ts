@@ -34,6 +34,9 @@ export const ANALYTICS_EVENTS = [
   "wallet_payment",
   "referral_qualified",
   "compatibility_created",
+  // Optional rewarded ad for one extra free palm reading.
+  "rewarded_ad_started",
+  "rewarded_ad_completed",
 ] as const;
 
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];

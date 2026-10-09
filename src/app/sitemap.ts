@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { SIGN_SLUGS } from "@/lib/astro/constants";
 import { siteConfig } from "@/lib/config/site";
+import { SEO_LANGUAGES } from "@/lib/horoscope/seo";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
@@ -80,5 +81,25 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "daily" as const,
       priority: 0.7,
     })),
+    // Search pages: today's rashifal per language and sign, e.g. /rashifal/hi/aries.
+    ...SEO_LANGUAGES.flatMap((lang) => [
+      {
+        url: `${siteConfig.url}/rashifal/${lang}`,
+        lastModified: now,
+        changeFrequency: "daily" as const,
+        priority: 0.8,
+      },
+      ...SIGN_SLUGS.map((sign) => ({
+        url: `${siteConfig.url}/rashifal/${lang}/${sign}`,
+        lastModified: now,
+        changeFrequency: "daily" as const,
+        priority: 0.8,
+        alternates: {
+          languages: Object.fromEntries(
+            SEO_LANGUAGES.map((l) => [l, `${siteConfig.url}/rashifal/${l}/${sign}`]),
+          ),
+        },
+      })),
+    ]),
   ];
 }

@@ -3,7 +3,6 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AdSlot } from "@/components/ads/ad-slot";
 import { PremiumPanel } from "@/components/results/premium-panel";
 import { computeEconomics, type EconomicsAssumptions } from "@/lib/monetization/economics";
 import {
@@ -109,21 +108,6 @@ describe("unit economics", () => {
     const e = computeEconomics({ users: 0, basicReadings: 0, extendedPurchases: 0 }, base);
     expect(e.conversionRate).toBe(0);
     expect(e.per1000Users.revenueInr).toBe(0);
-  });
-});
-
-describe("ad slot", () => {
-  it("renders nothing when ads are off", () => {
-    const { container } = render(<AdSlot placement="free-reading-result" mode="off" />);
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it("shows a clearly-marked development placeholder, never an ad", () => {
-    render(<AdSlot placement="free-reading-result" mode="placeholder" />);
-    const slot = screen.getByRole("complementary", { name: "Advertisement placeholder" });
-    expect(slot).toHaveTextContent("Development placeholder");
-    expect(slot).toHaveAttribute("data-ad-placement", "free-reading-result");
-    expect(slot.querySelector("script, iframe, img")).toBeNull();
   });
 });
 

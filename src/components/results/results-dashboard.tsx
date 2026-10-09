@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { DeleteReadingButton } from "@/components/account/delete-reading-button";
-import { AdSlot, type AdMode } from "@/components/ads/ad-slot";
 import { DownloadButton } from "@/components/ui/download-button";
 import { ButtonLink } from "@/components/ui/button";
 import { Disclaimer } from "@/components/ui/disclaimer";
@@ -32,7 +31,6 @@ export interface ResultsDashboardProps {
   /** Analysis is done but the interpretation is still being written (shown progressively). */
   interpretationPending?: boolean;
   /** Ads for free readings: "off" (default) or a development placeholder. */
-  adMode?: AdMode;
   /** Signed-in visitors' reading credits and wallet balance. */
   balances?: { readingCredits: number; walletPaise: number } | null;
   /** Link for sharing AstroVidya (with the visitor's referral code when signed in). */
@@ -48,7 +46,6 @@ export function ResultsDashboard({
   signedIn,
   sample = false,
   interpretationPending = false,
-  adMode = "off",
   balances = null,
   shareUrl,
   referralNote = null,
@@ -215,8 +212,6 @@ export function ResultsDashboard({
 
       {reading.locked && !interpretationPending ? (
         <>
-          {/* Free results only, after the reading itself — never during analysis or loading. */}
-          {sample ? null : <AdSlot placement="free-reading-result" mode={adMode} />}
           <PremiumPanel
             readingId={reading.id}
             locked={reading.locked}

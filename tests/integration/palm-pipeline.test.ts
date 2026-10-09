@@ -129,6 +129,52 @@ describe.skipIf(!hasTestDatabase)("palm analysis pipeline", () => {
     expect((await postAnalyze(jar, await palmLikeImage())).status).toBe(201);
   });
 
+  it("a chosen rewarded ad gives exactly 1 extra free palm reading per day", async () => {
+    const { POST: reward } = await import("@/app/api/ads/reward/route");
+    const { resetEnvCache } = await import("@/lib/config/env");
+    const claim = (jar: CookieJar) =>
+      reward(makeRequest("/api/ads/reward", { json: {}, jar }), { params: Promise.resolve({}) });
+    const before = process.env.ADS_MODE;
+    try {
+      process.env.ADS_MODE = "off";
+      resetEnvCache();
+      const jar = new CookieJar();
+      await postAnalyze(jar, await palmLikeImage());
+      await postAnalyze(jar, await palmLikeImage());
+      const blockedOff = await postAnalyze(jar, await palmLikeImage());
+      expect(blockedOff.status).toBe(429);
+      expect(
+        (await json<{ error: { details: { adAvailable: boolean } } }>(blockedOff)).error.details
+          .adAvailable,
+      ).toBe(false);
+      expect((await claim(jar)).status).toBe(404);
+
+      process.env.ADS_MODE = "test";
+      resetEnvCache();
+      const third = await postAnalyze(jar, await palmLikeImage());
+      expect(
+        (await json<{ error: { details: { adAvailable: boolean } } }>(third)).error.details
+          .adAvailable,
+      ).toBe(true);
+      expect((await claim(new CookieJar())).status).toBe(401);
+      expect((await claim(jar)).status).toBe(200);
+      expect((await postAnalyze(jar, await palmLikeImage())).status).toBe(201);
+      // Only one ad bonus per day.
+      expect((await claim(jar)).status).toBe(409);
+      const fourth = await postAnalyze(jar, await palmLikeImage());
+      expect(fourth.status).toBe(429);
+      expect(
+        (await json<{ error: { details: { adAvailable: boolean } } }>(fourth)).error.details
+          .adAvailable,
+      ).toBe(false);
+      expect(await db.reading.count()).toBe(3);
+    } finally {
+      if (before === undefined) delete process.env.ADS_MODE;
+      else process.env.ADS_MODE = before;
+      resetEnvCache();
+    }
+  });
+
   it("hides readings and images from other visitors", async () => {
     const owner = new CookieJar();
     const { readingId } = await json<{ readingId: string }>(

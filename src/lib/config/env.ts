@@ -66,7 +66,12 @@ const EnvSchema = z.object({
 
   // Ads: "placeholder" shows clearly-marked development boxes; no real network is integrated.
   // Defaults to "placeholder" in development and "off" everywhere else.
-  ADS_MODE: z.enum(["off", "placeholder"]).optional(),
+  ADS_MODE: z.enum(["off", "test", "placeholder", "gam"]).optional(),
+  /** Google Ad Manager rewarded ad unit path, e.g. /1234567/astrovidya_rewarded (ADS_MODE=gam). */
+  GAM_REWARDED_AD_UNIT: z
+    .string()
+    .regex(/^\/[0-9]+(\/[\w.-]+)+$/)
+    .optional(),
 
   // Storage
   STORAGE_PROVIDER: z.enum(["local", "s3", "memory"]).default("local"),

@@ -11,6 +11,7 @@ if (!hasTestDatabase) {
 }
 
 const TABLES = [
+  "AdReward",
   "DailyHoroscope",
   "MilanProfile",
   "KundliProfile",
