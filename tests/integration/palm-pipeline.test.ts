@@ -116,6 +116,19 @@ describe.skipIf(!hasTestDatabase)("palm analysis pipeline", () => {
     expect(image.headers.get("cache-control")).toBe("private, no-store");
   });
 
+  it("allows 2 free palm reads per device per day, then stops before any AI call", async () => {
+    const jar = new CookieJar();
+    expect((await postAnalyze(jar, await palmLikeImage())).status).toBe(201);
+    expect((await postAnalyze(jar, await palmLikeImage())).status).toBe(201);
+    const third = await postAnalyze(jar, await palmLikeImage());
+    expect(third.status).toBe(429);
+    expect(await db.reading.count()).toBe(2);
+    // Another device is unaffected; yesterday's reads don't count.
+    expect((await postAnalyze(new CookieJar(), await palmLikeImage())).status).toBe(201);
+    await db.reading.updateMany({ data: { createdAt: new Date(Date.now() - 25 * 3600_000) } });
+    expect((await postAnalyze(jar, await palmLikeImage())).status).toBe(201);
+  });
+
   it("hides readings and images from other visitors", async () => {
     const owner = new CookieJar();
     const { readingId } = await json<{ readingId: string }>(

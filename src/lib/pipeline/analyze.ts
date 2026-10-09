@@ -113,7 +113,47 @@ export async function analyzePalm(input: AnalyzeInput): Promise<AnalyzeOutput> {
   }
 }
 
+/** Free palm reads allowed per device (or account) in any 24 hours. */
+export const FREE_PALM_READS_PER_DAY = 2;
+
+/**
+ * Caps AI cost from non-buyers. A partner's palm (part of a paid couple
+ * reading), unused reading credits and membership are never limited.
+ */
+async function enforceDailyPalmLimit(input: AnalyzeInput): Promise<void> {
+  if (input.role === "partner") return;
+  if (!input.userId && !input.guestKeyHash) return;
+  if (input.userId) {
+    const [user, membership] = await Promise.all([
+      db.user.findUnique({ where: { id: input.userId }, select: { readingCredits: true } }),
+      db.entitlement.count({
+        where: {
+          type: "PREMIUM_SUBSCRIPTION",
+          userId: input.userId,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+      }),
+    ]);
+    if ((user?.readingCredits ?? 0) > 0 || membership > 0) return;
+  }
+  const used = await db.reading.count({
+    where: {
+      role: "SELF",
+      createdAt: { gt: new Date(Date.now() - 24 * 60 * 60_000) },
+      ...(input.userId ? { userId: input.userId } : { guestKeyHash: input.guestKeyHash }),
+    },
+  });
+  if (used >= FREE_PALM_READS_PER_DAY) {
+    throw new AppError("RATE_LIMITED", {
+      message: `You've used today's ${FREE_PALM_READS_PER_DAY} free palm readings. Come back tomorrow, or open your detailed reading from your earlier palm.`,
+      details: { reason: "daily_free_palm_limit" },
+    });
+  }
+}
+
 async function runAnalysis(input: AnalyzeInput, timer: PipelineTimer): Promise<AnalyzeOutput> {
+  await enforceDailyPalmLimit(input);
   const env = getEnv();
   timer.note({ uploadBytes: input.image.length });
 

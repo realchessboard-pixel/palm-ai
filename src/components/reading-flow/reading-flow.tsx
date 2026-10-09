@@ -171,6 +171,10 @@ export function ReadingFlow({ partnerFor }: { partnerFor?: string } = {}) {
         setStep({ kind: "source", error: error.message });
         return;
       }
+      if (error instanceof ApiClientError && error.details?.reason === "daily_free_palm_limit") {
+        setStep({ kind: "failed", message: error.message, canRetry: false });
+        return;
+      }
       setStep({
         kind: "failed",
         message:
