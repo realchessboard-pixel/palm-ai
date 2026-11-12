@@ -1,3 +1,4 @@
+import { InlineAd } from "@/components/ads/display-ad";
 import { getT } from "@/lib/i18n/server";
 import { T } from "@/components/i18n/i18n";
 import type { Metadata } from "next";
@@ -143,6 +144,7 @@ export default async function MahakundliReportPage({
               )}
             </p>
           ) : null}
+          <InlineAd />
           {view.unlocked ? (
             <PendingWriter
               endpoint={`/api/kundli/${view.id}/report`}

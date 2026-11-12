@@ -2,6 +2,9 @@ import { T } from "@/components/i18n/i18n";
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import { headers } from "next/headers";
+import Script from "next/script";
+import { AdsProvider, DisplayAd, StickyMobileAd } from "@/components/ads/display-ad";
+import { displayAds } from "@/lib/monetization/display-ads";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { BottomTabs } from "@/components/layout/bottom-tabs";
 import { FirstVisitLanguagePicker } from "@/components/layout/language-picker";
@@ -77,44 +80,64 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     return null;
   });
 
+  const ads = displayAds();
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   const lang = await getLanguage();
   const chosen = await hasChosenLanguage();
 
   return (
     <html lang={lang} className={`${inter.variable} ${fraunces.variable}`}>
-      <body className="sky-backdrop min-h-dvh pb-16 antialiased md:pb-0">
+      <body
+        className={`sky-backdrop min-h-dvh antialiased md:pb-0 ${ads.mode === "off" ? "pb-16" : "pb-36"}`}
+      >
+        {ads.mode === "on" ? (
+          // AdSense, with Auto ads: Google adds in-page, anchor and other ads on top of our slots.
+          <Script
+            id="adsense"
+            async
+            strategy="afterInteractive"
+            nonce={nonce}
+            crossOrigin="anonymous"
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ads.client}`}
+          />
+        ) : null}
         <I18nProvider lang={lang} dict={phrasesFor(lang)}>
-          <a
-            href="#main"
-            className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-gold-300 focus:px-4 focus:py-2 focus:text-night-950"
-          >
-            <T s="Skip to content" />
-          </a>
-          <SiteHeader
-            user={user ? { email: user.email, isAdmin: user.isAdmin } : null}
-            lang={lang}
-          />
-          <main id="main" className="relative">
-            {children}
-          </main>
-          <SiteFooter />
-          <BottomTabs
-            labels={{
-              home: t(lang, "tab.home"),
-              rashifal: t(lang, "tab.rashifal"),
-              palm: t(lang, "tab.palm"),
-              kundli: t(lang, "tab.kundli"),
-              ask: t(lang, "tab.ask"),
-            }}
-          />
-          {chosen ? null : (
-            <FirstVisitLanguagePicker
-              title={t(lang, "picker.title")}
-              subtitle={t(lang, "picker.subtitle")}
+          <AdsProvider ads={ads}>
+            <a
+              href="#main"
+              className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-gold-300 focus:px-4 focus:py-2 focus:text-night-950"
+            >
+              <T s="Skip to content" />
+            </a>
+            <SiteHeader
+              user={user ? { email: user.email, isAdmin: user.isAdmin } : null}
+              lang={lang}
             />
-          )}
-          <ServiceWorkerRegistration />
-          <ReferralCapture />
+            <DisplayAd ads={ads} position="top" />
+            <main id="main" className="relative">
+              {children}
+            </main>
+            <DisplayAd ads={ads} position="bottom" />
+            <SiteFooter />
+            <StickyMobileAd ads={ads} />
+            <BottomTabs
+              labels={{
+                home: t(lang, "tab.home"),
+                rashifal: t(lang, "tab.rashifal"),
+                palm: t(lang, "tab.palm"),
+                kundli: t(lang, "tab.kundli"),
+                ask: t(lang, "tab.ask"),
+              }}
+            />
+            {chosen ? null : (
+              <FirstVisitLanguagePicker
+                title={t(lang, "picker.title")}
+                subtitle={t(lang, "picker.subtitle")}
+              />
+            )}
+            <ServiceWorkerRegistration />
+            <ReferralCapture />
+          </AdsProvider>
         </I18nProvider>
       </body>
     </html>

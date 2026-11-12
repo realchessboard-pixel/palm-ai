@@ -16,13 +16,17 @@ function contentSecurityPolicy(nonce: string): string {
   const razorpay = process.env.PAYMENT_PROVIDER === "razorpay";
   // Google Ad Manager rewarded ads (only when ADS_MODE=gam): GPT is loaded by our
   // nonce'd code ('strict-dynamic'), then serves creatives from Google domains.
-  const ads = process.env.ADS_MODE === "gam";
+  const ads =
+    process.env.ADS_MODE === "gam" ||
+    (Boolean(process.env.NEXT_PUBLIC_ADSENSE_CLIENT) && process.env.DISPLAY_ADS !== "off");
   const adHosts = [
     "https://*.doubleclick.net",
     "https://*.googlesyndication.com",
     "https://*.google.com",
     "https://*.gstatic.com",
     "https://*.adtrafficquality.google",
+    "https://*.googleadservices.com",
+    "https://*.google.co.in",
   ];
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],

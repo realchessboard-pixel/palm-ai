@@ -1,5 +1,7 @@
 "use client";
 
+import { InlineAd } from "@/components/ads/display-ad";
+
 const LATIN_SCRIPT = new Set(["en", "de", "es", "fr", "pt", "it", "id"]);
 
 import { useT } from "@/components/i18n/i18n";
@@ -154,6 +156,8 @@ export function ResultsDashboard({
           referralNote={referralNote}
         />
       ) : null}
+
+      <InlineAd />
 
       <Card as="section" className="space-y-6" aria-labelledby="palm-map-title">
         <h2 id="palm-map-title" lang={lang} className="text-2xl">

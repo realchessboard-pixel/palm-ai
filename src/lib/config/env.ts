@@ -79,6 +79,17 @@ const EnvSchema = z.object({
   // Ads: "placeholder" shows clearly-marked development boxes; no real network is integrated.
   // Defaults to "placeholder" in development and "off" everywhere else.
   ADS_MODE: z.enum(["off", "test", "placeholder", "gam"]).optional(),
+  /** Google AdSense publisher id (ca-pub-…): display ads on every page. */
+  NEXT_PUBLIC_ADSENSE_CLIENT: z
+    .string()
+    .regex(/^ca-pub-\d{10,20}$/)
+    .optional(),
+  /** AdSense ad-unit ids for the fixed slots (Auto ads fill the rest). */
+  NEXT_PUBLIC_ADSENSE_SLOT_TOP: optionalString,
+  NEXT_PUBLIC_ADSENSE_SLOT_INLINE: optionalString,
+  NEXT_PUBLIC_ADSENSE_SLOT_BOTTOM: optionalString,
+  /** "test": grey labelled boxes where display ads go (no AdSense account needed). */
+  DISPLAY_ADS: z.enum(["on", "test", "off"]).optional(),
   /** Google Ad Manager rewarded ad unit path, e.g. /1234567/astrovidya_rewarded (ADS_MODE=gam). */
   GAM_REWARDED_AD_UNIT: z
     .string()

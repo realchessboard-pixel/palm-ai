@@ -1,5 +1,7 @@
 "use client";
 
+import { InlineAd } from "@/components/ads/display-ad";
+
 import { msg } from "@/lib/i18n/msg";
 
 import { useLang } from "@/components/i18n/i18n";
@@ -273,6 +275,8 @@ function KundliResult({
           </tbody>
         </table>
       </div>
+
+      <InlineAd />
 
       <div className="paper-card space-y-4 p-6">
         <h3 className="text-xl">
