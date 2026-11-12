@@ -1,5 +1,7 @@
 "use client";
 
+import { msg } from "@/lib/i18n/msg";
+
 import { useLang } from "@/components/i18n/i18n";
 import type { Language } from "@/lib/i18n/languages";
 import { localeFor } from "@/lib/i18n/languages";
@@ -14,6 +16,7 @@ import { computeChart, currentDasha, type Chart } from "@/lib/astro/chart";
 import { GRAHA_NAMES, NAKSHATRAS, RASHIS } from "@/lib/astro/constants";
 import { ApiClientError, postJson } from "@/lib/api-client";
 import { BirthFields, emptyBirth, parseBirth, type BirthDetails } from "./birth-form";
+import { analyzeChart, type Dignity } from "@/lib/astro/analysis";
 import { NorthIndianChart } from "./north-chart";
 
 const STORE = "palmai.kundli";
@@ -89,6 +92,15 @@ export function KundliTool({ reportPriceLabel }: { reportPriceLabel: string }) {
   );
 }
 
+const DIGNITY_LABEL: Record<Dignity, string> = {
+  exalted: msg("exalted"),
+  debilitated: msg("debilitated"),
+  "own sign": msg("own sign"),
+  "friend's sign": msg("friend's sign"),
+  "neutral sign": msg("neutral sign"),
+  "enemy's sign": msg("enemy's sign"),
+};
+
 function KundliResult({
   birth,
   chart,
@@ -106,6 +118,15 @@ function KundliResult({
   const planets = chart.planets.map((p) => ({
     ...p,
     house: ((p.rashi - lagnaRashi + 12) % 12) + 1,
+  }));
+  const analysis = useMemo(() => analyzeChart(chart, birth.timeKnown), [chart, birth.timeKnown]);
+  const byGraha = (g: string) => analysis.planets.find((x) => x.graha === g)!;
+  // Navamsa (D9): from the D9 Lagna, or the Moon's D9 sign without a birth time.
+  const d9Lagna = analysis.navamsaLagna ?? byGraha("Moon").navamsa;
+  const d9Planets = analysis.planets.map((x) => ({
+    graha: x.graha,
+    retrograde: x.retrograde,
+    house: ((x.navamsa - d9Lagna + 12) % 12) + 1,
   }));
   const facts = [
     ...(moonChart
@@ -164,15 +185,29 @@ function KundliResult({
         </p>
       ) : null}
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_1fr]">
-        <div className="paper-card flex justify-center p-4">
+      <div className="grid gap-6 md:grid-cols-2">
+        <figure className="paper-card flex flex-col items-center gap-2 p-4">
           <NorthIndianChart
             lagnaRashi={lagnaRashi}
             planets={planets}
             title={moonChart ? tx("Chandra kundli") : tx("Lagna kundli")}
           />
-        </div>
-        <dl className="paper-card divide-y divide-[var(--rule)] p-2">
+          <figcaption className="text-sm font-medium">
+            {moonChart ? tx("Chandra kundli") : tx("Lagna kundli")} (D1)
+          </figcaption>
+        </figure>
+        <figure className="paper-card flex flex-col items-center gap-2 p-4">
+          <NorthIndianChart lagnaRashi={d9Lagna} planets={d9Planets} title={tx("Navamsa chart")} />
+          <figcaption className="text-sm font-medium">
+            <T s="Navamsa chart" /> (D9) ·{" "}
+            <span className="text-mist">
+              <T s="read for marriage and inner strength" />
+            </span>
+          </figcaption>
+        </figure>
+      </div>
+      <div>
+        <dl className="paper-card grid divide-y divide-[var(--rule)] p-2 sm:grid-cols-2 sm:divide-y-0">
           {facts.map(([k, v]) => (
             <div key={k} className="flex justify-between gap-4 px-4 py-3">
               <dt className="text-mist">{k}</dt>
@@ -183,13 +218,22 @@ function KundliResult({
       </div>
 
       <div className="paper-card overflow-x-auto p-2">
-        <table className="w-full min-w-[34rem] text-left text-sm">
+        <table className="w-full min-w-[52rem] text-left text-sm">
           <caption className="px-4 pt-3 pb-2 text-left text-lg font-semibold">
             <T s="Planets (grahas)" />
           </caption>
           <thead className="text-mist">
             <tr>
-              {[tx("Graha"), tx("Rashi"), tx("Degree"), tx("Nakshatra"), tx("House")].map((h) => (
+              {[
+                tx("Graha"),
+                tx("Rashi"),
+                tx("Degree"),
+                tx("Nakshatra"),
+                tx("Nakshatra lord"),
+                tx("House"),
+                tx("Strength"),
+                tx("Navamsa"),
+              ].map((h) => (
                 <th key={h} className="px-4 py-2 font-medium">
                   {h}
                 </th>
@@ -212,7 +256,74 @@ function KundliResult({
                 <td className="px-4 py-2">
                   {NAKSHATRAS[p.nakshatra]} ({p.pada})
                 </td>
+                <td className="px-4 py-2">{byGraha(p.graha).nakshatraLord}</td>
                 <td className="px-4 py-2">{p.house}</td>
+                <td className="px-4 py-2">
+                  {[
+                    byGraha(p.graha).dignity ? tx(DIGNITY_LABEL[byGraha(p.graha).dignity!]) : "—",
+                    byGraha(p.graha).combust ? tx("combust") : null,
+                    byGraha(p.graha).vargottama ? tx("vargottama") : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </td>
+                <td className="px-4 py-2">{RASHIS[byGraha(p.graha).navamsa]!.name}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="paper-card space-y-4 p-6">
+        <h3 className="text-xl">
+          <T s="Yogas in your chart" />
+        </h3>
+        {analysis.yogas.length ? (
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {analysis.yogas.map((y) => (
+              <li key={y.name + y.basis} className="rounded-xl border border-[var(--rule)] p-4">
+                <p className="font-semibold">{y.name}</p>
+                <p className="mt-1 text-sm">{tx(y.meaning)}</p>
+                <p className="mt-2 text-xs text-mist">{y.basis}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-mist">
+            <T s="None of the classic supportive yogas we check are formed. Most charts work through their house lords and dashas instead." />
+          </p>
+        )}
+        <p className="text-xs text-mist">
+          <T s="Calculated from the placements above using common Parashari rules; traditions differ in the finer conditions." />
+        </p>
+      </div>
+
+      <div className="paper-card overflow-x-auto p-2">
+        <table className="w-full min-w-[36rem] text-left text-sm">
+          <caption className="px-4 pt-3 pb-2 text-left text-lg font-semibold">
+            <T s="Houses (bhavas) and their lords" />
+          </caption>
+          <thead className="text-mist">
+            <tr>
+              {[tx("House"), tx("Rashi"), tx("Lord"), tx("Lord sits in"), tx("Planets in it")].map(
+                (h) => (
+                  <th key={h} className="px-4 py-2 font-medium">
+                    {h}
+                  </th>
+                ),
+              )}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--rule)]">
+            {analysis.houses.map((h) => (
+              <tr key={h.house}>
+                <td className="px-4 py-2">{h.house}</td>
+                <td className="px-4 py-2">{RASHIS[h.rashi]!.name}</td>
+                <td className="px-4 py-2">{h.lord}</td>
+                <td className="px-4 py-2">
+                  {tx("House {0}", [h.lordHouse])} ({RASHIS[byGraha(h.lord).rashi]!.name})
+                </td>
+                <td className="px-4 py-2">{h.occupants.join(", ") || "—"}</td>
               </tr>
             ))}
           </tbody>

@@ -1,10 +1,11 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
+import { analysisFacts, analyzeChart } from "@/lib/astro/analysis";
 import { z } from "zod";
 import { getAiProvider, interpretationModel, premiumModel, premiumThinking } from "@/lib/ai";
 import { generateStructured } from "@/lib/ai/structured";
 import { computeChart, currentDasha, upcomingTransits, type Chart } from "@/lib/astro/chart";
-import { GRAHA_NAMES, NAKSHATRAS, RASHIS } from "@/lib/astro/constants";
+import { NAKSHATRAS, RASHIS } from "@/lib/astro/constants";
 import type { Actor } from "@/lib/auth/actor";
 import { getEnv } from "@/lib/config/env";
 import { db } from "@/lib/db";
@@ -49,6 +50,7 @@ export type KundliTeaser = z.infer<typeof TeaserSchema>;
 
 const SYSTEM = `You are a warm, experienced Vedic astrologer (Jyotish). Speak to the person as "you", in plain, elegant English, explaining Sanskrit terms briefly.
 Ground everything ONLY in the chart facts given. Present it as traditional Jyotish for reflection: "traditionally…", "your chart suggests…". Never claim certainty.
+Read like a senior jyotishi, not a sun-sign column. For each topic, name the specific factors that decide it in this chart and say what each shows: the relevant house and its sign, that house's lord and where the lord sits (and its dignity: exalted, own, friend's, enemy's or debilitated sign; combust; retrograde), planets in or aspecting the house, the natural karaka (e.g. Venus for marriage, Saturn and the 10th for career, Jupiter for children and wisdom, the 2nd and 11th for money), the Navamsa (D9) for marriage and inner strength, any yogas listed, and how the running dasha and antardasha lords connect to that house. Weigh strengths against challenges honestly and say how they balance. Use only placements present in the facts; never invent a placement, yoga or degree.
 You may name the dasha and transit PERIODS given (with their dates) as times traditionally associated with a theme. NEVER predict specific events: no marriage dates, divorce, pregnancy or children's births, illness, accidents, death, lifespan, exam or job results, or money amounts. Health means energy and habits only, never diagnoses. No doshas, Manglik or Sade Sati warnings, remedies, gemstones, pujas, mantras or donations, and no fear.
 Return valid JSON only.`;
 
@@ -119,16 +121,20 @@ export function chartFacts(chart: Chart, timeKnown: boolean): string {
   lines.push(
     `Moon: ${RASHIS[chart.moon.rashi]!.name}, nakshatra ${NAKSHATRAS[chart.moon.nakshatra]} pada ${chart.moon.pada}`,
   );
-  for (const p of chart.planets) {
-    lines.push(
-      `${GRAHA_NAMES[p.graha].sanskrit} (${p.graha}) in ${RASHIS[p.rashi]!.name}${timeKnown ? `, house ${p.house}` : ""}${p.retrograde && p.graha !== "Rahu" && p.graha !== "Ketu" ? ", retrograde" : ""}`,
-    );
-  }
+  // Calculated analysis: dignity, combustion, lords, aspects, Navamsa, yogas.
+  lines.push(...analysisFacts(analyzeChart(chart, timeKnown)));
   const now = currentDasha(chart.dasha);
   if (now.maha) {
     lines.push(
       `Current Vimshottari dasha: ${now.maha.lord} mahadasha (until ${now.maha.end.slice(0, 4)})${now.antar ? `, ${now.antar.lord} antardasha (until ${now.antar.end.slice(0, 7)})` : ""}`,
     );
+    const today = new Date().toISOString();
+    const next = now.maha.antar.filter((a) => a.start > today).slice(0, 3);
+    if (next.length) {
+      lines.push(
+        `Next antardashas: ${next.map((a) => `${a.lord} (from ${a.start.slice(0, 7)})`).join(", ")}`,
+      );
+    }
   }
   const transits = upcomingTransits(new Date());
   if (transits.length) {
