@@ -117,6 +117,30 @@ export function ResultsDashboard({
         <ReadingNarrativeView narrative={main.narrative} messages={t} lang={lang} />
       ) : null}
 
+      {/* Straight after the free reading, while interest is highest: the next step. */}
+      {reading.locked && !interpretationPending && !sample && !reading.isPartner && main ? (
+        <section
+          aria-labelledby="next-step"
+          className="rounded-3xl border border-[var(--color-gold-400)] bg-[var(--color-gold-400)]/10 p-6"
+        >
+          <p className="eyebrow">
+            <T s="This was your free reading" />
+          </p>
+          <h2 id="next-step" className="mt-1 text-2xl">
+            <T s="Your palm has much more to say" />
+          </h2>
+          <p className="mt-2 text-sm">
+            <T s="The detailed reading goes through every line and mount, and reads career, love, health and money one by one — from the same photo, no new upload." />
+          </p>
+          <a
+            href="#unlock"
+            className="mt-4 inline-flex min-h-12 items-center rounded-full bg-[#f0c27b] px-6 font-semibold text-[#2a1e17]"
+          >
+            <T s="Open my detailed reading — {0}" v={[priceLabel]} />
+          </a>
+        </section>
+      ) : null}
+
       {!sample && !interpretationPending && !reading.isPartner && main ? (
         <AskReaderCard readingId={reading.id} />
       ) : null}
@@ -223,7 +247,7 @@ export function ResultsDashboard({
       ) : null}
 
       {reading.locked && !interpretationPending ? (
-        <>
+        <div id="unlock" className="scroll-mt-20">
           <PremiumPanel
             readingId={reading.id}
             locked={reading.locked}
@@ -235,7 +259,7 @@ export function ResultsDashboard({
               main && !main.narrative.caring && main.narrative.strengths.length === 0,
             )}
           />
-        </>
+        </div>
       ) : null}
 
       <AnalysisDetails reading={reading} messages={t} />

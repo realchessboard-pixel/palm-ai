@@ -98,6 +98,27 @@ describe.skipIf(!hasTestDatabase)("Kundli reading", () => {
   const report = (jar: CookieJar, id: string) =>
     writeReport(makeRequest(`/api/kundli/${id}/report`, { json: {}, jar }), params({ id }));
 
+  it("writes the free Mahakundli answer once per IP and device, then saves charts without it", async () => {
+    const ip = { "x-forwarded-for": "203.0.113.20" };
+    const post = (jar: CookieJar) =>
+      createKundli(
+        makeRequest("/api/kundli", { json: { name: "Asha", birth }, jar, headers: ip }),
+        ctx,
+      );
+    const jar = new CookieJar();
+    const first = await json<{ kundliId: string; freeUsedBefore: boolean }>(await post(jar));
+    expect(first.freeUsedBefore).toBe(false);
+    const other = new CookieJar(); // cleared cookies, same network
+    const second = await post(other);
+    expect(second.status).toBe(201); // the chart is still saved, ready for the paid report
+    const body = await json<{ kundliId: string; freeUsedBefore: boolean }>(second);
+    expect(body.freeUsedBefore).toBe(true);
+    const a = await db.kundliProfile.findUniqueOrThrow({ where: { id: first.kundliId } });
+    const b = await db.kundliProfile.findUniqueOrThrow({ where: { id: body.kundliId } });
+    expect(a.teaser).not.toBeNull();
+    expect(b.teaser).toBeNull();
+  });
+
   it("is written only after the ₹99 purchase, for its owner only", async () => {
     const jar = new CookieJar();
     const id = await saved(jar);

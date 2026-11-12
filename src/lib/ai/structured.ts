@@ -1,6 +1,8 @@
 import "server-only";
 import type { z } from "zod";
+import { getEnv } from "@/lib/config/env";
 import { AppError } from "@/lib/http/errors";
+import { FREE_MAX_ATTEMPTS, usageCostInr } from "./cost";
 import { logger } from "@/lib/logger";
 import { JsonExtractionError, extractJson } from "./json";
 import {
@@ -25,6 +27,8 @@ export interface StructuredRequest<S extends z.ZodType> {
   maxAttempts: number;
   hints?: { hand?: "left" | "right" };
   thinking?: ThinkingLevel;
+  /** A free service: capped attempts and thinking, cost logged against FREE_COST_CAP_INR. */
+  free?: boolean;
   /** Extra semantic checks after schema validation; return problems to trigger a retry. */
   check?: (value: z.output<S>) => string[];
 }
@@ -78,7 +82,10 @@ export async function generateStructured<S extends z.ZodType>(
   let providerMs = 0;
   let validateMs = 0;
 
-  for (let attempt = 1; attempt <= request.maxAttempts; attempt++) {
+  const maxAttempts = request.free
+    ? Math.min(request.maxAttempts, FREE_MAX_ATTEMPTS)
+    : request.maxAttempts;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const prompt = problems.length ? request.prompt + correctionNote(problems) : request.prompt;
     let text: string;
     let model: string;
@@ -93,7 +100,8 @@ export async function generateStructured<S extends z.ZodType>(
         maxTokens: request.maxTokens,
         signal: AbortSignal.timeout(request.timeoutMs),
         hints: request.hints,
-        thinking: request.thinking,
+        thinking: request.free ? "low" : request.thinking,
+        free: request.free,
       });
       text = response.text;
       model = response.model;
@@ -111,7 +119,7 @@ export async function generateStructured<S extends z.ZodType>(
         });
         if (error.kind === "timeout") throw new AppError("AI_TIMEOUT", { internal: error });
         if (error.kind === "auth") throw new AppError("AI_NOT_CONFIGURED", { internal: error });
-        if (error.retryable && attempt < request.maxAttempts) {
+        if (error.retryable && attempt < maxAttempts) {
           problems = [];
           await new Promise((r) => setTimeout(r, 500 * attempt));
           continue;
@@ -154,6 +162,15 @@ export async function generateStructured<S extends z.ZodType>(
     }
 
     validateMs += performance.now() - validateStarted;
+    if (request.free) {
+      // What each free visitor really cost, for the dashboard and alerts.
+      const inr = usageCostInr(model, usage);
+      const cap = getEnv().FREE_COST_CAP_INR;
+      const fields = { task: request.task, model, attempts: attempt, inr, capInr: cap };
+      // An unpriced or over-cap free call is an alert: switch AI_FREE_MODEL to a lite model.
+      if (inr === null || inr > cap) logger.error("free_ai_cost_over_cap", fields);
+      else logger.info("free_ai_cost", fields);
+    }
     return {
       data: parsed.data,
       model,

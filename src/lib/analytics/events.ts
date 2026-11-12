@@ -37,6 +37,7 @@ export const ANALYTICS_EVENTS = [
   // Optional rewarded ad for one extra free palm reading.
   "rewarded_ad_started",
   "rewarded_ad_completed",
+  "free_limit_reached",
 ] as const;
 
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];

@@ -31,6 +31,7 @@ export const POST = withErrorHandling("kundli.create", async (request: NextReque
       guestKeyHash: guest?.guestKeyHash ?? null,
       language: languageFromRequest(request),
       withTeaser: body.purpose === "mahakundli",
+      ip: clientIp(request),
     },
     actor,
   );

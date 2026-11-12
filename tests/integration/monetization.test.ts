@@ -33,6 +33,8 @@ function setEnv(values: Record<string, string>) {
 }
 
 async function completedReading(jar: CookieJar, hand: "left" | "right" = "right") {
+  // These tests need several readings per visitor; the one-free-reading rule has its own test.
+  await db.freeClaim.deleteMany();
   const form = new FormData();
   form.set(
     "image",

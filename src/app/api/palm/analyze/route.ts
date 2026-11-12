@@ -79,6 +79,7 @@ export const POST = withErrorHandling("palm.analyze", async (request: NextReques
       role: fields.role,
       userId: actor.user?.id ?? null,
       guestKeyHash: guest?.guestKeyHash ?? null,
+      ip: clientIp(request),
     }),
   );
 

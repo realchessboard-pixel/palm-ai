@@ -480,3 +480,14 @@ model AdReward {
   @@index([userId, createdAt])
   @@index([guestKeyHash, createdAt])
 }
+
+/// One row per free service per identity (hashed IP, device or account): a free
+/// service is given once, ever. Only hashes are stored — never the raw IP.
+model FreeClaim {
+  id        String   @id @default(cuid())
+  service   String
+  keyHash   String
+  createdAt DateTime @default(now())
+
+  @@unique([service, keyHash])
+}

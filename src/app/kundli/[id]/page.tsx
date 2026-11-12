@@ -136,6 +136,12 @@ export default async function MahakundliReportPage({
               <p className="text-sm text-mist">{tr(`area.${free.id}.question`)}</p>
               <Prose text={view.teaser.text} />
             </section>
+          ) : !view.unlocked ? (
+            <p className="paper-card p-5 text-sm">
+              {tx(
+                "You've already had your free answer, so this chart opens straight to the full Mahakundli — every area of life, read from your chart, in your language.",
+              )}
+            </p>
           ) : null}
           {view.unlocked ? (
             <PendingWriter

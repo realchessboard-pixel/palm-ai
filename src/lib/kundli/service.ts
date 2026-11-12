@@ -1,8 +1,9 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
+import { claimFree } from "@/lib/monetization/free-claim";
 import { analysisFacts, analyzeChart } from "@/lib/astro/analysis";
 import { z } from "zod";
-import { getAiProvider, interpretationModel, premiumModel, premiumThinking } from "@/lib/ai";
+import { freeModel, getAiProvider, premiumModel, premiumThinking } from "@/lib/ai";
 import { generateStructured } from "@/lib/ai/structured";
 import { computeChart, currentDasha, upcomingTransits, type Chart } from "@/lib/astro/chart";
 import { NAKSHATRAS, RASHIS } from "@/lib/astro/constants";
@@ -63,20 +64,43 @@ export async function createKundli(
     language?: Language;
     /** The free Mahakundli answer; off for the Detailed Rashifal (no AI cost before purchase). */
     withTeaser?: boolean;
+    ip?: string | null;
   },
   actor: Actor,
-): Promise<{ kundliId: string }> {
+): Promise<{ kundliId: string; freeUsedBefore: boolean }> {
   const chart = computeChart(input.birth);
-  const teaser =
-    input.withTeaser === false
-      ? null
-      : await writeTeaser(
+  // The free Mahakundli answer is once per visitor (account, device and IP), ever.
+  // Later charts are still saved — they are what the paid Mahakundli is written from.
+  let teaser: Awaited<ReturnType<typeof writeTeaser>> | null = null;
+  let freeUsedBefore = false;
+  if (input.withTeaser !== false) {
+    const who = {
+      ip: input.ip ?? null,
+      guestKeyHash: actor.user ? null : input.guestKeyHash,
+      userId: actor.user?.id ?? null,
+    };
+    let release: (() => Promise<void>) | null = null;
+    try {
+      release = await claimFree("mahakundli", who);
+    } catch (error) {
+      if (!(error instanceof AppError) || error.details?.reason !== "free_used") throw error;
+      freeUsedBefore = true;
+    }
+    if (release) {
+      try {
+        teaser = await writeTeaser(
           input.name,
           input.birth,
           chart,
           input.area,
           input.language ?? DEFAULT_LANGUAGE,
         );
+      } catch (error) {
+        await release();
+        throw error;
+      }
+    }
+  }
   const kundli = await db.kundliProfile.create({
     data: {
       userId: actor.user?.id ?? null,
@@ -87,7 +111,7 @@ export async function createKundli(
       ...(teaser ? { teaser: teaser as unknown as Prisma.InputJsonValue } : {}),
     },
   });
-  return { kundliId: kundli.id };
+  return { kundliId: kundli.id, freeUsedBefore };
 }
 
 export async function getKundliView(id: string, actor: Actor) {
@@ -166,7 +190,8 @@ async function writeTeaser(
     const result = await generateStructured({
       provider,
       task: "kundli_report",
-      model: interpretationModel(provider),
+      model: freeModel(provider),
+      free: true,
       system: SYSTEM,
       prompt: `Person: ${name || "the visitor"}
 CHART FACTS (sidereal, Lahiri):

@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { getAiProvider, interpretationModel, premiumModel, premiumThinking } from "@/lib/ai";
+import { freeModel, getAiProvider, premiumModel, premiumThinking } from "@/lib/ai";
 import type { Chart } from "@/lib/astro/chart";
 import { BirthSchema, chartFacts } from "@/lib/kundli/service";
 import { generateStructured } from "@/lib/ai/structured";
@@ -232,7 +232,8 @@ async function writeAnswer(
   const result = await generateStructured({
     provider,
     task: "reader_answer",
-    model: paid ? premiumModel(provider) : interpretationModel(provider),
+    model: paid ? premiumModel(provider) : freeModel(provider),
+    free: !paid,
     system: readerSystemPrompt(reader, paid),
     prompt: readerPrompt({
       context: `${readerContext({

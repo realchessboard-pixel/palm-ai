@@ -65,6 +65,17 @@ export function interpretationModel(provider: AiProvider): string {
   return env.AI_INTERPRETATION_MODEL ?? env.AI_MODEL ?? provider.defaultModel;
 }
 
+/**
+ * Model for free content. Free visitors never touch the interpretation or
+ * premium model, so their cost stays under FREE_COST_CAP_INR.
+ */
+export function freeModel(provider: AiProvider): string {
+  const env = getEnv();
+  if (env.AI_FREE_MODEL) return env.AI_FREE_MODEL;
+  if (env.AI_PROVIDER === "gemini") return "gemini-flash-lite-latest";
+  return interpretationModel(provider);
+}
+
 /** Model for paid content (falls back to the interpretation model). */
 export function premiumModel(provider: AiProvider): string {
   const env = getEnv();

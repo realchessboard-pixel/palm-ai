@@ -1,7 +1,8 @@
 import "server-only";
 import type { Prisma, Reading } from "@prisma/client";
-import { analysisModel, getAiProvider } from "@/lib/ai";
+import { freeModel, getAiProvider } from "@/lib/ai";
 import { generateStructured } from "@/lib/ai/structured";
+import { claimFree } from "@/lib/monetization/free-claim";
 import { trackServerEvent } from "@/lib/analytics/server";
 import { getEnv } from "@/lib/config/env";
 import { db } from "@/lib/db";
@@ -9,7 +10,6 @@ import { AppError, isAppError } from "@/lib/http/errors";
 import { processPalmImage } from "@/lib/image/process";
 import { QUALITY_MESSAGES } from "@/lib/image/quality";
 import { logger } from "@/lib/logger";
-import { AD_BONUS_READINGS, adBonusUsedToday, adMode } from "@/lib/monetization/ads";
 import { trackFunnelEvent } from "@/lib/monetization/funnel";
 import { PipelineTimer, stageMetrics, usageCounts } from "@/lib/perf/timing";
 import { availableFeatures } from "@/lib/palmistry/features";
@@ -34,6 +34,8 @@ export interface AnalyzeInput {
   trainingOptIn: boolean;
   userId: string | null;
   guestKeyHash: string | null;
+  /** Client IP: the free reading is once per IP address too. */
+  ip?: string | null;
   /** A partner's palm for a couple reading (analysis only; not listed as the user's own). */
   role?: "self" | "partner";
   /** Optional development timing collector. */
@@ -114,16 +116,14 @@ export async function analyzePalm(input: AnalyzeInput): Promise<AnalyzeOutput> {
   }
 }
 
-/** Free palm reads allowed per device (or account) in any 24 hours. */
-export const FREE_PALM_READS_PER_DAY = 2;
-
 /**
- * Caps AI cost from non-buyers. A partner's palm (part of a paid couple
- * reading), unused reading credits and membership are never limited.
+ * One free palm reading per visitor, ever — counted across their account,
+ * device and IP address. A partner's palm (part of a paid couple reading),
+ * unused reading credits and membership are never limited. Returns a release
+ * function (a failed reading gives the free use back), or null when not free.
  */
-async function enforceDailyPalmLimit(input: AnalyzeInput): Promise<void> {
-  if (input.role === "partner") return;
-  if (!input.userId && !input.guestKeyHash) return;
+async function claimFreePalm(input: AnalyzeInput): Promise<(() => Promise<void>) | null> {
+  if (input.role === "partner") return null;
   if (input.userId) {
     const [user, membership] = await Promise.all([
       db.user.findUnique({ where: { id: input.userId }, select: { readingCredits: true } }),
@@ -136,32 +136,26 @@ async function enforceDailyPalmLimit(input: AnalyzeInput): Promise<void> {
         },
       }),
     ]);
-    if ((user?.readingCredits ?? 0) > 0 || membership > 0) return;
+    if ((user?.readingCredits ?? 0) > 0 || membership > 0) return null;
   }
-  const used = await db.reading.count({
-    where: {
-      role: "SELF",
-      createdAt: { gt: new Date(Date.now() - 24 * 60 * 60_000) },
-      ...(input.userId ? { userId: input.userId } : { guestKeyHash: input.guestKeyHash }),
-    },
+  return claimFree("palm", {
+    ip: input.ip ?? null,
+    guestKeyHash: input.guestKeyHash,
+    userId: input.userId,
   });
-  const owner = { userId: input.userId, guestKeyHash: input.guestKeyHash };
-  const bonusUsed = await adBonusUsedToday(owner);
-  const allowed = FREE_PALM_READS_PER_DAY + (bonusUsed ? AD_BONUS_READINGS : 0);
-  if (used >= allowed) {
-    const adAvailable = !bonusUsed && adMode() !== "off";
-    throw new AppError("RATE_LIMITED", {
-      message: adAvailable
-        ? "You've used today's {0} free palm readings. Watch a short ad for 1 more today, or come back tomorrow."
-        : "You've used today's free palm readings. Come back tomorrow, or open your detailed reading from your earlier palm.",
-      vars: [FREE_PALM_READS_PER_DAY],
-      details: { reason: "daily_free_palm_limit", adAvailable },
-    });
-  }
 }
 
 async function runAnalysis(input: AnalyzeInput, timer: PipelineTimer): Promise<AnalyzeOutput> {
-  await enforceDailyPalmLimit(input);
+  const release = await claimFreePalm(input);
+  try {
+    return await analyzeClaimed(input, timer);
+  } catch (error) {
+    await release?.();
+    throw error;
+  }
+}
+
+async function analyzeClaimed(input: AnalyzeInput, timer: PipelineTimer): Promise<AnalyzeOutput> {
   const env = getEnv();
   timer.note({ uploadBytes: input.image.length });
 
@@ -231,7 +225,7 @@ async function runAnalysis(input: AnalyzeInput, timer: PipelineTimer): Promise<A
       readingId: reading.id,
       userId: input.userId,
       aiProvider: provider.name,
-      model: analysisModel(provider),
+      model: freeModel(provider),
       isDemo: provider.isMock,
     }),
   ]);
@@ -241,7 +235,7 @@ async function runAnalysis(input: AnalyzeInput, timer: PipelineTimer): Promise<A
     result = await generateStructured({
       provider,
       task: "palm_analysis",
-      model: analysisModel(provider),
+      model: freeModel(provider),
       system: ANALYSIS_SYSTEM_PROMPT,
       prompt: buildAnalysisPrompt({ hand: input.hand }),
       image: { data: processed.image, mediaType: "image/jpeg" },
@@ -251,6 +245,8 @@ async function runAnalysis(input: AnalyzeInput, timer: PipelineTimer): Promise<A
       maxAttempts: env.AI_MAX_ATTEMPTS,
       hints: { hand: input.hand },
       thinking: env.AI_ANALYSIS_THINKING,
+      // Every palm photo is analysed before anyone pays: it is a free call.
+      free: true,
     });
     timer.add("gemini_request", result.providerMs);
     timer.add("ai_validate", result.validateMs);

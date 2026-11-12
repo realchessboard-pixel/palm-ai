@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { getAiProvider, interpretationModel } from "@/lib/ai";
+import { freeModel, getAiProvider, interpretationModel } from "@/lib/ai";
 import { generateStructured } from "@/lib/ai/structured";
 import type { Actor } from "@/lib/auth/actor";
 import { getEnv } from "@/lib/config/env";
@@ -22,6 +22,7 @@ import { collectTexts } from "./translation-texts";
 
 /** Soft cap per AI request; larger readings are translated in parallel chunks. */
 const CHUNK_CHARS = 3500;
+export const FREE_TRANSLATION_MAX_TOKENS = 5000;
 
 const TranslationOutputSchema = z.object({
   items: z
@@ -49,6 +50,7 @@ function chunk(items: { id: string; text: string }[]): { id: string; text: strin
 async function translateItems(
   items: { id: string; text: string }[],
   language: Language,
+  premium: boolean,
 ): Promise<Map<string, string>> {
   const provider = getAiProvider();
   // Demo mode has no model to translate with: show the English text.
@@ -60,11 +62,13 @@ async function translateItems(
       return generateStructured({
         provider,
         task: "reading_translation",
-        model: interpretationModel(provider),
+        model: premium ? interpretationModel(provider) : freeModel(provider),
+        free: !premium,
         system: translationSystemPrompt(language),
         prompt: translationPrompt(part),
         schema: TranslationOutputSchema,
-        maxTokens: 12000,
+        // A free reading is short (one or two ~3,500-character chunks).
+        maxTokens: premium ? 12000 : FREE_TRANSLATION_MAX_TOKENS,
         timeoutMs: env.AI_TIMEOUT_MS,
         maxAttempts: env.AI_MAX_ATTEMPTS,
         thinking: "low",
@@ -113,7 +117,7 @@ export async function ensureTranslation(
   const items = missing.map((id) => ({ id, text: visible.get(id)! }));
   const key = `${language}:${sourceHash(missing.join("|"))}`;
   return runOnce(`translate:${reading.id}`, key, async () => {
-    const translated = await translateItems(items, language);
+    const translated = await translateItems(items, language, premium);
     const patch: CachedLanguage = {};
     for (const item of items) {
       const text = translated.get(item.id);

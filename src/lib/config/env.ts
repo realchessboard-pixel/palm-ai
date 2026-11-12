@@ -25,6 +25,18 @@ const EnvSchema = z.object({
   AI_API_KEY: optionalString,
   AI_MODEL: optionalString,
   AI_INTERPRETATION_MODEL: optionalString,
+  /**
+   * Model for everything a visitor gets free (palm reading, free Mahakundli
+   * answer, free reader question). Keep it a "lite" model: each free use must
+   * stay under FREE_COST_CAP_INR. Unset on Gemini = gemini-flash-lite-latest.
+   */
+  AI_FREE_MODEL: optionalString,
+  FREE_COST_CAP_INR: z.coerce.number().min(0.1).max(10).default(2),
+  /** Each free service once per IP address, ever (plus once per device and account). */
+  FREE_ONCE_BY_IP: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((v) => v === "true"),
   AI_TIMEOUT_MS: z.coerce.number().int().min(5_000).max(300_000).default(90_000),
   AI_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(4).default(2),
   AI_EFFORT: z.enum(["low", "medium", "high"]).default("medium"),

@@ -32,6 +32,8 @@ export interface AiRequest {
    * provider's default. Providers without a matching control ignore it.
    */
   thinking?: ThinkingLevel;
+  /** A free service: low thinking budget so the call stays cheap. */
+  free?: boolean;
 }
 
 export const THINKING_LEVELS = ["low", "medium", "high"] as const;

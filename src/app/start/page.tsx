@@ -77,7 +77,7 @@ const TRUST = [
   { icon: "🌿", text: msg("Readings are for reflection and enjoyment — not predictions.") },
 ];
 
-const CHIPS = [msg("Free"), msg("19 languages"), msg("No sign-up"), msg("Private")];
+const CHIPS = [msg("First reading free"), msg("19 languages"), msg("No sign-up"), msg("Private")];
 
 const goldButton =
   "inline-flex min-h-14 items-center justify-center gap-2 rounded-full bg-[#f0c27b] px-9 text-lg font-semibold text-[#2a1e17] shadow-[0_10px_30px_-10px_rgba(240,194,123,0.7)] transition hover:bg-[#f5d39c] active:scale-[0.98]";
@@ -119,7 +119,7 @@ export default function StartPage() {
         />
         <div className="flex flex-col px-6 pt-2 pb-10 sm:min-h-[30rem] sm:max-w-[34rem] sm:justify-center sm:px-12 sm:pt-12">
           <p className="text-sm font-semibold text-[#f0c27b]">
-            <T s="Free · in your language · no sign-up" />
+            <T s="First reading free · in your language · no sign-up" />
           </p>
           <h1 className="mt-3 text-4xl leading-tight text-[#f7efe2] sm:text-5xl">
             <T s="Is your story written in your palm?" />
@@ -155,7 +155,7 @@ export default function StartPage() {
             <T s="Free" />
           </p>
           <h2 id="free-tools" className="mt-1 text-3xl sm:text-4xl">
-            <T s="Everything here is free to start" />
+            <T s="Your first reading is on us" />
           </h2>
         </div>
         <ul className="grid gap-4 sm:grid-cols-2">

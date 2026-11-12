@@ -1,4 +1,5 @@
 import "server-only";
+import { FREE_THINKING_HEADROOM } from "../cost";
 import { AiError, type AiProvider, type AiRequest, type AiResponse } from "../types";
 import { postJson } from "./http";
 
@@ -68,7 +69,8 @@ export class GeminiProvider implements AiProvider {
             responseMimeType: "application/json",
             maxOutputTokens: Math.min(
               GEMINI_MAX_OUTPUT_TOKENS,
-              request.maxTokens + GEMINI_THINKING_HEADROOM,
+              request.maxTokens +
+                (request.free ? FREE_THINKING_HEADROOM : GEMINI_THINKING_HEADROOM),
             ),
             ...(request.thinking ? { thinkingConfig: { thinkingLevel: request.thinking } } : {}),
           },

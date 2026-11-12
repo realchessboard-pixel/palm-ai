@@ -3,7 +3,6 @@
 import { msg } from "@/lib/i18n/msg";
 import { useT } from "@/components/i18n/i18n";
 import { T } from "@/components/i18n/i18n";
-import { RewardedAd, type ClientAdMode } from "@/components/ads/rewarded-ad";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -28,7 +27,7 @@ type Step =
   | { kind: "checking" }
   | { kind: "review"; image: PreparedImage }
   | { kind: "processing"; phase: PipelinePhase }
-  | { kind: "failed"; message: string; canRetry: boolean; adOffer?: boolean };
+  | { kind: "failed"; message: string; canRetry: boolean; upsell?: boolean };
 
 const AUTO_RETRIES = 2;
 const RETRY_DELAYS_MS = [1500, 4000];
@@ -71,11 +70,7 @@ const STEP_TITLES: Record<Step["kind"], string> = {
  * the partner's palm for a couple reading instead: analysis only, with the
  * partner's agreement confirmed, then on to the couple reading page.
  */
-export function ReadingFlow({
-  partnerFor,
-  adMode = "off",
-  adUnit = null,
-}: { partnerFor?: string; adMode?: ClientAdMode; adUnit?: string | null } = {}) {
+export function ReadingFlow({ partnerFor }: { partnerFor?: string } = {}) {
   const tx = useT();
   const titles = partnerFor ? PARTNER_TITLES : STEP_TITLES;
   const router = useRouter();
@@ -180,13 +175,9 @@ export function ReadingFlow({
         setStep({ kind: "source", error: error.message });
         return;
       }
-      if (error instanceof ApiClientError && error.details?.reason === "daily_free_palm_limit") {
-        setStep({
-          kind: "failed",
-          message: error.message,
-          canRetry: false,
-          adOffer: error.details?.adAvailable === true,
-        });
+      if (error instanceof ApiClientError && error.details?.reason === "free_used") {
+        track("free_limit_reached", { service: "palm" });
+        setStep({ kind: "failed", message: error.message, canRetry: false, upsell: true });
         return;
       }
       setStep({
@@ -296,15 +287,31 @@ export function ReadingFlow({
           <Alert tone="error">
             <T s={step.message} />
           </Alert>
-          {step.adOffer ? (
-            <RewardedAd
-              mode={adMode}
-              adUnit={adUnit}
-              onRewarded={() =>
-                submission.current &&
-                analyze(submission.current.image, submission.current.choices, true)
-              }
-            />
+          {step.upsell ? (
+            <div className="paper-card space-y-4 p-5">
+              <p className="font-semibold">
+                <T s="Your next step: the detailed reading" />
+              </p>
+              <ul className="space-y-1 text-sm">
+                <li>
+                  ✓ <T s="Every line and mount, explained in depth" />
+                </li>
+                <li>
+                  ✓ <T s="Career, love, health and money — one by one" />
+                </li>
+                <li>
+                  ✓ <T s="Uses the palm photo you already gave us" />
+                </li>
+              </ul>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Button onClick={() => router.push("/readings")}>
+                  <T s="Open my detailed reading" />
+                </Button>
+                <Button variant="secondary" onClick={() => router.push("/pricing")}>
+                  <T s="See all paid options" />
+                </Button>
+              </div>
+            </div>
           ) : null}
           <div className="grid gap-3 sm:grid-cols-2">
             {step.canRetry ? (

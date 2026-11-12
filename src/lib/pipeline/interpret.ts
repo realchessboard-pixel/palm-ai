@@ -1,6 +1,6 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
-import { getAiProvider, interpretationModel } from "@/lib/ai";
+import { freeModel, getAiProvider } from "@/lib/ai";
 import { generateStructured } from "@/lib/ai/structured";
 import { trackServerEvent } from "@/lib/analytics/server";
 import type { Actor } from "@/lib/auth/actor";
@@ -61,7 +61,8 @@ async function generateWithModel(analysis: PalmAnalysis, hand: "left" | "right")
   const result = await generateStructured({
     provider,
     task: "palm_interpretation",
-    model: interpretationModel(provider),
+    model: freeModel(provider),
+    free: true,
     system: INTERPRETATION_SYSTEM_PROMPT,
     prompt: buildInterpretationPrompt({ analysis, hand, available, rules }),
     schema: GeneratedTeaserSchema,

@@ -31,12 +31,18 @@ async function uploadForm(image: Buffer, fields: Record<string, string> = {}) {
   return form;
 }
 
-async function postAnalyze(jar: CookieJar, image: Buffer, fields: Record<string, string> = {}) {
+async function postAnalyze(
+  jar: CookieJar,
+  image: Buffer,
+  fields: Record<string, string> = {},
+  headers: Record<string, string> = {},
+) {
   const res = await analyze(
     makeRequest("/api/palm/analyze", {
       method: "POST",
       body: await uploadForm(image, fields),
       jar,
+      headers,
     }),
     ctx,
   );
@@ -116,63 +122,39 @@ describe.skipIf(!hasTestDatabase)("palm analysis pipeline", () => {
     expect(image.headers.get("cache-control")).toBe("private, no-store");
   });
 
-  it("allows 2 free palm reads per device per day, then stops before any AI call", async () => {
+  it("gives one free palm reading per device, account and IP — ever", async () => {
+    const ipA = { "x-forwarded-for": "203.0.113.7" };
     const jar = new CookieJar();
-    expect((await postAnalyze(jar, await palmLikeImage())).status).toBe(201);
-    expect((await postAnalyze(jar, await palmLikeImage())).status).toBe(201);
-    const third = await postAnalyze(jar, await palmLikeImage());
-    expect(third.status).toBe(429);
+    expect((await postAnalyze(jar, await palmLikeImage(), {}, ipA)).status).toBe(201);
+    // Same device, even a day later: no second free reading.
+    await db.reading.updateMany({ data: { createdAt: new Date(Date.now() - 400 * 86400_000) } });
+    const again = await postAnalyze(jar, await palmLikeImage(), {}, ipA);
+    expect(again.status).toBe(429);
+    expect(
+      (await json<{ error: { details: { reason: string } } }>(again)).error.details.reason,
+    ).toBe("free_used");
+    // A new device (cleared cookies) on the same IP: still used.
+    expect((await postAnalyze(new CookieJar(), await palmLikeImage(), {}, ipA)).status).toBe(429);
+    // The same device on another network: still used.
+    const ipB = { "x-forwarded-for": "198.51.100.9" };
+    expect((await postAnalyze(jar, await palmLikeImage(), {}, ipB)).status).toBe(429);
+    // A genuinely new visitor elsewhere gets theirs.
+    const ipC = { "x-forwarded-for": "192.0.2.44" };
+    expect((await postAnalyze(new CookieJar(), await palmLikeImage(), {}, ipC)).status).toBe(201);
     expect(await db.reading.count()).toBe(2);
-    // Another device is unaffected; yesterday's reads don't count.
-    expect((await postAnalyze(new CookieJar(), await palmLikeImage())).status).toBe(201);
-    await db.reading.updateMany({ data: { createdAt: new Date(Date.now() - 25 * 3600_000) } });
-    expect((await postAnalyze(jar, await palmLikeImage())).status).toBe(201);
+    // Raw IPs are never stored.
+    const claims = await db.freeClaim.findMany();
+    expect(JSON.stringify(claims)).not.toContain("203.0.113.7");
   });
 
-  it("a chosen rewarded ad gives exactly 1 extra free palm reading per day", async () => {
-    const { POST: reward } = await import("@/app/api/ads/reward/route");
-    const { resetEnvCache } = await import("@/lib/config/env");
-    const claim = (jar: CookieJar) =>
-      reward(makeRequest("/api/ads/reward", { json: {}, jar }), { params: Promise.resolve({}) });
-    const before = process.env.ADS_MODE;
-    try {
-      process.env.ADS_MODE = "off";
-      resetEnvCache();
-      const jar = new CookieJar();
-      await postAnalyze(jar, await palmLikeImage());
-      await postAnalyze(jar, await palmLikeImage());
-      const blockedOff = await postAnalyze(jar, await palmLikeImage());
-      expect(blockedOff.status).toBe(429);
-      expect(
-        (await json<{ error: { details: { adAvailable: boolean } } }>(blockedOff)).error.details
-          .adAvailable,
-      ).toBe(false);
-      expect((await claim(jar)).status).toBe(404);
-
-      process.env.ADS_MODE = "test";
-      resetEnvCache();
-      const third = await postAnalyze(jar, await palmLikeImage());
-      expect(
-        (await json<{ error: { details: { adAvailable: boolean } } }>(third)).error.details
-          .adAvailable,
-      ).toBe(true);
-      expect((await claim(new CookieJar())).status).toBe(401);
-      expect((await claim(jar)).status).toBe(200);
-      expect((await postAnalyze(jar, await palmLikeImage())).status).toBe(201);
-      // Only one ad bonus per day.
-      expect((await claim(jar)).status).toBe(409);
-      const fourth = await postAnalyze(jar, await palmLikeImage());
-      expect(fourth.status).toBe(429);
-      expect(
-        (await json<{ error: { details: { adAvailable: boolean } } }>(fourth)).error.details
-          .adAvailable,
-      ).toBe(false);
-      expect(await db.reading.count()).toBe(3);
-    } finally {
-      if (before === undefined) delete process.env.ADS_MODE;
-      else process.env.ADS_MODE = before;
-      resetEnvCache();
-    }
+  it("gives the free reading back when the AI fails", async () => {
+    setAiProvider(new ScriptedProvider([new AiError("unavailable", "down")]));
+    const jar = new CookieJar();
+    const ip = { "x-forwarded-for": "203.0.113.8" };
+    expect((await postAnalyze(jar, await palmLikeImage(), {}, ip)).status).toBeGreaterThanOrEqual(
+      500,
+    );
+    expect(await db.freeClaim.count()).toBe(0);
   });
 
   it("hides readings and images from other visitors", async () => {
@@ -487,7 +469,9 @@ describe.skipIf(!hasTestDatabase)("palm analysis pipeline", () => {
         await postAnalyze(jar, await palmLikeImage()),
       );
       await interpret(makeRequest("/api/palm/interpret", { json: { readingId }, jar }), ctx);
-      expect(provider.requests.map((r) => r.thinking)).toEqual([undefined, "low"]);
+      // Both palm calls are free, so both run on low thinking to stay under the cost cap.
+      expect(provider.requests.map((r) => r.thinking)).toEqual(["low", "low"]);
+      expect(provider.requests.every((r) => r.free)).toBe(true);
     });
 
     it("collapses a repeated upload (same request id) onto one reading and one AI call", async () => {
@@ -499,6 +483,7 @@ describe.skipIf(!hasTestDatabase)("palm analysis pipeline", () => {
       const first = await postAnalyze(jar, await palmLikeImage());
       expect(first.status).toBe(201);
       provider.requests.length = 0;
+      await db.freeClaim.deleteMany(); // a second reading for this visitor
 
       const requestId = "44444444-4444-4444-8444-444444444444";
       setAiProvider(new ScriptedProvider([JSON.stringify(sampleAnalysis())]));

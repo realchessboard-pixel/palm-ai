@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { ReadingFlow } from "@/components/reading-flow/reading-flow";
 import { Disclaimer } from "@/components/ui/disclaimer";
-import { adMode, rewardedAdUnit } from "@/lib/monetization/ads";
 
 export async function generateMetadata(): Promise<Metadata> {
   const tx = await getT();
@@ -21,7 +20,7 @@ export default async function ReadPage() {
   await connection();
   return (
     <div className="px-4 pt-8 pb-20 sm:px-6 sm:pt-14">
-      <ReadingFlow adMode={adMode()} adUnit={rewardedAdUnit()} />
+      <ReadingFlow />
       <Disclaimer compact className="mx-auto mt-12 max-w-xl" />
     </div>
   );
