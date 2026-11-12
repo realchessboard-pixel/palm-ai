@@ -4,7 +4,7 @@ import { Fraunces, Inter } from "next/font/google";
 import { headers } from "next/headers";
 import Script from "next/script";
 import { AdsProvider, DisplayAd, StickyMobileAd } from "@/components/ads/display-ad";
-import { displayAds } from "@/lib/monetization/display-ads";
+import { displayAds, isPayingVisitor } from "@/lib/monetization/display-ads";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { BottomTabs } from "@/components/layout/bottom-tabs";
 import { FirstVisitLanguagePicker } from "@/components/layout/language-picker";
@@ -15,7 +15,7 @@ import { t } from "@/lib/i18n/ui";
 import { SiteHeader } from "@/components/layout/site-header";
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
 import { ReferralCapture } from "@/components/share/referral-capture";
-import { getCurrentUser } from "@/lib/auth/actor";
+import { getActor, getCurrentUser } from "@/lib/auth/actor";
 import { siteConfig } from "@/lib/config/site";
 import { logger } from "@/lib/logger";
 import "./globals.css";
@@ -80,7 +80,14 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     return null;
   });
 
-  const ads = displayAds();
+  // Paying visitors never see ads; if the check fails, show none rather than risk it.
+  const paying =
+    displayAds().mode === "off"
+      ? true
+      : await getActor()
+          .then(isPayingVisitor)
+          .catch(() => true);
+  const ads = paying ? ({ mode: "off" } as const) : displayAds();
   const nonce = (await headers()).get("x-nonce") ?? undefined;
   const lang = await getLanguage();
   const chosen = await hasChosenLanguage();

@@ -476,3 +476,41 @@ describe.skipIf(!hasTestDatabase)("₹49 detailed reading", () => {
     expect(allProps).not.toMatch(/@|email|password|cookie|guestKey/i);
   });
 });
+
+describe.skipIf(!hasTestDatabase)("display ads", () => {
+  beforeEach(async () => {
+    await resetDatabase();
+  });
+
+  it("never show to anyone who has paid, guest or signed in", async () => {
+    const { isPayingVisitor } = await import("@/lib/monetization/display-ads");
+    const guest = { user: null, guestKeyHash: "g-paid" } as never;
+    const freeGuest = { user: null, guestKeyHash: "g-free" } as never;
+    const reading = await db.reading.create({
+      data: { guestKeyHash: "g-paid", hand: "RIGHT", status: "COMPLETE", imageKey: "k" },
+    });
+    await db.reading.create({
+      data: { guestKeyHash: "g-free", hand: "RIGHT", status: "COMPLETE", imageKey: "k2" },
+    });
+    expect(await isPayingVisitor(guest)).toBe(false);
+    await db.payment.create({
+      data: {
+        readingId: reading.id,
+        provider: "MOCK",
+        amount: 4900,
+        currency: "INR",
+        status: "PENDING",
+      },
+    });
+    expect(await isPayingVisitor(guest)).toBe(false); // started, not paid
+    await db.payment.updateMany({ data: { status: "PAID" } });
+    expect(await isPayingVisitor(guest)).toBe(true);
+    expect(await isPayingVisitor(freeGuest)).toBe(false);
+
+    const user = await db.user.create({ data: { email: "p@x.in", passwordHash: "x" } });
+    const signedIn = { user: { id: user.id }, guestKeyHash: null } as never;
+    expect(await isPayingVisitor(signedIn)).toBe(false);
+    await db.user.update({ where: { id: user.id }, data: { readingCredits: 1 } });
+    expect(await isPayingVisitor(signedIn)).toBe(true);
+  });
+});
